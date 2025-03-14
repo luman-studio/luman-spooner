@@ -1,0 +1,9 @@
+#properties-entity-id-container {
+	display: flex;
+	gap: 0.5em;
+}
+
+#properties-net-id-container {
+	display: flex;
+	gap: 0.5em;
+}

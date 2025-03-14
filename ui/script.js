@@ -1137,6 +1137,12 @@ function updatePropertiesMenu(data) {
 		entity.innerHTML = data.entity.toString();
 	}
 
+	document.querySelector('#properties-entity-id').innerHTML = data.entity.toString();
+	if (properties.netId) {
+		document.querySelector('#properties-net-id').innerHTML = properties.netId.toString();
+	} else {
+		document.querySelector('#properties-net-id').innerHTML = '-';
+	}
 	document.querySelector('#properties-model').innerHTML = properties.name;
 
 	setFieldIfInactive('properties-x', properties.x);
@@ -2540,10 +2546,18 @@ window.addEventListener('load', function() {
 		copyToClipboard(x + ', ' + y + ', ' + z)
 	});
 
+	document.getElementById('copy-entity-id').addEventListener('click', function(event) {
+		copyToClipboard(currentEntity())
+	});
+
+	document.getElementById('copy-net-id').addEventListener('click', function(event) {
+		copyToClipboard(document.querySelector('#properties-net-id').innerHTML);
+	});
+
 	document.getElementById('copy-model-name').addEventListener('click', function(event) {
-               var modelname = document.getElementById('properties-model').innerText;
-               copyToClipboard(modelname)
-       });
+		var modelname = document.getElementById('properties-model').innerText;
+		copyToClipboard(modelname)
+	});
 
 	document.getElementById('copy-attachment-rotation').addEventListener('click', function(event) {
 		var p = document.getElementById('attachment-pitch').value;

@@ -17,7 +17,9 @@ files {
 	"ui/font-awesome.min.css",
 	"ui/style.css",
 	"ui/script.js",
-	"ui/keyboard.ttf"
+	"ui/keyboard.ttf",
+	"ui/style_extended.css",
+	"ui/script_extended.js",
 }
 
 ui_page "ui/index.html"

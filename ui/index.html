@@ -3,8 +3,10 @@
 		<title>Spooner</title>
 		<link rel="stylesheet" href="font-awesome.min.css">
 		<link rel="stylesheet" href="style.css">
+		<link rel="stylesheet" href="style_extended.css">
 		<link rel="stylesheet" href="gta5.css">
 		<link rel="stylesheet" href="rdr3.css">
+		<script src="script_extended.js"></script>
 		<script src="script.js"></script>
 	</head>
 	<body>
@@ -305,6 +307,23 @@
 				<div class="value" id="properties-menu-entity-id"></div>
 			</div>
 			<div id="properties" class="list">
+
+				<div class="property" id="properties-entity-id-container">
+					<div class="label">ID</div>
+					<div class="value" id="properties-entity-id"></div>
+					<button id="copy-entity-id" class="copy-button">
+						<i class="fas fa-clipboard" aria-hidden="true"></i>
+					</button>
+				</div>
+
+				<div class="property" id="properties-net-id-container">
+					<div class="label">NET</div>
+					<div class="value" id="properties-net-id"></div>
+					<button id="copy-net-id" class="copy-button">
+						<i class="fas fa-clipboard" aria-hidden="true"></i>
+					</button>
+				</div>
+
 				<div class="property" id="properties-model-container">
 					<div class="label">Model</div>
 					<div class="value" id="properties-model"></div>
