@@ -1,3 +1,4 @@
+var isSpoonerHudOpened = false;
 var peds = [];
 var vehicles = [];
 var objects = [];
@@ -55,10 +56,13 @@ function copyToClipboard(text) {
 
 function showSpoonerHud() {
 	document.querySelector('#hud').style.display = 'block';
+	isSpoonerHudOpened = true;
 }
 
 function hideSpoonerHud() {
 	document.querySelector('#hud').style.display = 'none';
+	closeAllMenus();
+	isSpoonerHudOpened = false;
 }
 
 function updateSpoonerHud(data) {
