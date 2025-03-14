@@ -79,3 +79,4 @@ else
 end
 
 client_script "client.lua"
+client_script "client_extended.lua"
