@@ -14,6 +14,7 @@ repository "https://github.com/kibook/spooner"
 
 files {
 	"ui/index.html",
+	"ui/font-awesome.min.css",
 	"ui/style.css",
 	"ui/script.js",
 	"ui/keyboard.ttf"
