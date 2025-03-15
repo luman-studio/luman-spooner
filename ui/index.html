@@ -303,135 +303,127 @@
 		</div>
 		<div id="properties-menu" class="menu">
 			<div id="properties-menu-entity">
-				<div class="label">Properties for <span id="properties-menu-entity-type"></span></div>
+				<div class="label">Entity (<span id="properties-menu-entity-type"></span>)</div>
 				<div class="value" id="properties-menu-entity-id"></div>
 			</div>
 			<div id="properties" class="list">
 
-				<div class="property" id="properties-entity-id-container">
-					<div class="label">ID</div>
-					<div class="value" id="properties-entity-id"></div>
+				<div class="property multiple">
 					<button id="copy-entity-id" class="copy-button">
 						<i class="fas fa-clipboard" aria-hidden="true"></i>
+						Id
 					</button>
-				</div>
-
-				<div class="property" id="properties-net-id-container">
-					<div class="label">NET</div>
-					<div class="value" id="properties-net-id"></div>
+	
+					
 					<button id="copy-net-id" class="copy-button">
 						<i class="fas fa-clipboard" aria-hidden="true"></i>
+						Net
+					</button>
+					
+					<button id="copy-model-name" class="copy-button">
+						<i class="fas fa-clipboard" aria-hidden="true"></i>
+						Model
 					</button>
 				</div>
 
-				<div class="property" id="properties-model-container">
-					<div class="label">Model</div>
-					<div class="value" id="properties-model"></div>
-					<button id="copy-model-name" class="copy-button">
-						<i class="fas fa-clipboard" aria-hidden="true"></i>
-					</button>
-				</div>
 				<div class="property multiple">
 					<button id="properties-select"><i class="fas fa-hand-pointer"></i> Select</button>
 					<button id="properties-focus"><i class="fas fa-crosshairs"></i> Focus</button>
 				</div>
-				<div class="property">
-					<button id="properties-add-to-db" class="add-remove-db"><i class="fas fa-database"></i> Add to DB</button>
-					<button id="properties-remove-from-db" class="add-remove-db"><i class="fas fa-minus-circle"></i> Remove from DB</button>
-				</div>
-				<div class="property">
-					<button id="properties-freeze"><i class="fas fa-snowflake"></i> Freeze</button>
-					<button id="properties-unfreeze"><i class="fas fa-wind"></i> Unfreeze</button>
-				</div>
-				<div class="property">
-					<div class="label">Position</div>
-					<div class="labelled-input-group">
-						<div class="labelled-input">
-							<div class="input-label">Speed</div>
-							<input type="number" class="adjust-speed" step="0.01">
-						</div>
-						<div class="labelled-input">
-							<div class="input-label">X</div>
-							<input type="number" class="set-coords adjust-input" id="properties-x" step="0.01">
-						</div>
-						<div class="labelled-input">
-							<div class="input-label">Y</div>
-							<input type="number" class="set-coords adjust-input" id="properties-y" step="0.01">
-						</div>
-						<div class="labelled-input">
-							<div class="input-label">Z</div>
-							<input type="number" class="set-coords adjust-input" id="properties-z" step="0.01">
-						</div>
-						<button id="copy-position" class="copy-button">
-							<i class="fas fa-clipboard"></i>
-						</button>
+
+				<details open="true">
+					<summary>Position</summary>
+					<div class="property">
+						<div class="labelled-input-group">
+							<div class="labelled-input">
+								<div class="input-label">Speed</div>
+								<input type="number" class="adjust-speed" step="0.01">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label">X</div>
+								<input type="number" class="set-coords adjust-input" id="properties-x" step="0.01">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label">Y</div>
+								<input type="number" class="set-coords adjust-input" id="properties-y" step="0.01">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label">Z</div>
+								<input type="number" class="set-coords adjust-input" id="properties-z" step="0.01">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label"></div>
+								<div class="property multiple">
+									<button id="copy-position" >
+										<i class="fas fa-clipboard"></i>
+										Copy Pos
+									</button>
+									<button id="properties-freeze"><i class="fas fa-snowflake"></i> Freeze Pos</button>
+									<button id="properties-unfreeze"><i class="fas fa-wind"></i> Unfreeze Pos</button>
+								</div>
+							</div>
+							<div class="labelled-input">
+								<div class="input-label"></div>
+								<div class="property multiple">
+									<button id="properties-place-here"><i class="fas fa-map-marker-alt"></i> Entity To Cursor</button>
+									<button id="properties-goto"><i class="fas fa-location-arrow"></i> TP Player</button>
+								</div>
+							</div>
+							</div>
 					</div>
-				</div>
-				<div class="property multiple">
-					<button id="properties-place-here"><i class="fas fa-map-marker-alt"></i> Place Here</button>
-					<button id="properties-goto"><i class="fas fa-location-arrow"></i> Go To</button>
-				</div>
-				<div class="property">
-					<div class="label">Rotation</div>
-					<div class="labelled-input-group">
-						<div class="labelled-input">
-							<div class="input-label">Speed</div>
-							<input type="number" class="rotate-speed" step="0.1">
+
+				</details>
+
+				<details open="true">
+					<summary>Rotation</summary>
+					<div class="property">
+						<div class="labelled-input-group">
+							<div class="labelled-input">
+								<div class="input-label">Speed</div>
+								<input type="number" class="rotate-speed" step="0.1">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label">Pitch</div>
+								<input type="number" class="set-rotation rotate-input" id="properties-pitch" min="-359" max="359" step="1">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label">Roll</div>
+								<input type="number" class="set-rotation rotate-input" id="properties-roll" min="-359" max="359" step="1">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label">Yaw</div>
+								<input type="number" class="set-rotation rotate-input" id="properties-yaw" min="-359" max="359" step="1">
+							</div>
+							<div class="labelled-input">
+								<div class="input-label"></div>
+								<div class="property multiple">
+	
+									<button id="copy-rotation"><i class="fas fa-clipboard"></i> Copy Rot</button>
+									<button id="properties-reset-rotation"><i class="fas fa-redo"></i> Reset Rot</button>
+	
+								</div>
+							</div>
+	
 						</div>
-						<div class="labelled-input">
-							<div class="input-label">Pitch</div>
-							<input type="number" class="set-rotation rotate-input" id="properties-pitch" min="-359" max="359" step="1">
-						</div>
-						<div class="labelled-input">
-							<div class="input-label">Roll</div>
-							<input type="number" class="set-rotation rotate-input" id="properties-roll" min="-359" max="359" step="1">
-						</div>
-						<div class="labelled-input">
-							<div class="input-label">Yaw</div>
-							<input type="number" class="set-rotation rotate-input" id="properties-yaw" min="-359" max="359" step="1">
-						</div>
-						<button id="copy-rotation" class="copy-button">
-							<i class="fas fa-clipboard"></i>
-						</button>
 					</div>
-				</div>
-				<div class="property">
-					<button id="properties-reset-rotation"><i class="fas fa-redo"></i> Reset Rotation</button>
-				</div>
-				<div class="property">
-					<div class="label">Health</div>
-					<input type="number" id="properties-health" min="0" step="1">
-				</div>
-				<div class="property multiple">
-					<button id="properties-invincible-on"><i class="fas fa-shield-alt"></i> Invincibility On</button>
-					<button id="properties-invincible-off"><i class="fas fa-shield-alt fa-slash"></i> Invincibility Off</button>
-				</div>
-				<div class="property">
-					<button id="properties-visible"><i class="fas fa-eye"></i> Visibility On</button>
-					<button id="properties-invisible"><i class="fas fa-eye-slash"></i> Visibility Off</button>
-				</div>
-				<div class="property multiple">
-					<button id="properties-gravity-on"><i class="fas fa-arrow-down"></i> Gravity On</button>
-					<button id="properties-gravity-off"><i class="fas fa-arrow-up"></i> Gravity Off</button>
-				</div>
-				<div class="property">
-					<button id="properties-collision-on"><i class="fas fa-object-group"></i> Collision On</button>
-					<button id="properties-collision-off"><i class="fas fa-object-ungroup"></i> Collision Off</button>
-				</div>
-				<div class="property">
-					<button id="properties-clone"><i class="fas fa-clone"></i> Clone</button>
-				</div>
-				<div class="property">
-					<button id="properties-attach"><i class="fas fa-link"></i> Attachment Options</button>
-				</div>
+				</details>
+				
+
 				<div class="property ped-property">
 					<button id="properties-ped-options"><i class="fas fa-user-cog"></i> Ped Options</button>
 				</div>
 				<div class="property vehicle-property">
 					<button id="properties-vehicle-options"><i class="fas fa-car-alt"></i> Vehicle Options</button>
 				</div>
+				<div class="property">
+					<button id="properties-attach"><i class="fas fa-link"></i> Attachment Options</button>
+				</div>
 				<div class="property object-property">
 					<button id="properties-lights-options"><i class="fas fa-lightbulb"></i> Light Options</button>
+				</div>
+
+				<div class="property">
+					<button id="properties-clone"><i class="fas fa-clone"></i> Clone</button>
 				</div>
 				<div class="property">
 					<button id="properties-register-as-networked"><i class="fas fa-network-wired"></i> Register as Networked</button>
@@ -440,6 +432,35 @@
 				<div class="property">
 					<button id="properties-delete"><i class="fas fa-trash"></i> Delete</button>
 				</div>
+
+				<div class="property">
+					<button id="properties-add-to-db" class="add-remove-db"><i class="fas fa-database"></i> Add to DB</button>
+					<button id="properties-remove-from-db" class="add-remove-db"><i class="fas fa-minus-circle"></i> Remove from DB</button>
+				</div>
+
+				<details>
+					<summary>Additional Options</summary>
+					<div class="property">
+						<div class="label">Health</div>
+						<input type="number" id="properties-health" min="0" step="1">
+					</div>
+					<div class="property multiple">
+						<button id="properties-invincible-on"><i class="fas fa-shield-alt"></i> Invincibility On</button>
+						<button id="properties-invincible-off"><i class="fas fa-shield-alt fa-slash"></i> Invincibility Off</button>
+					</div>
+					<div class="property">
+						<button id="properties-visible"><i class="fas fa-eye"></i> Visibility On</button>
+						<button id="properties-invisible"><i class="fas fa-eye-slash"></i> Visibility Off</button>
+					</div>
+					<div class="property multiple">
+						<button id="properties-gravity-on"><i class="fas fa-arrow-down"></i> Gravity On</button>
+						<button id="properties-gravity-off"><i class="fas fa-arrow-up"></i> Gravity Off</button>
+					</div>
+					<div class="property">
+						<button id="properties-collision-on"><i class="fas fa-object-group"></i> Collision On</button>
+						<button id="properties-collision-off"><i class="fas fa-object-ungroup"></i> Collision Off</button>
+					</div>
+				</details>
 			</div>
 			<button id="properties-menu-close-btn"><i class="fas fa-times"></i> Close</button>
 		</div>

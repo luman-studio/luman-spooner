@@ -30,13 +30,38 @@ const favouriteTypes = [
 var favourites = {};
 
 function sendMessage(name, params) {
-	return fetch('https://' + GetParentResourceName() + '/' + name, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify(params)
-	});
+	if (typeof GetParentResourceName !== "undefined") { 
+		return fetch('https://' + GetParentResourceName() + '/' + name, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(params)
+		});
+	} else {
+
+		return new Promise((resolve) => {
+			// Simulate a server response
+			resolve({
+				json: () => Promise.resolve({ 
+					peds: "[]",
+					favourites: "[]",
+					vehicles: "[]",
+					objects: "[]",
+					scenarios: "[]",
+					weapons: "[]",
+					animations: "[]",
+					propsets: "[]",
+					pickups: "[]",
+					bones: "[]",
+					walkStyleBases: "[]",
+					walkStyles: "[]",
+					adjustSpeed: 0,
+					rotateSpeed: 0,
+				}) // Mock response
+			});
+		});
+	}
 }
 
 function copyToClipboard(text) {
@@ -1141,13 +1166,13 @@ function updatePropertiesMenu(data) {
 		entity.innerHTML = data.entity.toString();
 	}
 
-	document.querySelector('#properties-entity-id').innerHTML = data.entity.toString();
+	document.querySelector('#copy-entity-id').setAttribute('data-entity-id', data.entity.toString());
 	if (properties.netId) {
-		document.querySelector('#properties-net-id').innerHTML = properties.netId.toString();
+		document.querySelector('#copy-net-id').setAttribute('data-net-id', properties.netId.toString());
 	} else {
-		document.querySelector('#properties-net-id').innerHTML = '-';
+		document.querySelector('#copy-net-id').setAttribute('data-net-id', '');
 	}
-	document.querySelector('#properties-model').innerHTML = properties.name;
+	document.querySelector('#copy-model-name').setAttribute('data-model-name', properties.name);
 
 	setFieldIfInactive('properties-x', properties.x);
 	setFieldIfInactive('properties-y', properties.y);
@@ -2551,16 +2576,15 @@ window.addEventListener('load', function() {
 	});
 
 	document.getElementById('copy-entity-id').addEventListener('click', function(event) {
-		copyToClipboard(currentEntity())
+		copyToClipboard(event.target.getAttribute('data-entity-id'));
 	});
 
 	document.getElementById('copy-net-id').addEventListener('click', function(event) {
-		copyToClipboard(document.querySelector('#properties-net-id').innerHTML);
+		copyToClipboard(event.target.getAttribute('data-net-id'));
 	});
 
 	document.getElementById('copy-model-name').addEventListener('click', function(event) {
-		var modelname = document.getElementById('properties-model').innerText;
-		copyToClipboard(modelname)
+		copyToClipboard(event.target.getAttribute('data-model-name'))
 	});
 
 	document.getElementById('copy-attachment-rotation').addEventListener('click', function(event) {
@@ -2601,3 +2625,11 @@ window.addEventListener('load', function() {
 		}, handle);
 	});
 });
+
+function test() {
+	document.querySelector('#properties-menu').style.display = 'flex';
+}
+// Uncomment for testing in browser
+// setTimeout(() => {
+// 	test();
+// }, 50);
