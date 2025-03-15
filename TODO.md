@@ -21,3 +21,5 @@
 
 Preview spawn object: 
 https://github.com/keeganwut/spooner
+Plants (rdr2):
+https://github.com/zetafe1/spooner_plants
