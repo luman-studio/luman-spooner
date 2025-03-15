@@ -7,3 +7,7 @@
 	display: flex;
 	gap: 0.5em;
 }
+
+#properties {
+	scrollbar-gutter: stable;
+}

@@ -195,7 +195,7 @@ input:disabled {
 }
 
 ::-webkit-scrollbar-thumb {
-	background-color: white;
+	background-color: rgb(128, 128, 128);
 }
 
 .object {
