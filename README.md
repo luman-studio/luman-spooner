@@ -152,17 +152,17 @@ Entering a URL of a JSON/XML file in the **Import from URL** field and clicking 
 # Adjustments by Luman Studio
 
 <p align="center">
-  <img src="docs/entity-properties-menu1.png" alt="Description" width=100% height=50%>
+  <img src="showcase/entity-properties-menu1.png" alt="Description" width=100% height=50%>
 </p>
 
 <div style="display: flex; justify-content: center; gap: 10px;">
   <a>
-    <img src="docs/entity-properties-menu2.png" alt="Description" width="30%" height="auto">
+    <img src="showcase/entity-properties-menu2.png" alt="Description" width="30%" height="auto">
   </a>
   <a>
-    <img src="docs/ped-options-menu1.png" alt="Description" width="30%" height="auto">
+    <img src="showcase/ped-options-menu1.png" alt="Description" width="30%" height="auto">
   </a>
   <a>
-    <img src="docs/vehicle-options-menu1.png" alt="Description" width="30%" height="auto">
+    <img src="showcase/vehicle-options-menu1.png" alt="Description" width="30%" height="auto">
   </a>
 </div>
