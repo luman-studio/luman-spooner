@@ -1,7 +1,7 @@
 <html>
 	<head>
 		<title>Spooner</title>
-		<link rel="stylesheet" href="font-awesome.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 		<link rel="stylesheet" href="style.css">
 		<link rel="stylesheet" href="style_extended.css">
 		<link rel="stylesheet" href="gta5.css">
@@ -148,22 +148,22 @@
 		<div id="spawn-menu" class="menu">
 			<div id="spawn-categories">
 				<div class="spawn-category">
-					<button id="spawn-menu-peds">Peds</button>
+					<button id="spawn-menu-peds"><i class="fas fa-user"></i> Peds</button>
 				</div>
 				<div class="spawn-category">
-					<button id="spawn-menu-vehicles">Vehicles</button>
+					<button id="spawn-menu-vehicles"><i class="fas fa-car"></i> Vehicles</button>
 				</div>
 				<div class="spawn-category">
-					<button id="spawn-menu-objects">Objects</button>
+					<button id="spawn-menu-objects"><i class="fas fa-cube"></i> Objects</button>
 				</div>
 				<div class="spawn-category">
-					<button id="spawn-menu-propsets">Propsets</button>
+					<button id="spawn-menu-propsets"><i class="fas fa-cubes"></i> Propsets</button>
 				</div>
 				<div class="spawn-category">
-					<button id="spawn-menu-pickups">Pickups</button>
+					<button id="spawn-menu-pickups"><i class="fas fa-hand-holding"></i> Pickups</button>
 				</div>
 			</div>
-			<button id="spawn-menu-close">Close</button>
+			<button id="spawn-menu-close"><i class="fas fa-times"></i> Close</button>
 		</div>
 		<div id="ped-menu" class="menu">
 			<div id="ped-search" class="search">
@@ -173,8 +173,8 @@
 				</button>
 			</div>
 			<div id="ped-list" class="list"></div>
-			<button id="ped-spawn-by-name" class="spawn-by-name">Spawn By Name</button>
-			<button id="ped-menu-close-btn">Back</button>
+			<button id="ped-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<button id="ped-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="vehicle-menu" class="menu">
 			<div id="vehicle-search" class="search">
@@ -184,8 +184,8 @@
 				</button>
 			</div>
 			<div id="vehicle-list" class="list"></div>
-			<button id="vehicle-spawn-by-name" class="spawn-by-name">Spawn By Name</button>
-			<button id="vehicle-menu-close-btn">Back</button>
+			<button id="vehicle-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<button id="vehicle-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="object-menu" class="menu">
 			<div id="object-search" class="search">
@@ -195,8 +195,8 @@
 				</button>
 			</div>
 			<div id="object-list" class="list"></div>
-			<button id="object-spawn-by-name" class="spawn-by-name">Spawn By Name</button>
-			<button id="object-menu-close-btn">Back</button>
+			<button id="object-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<button id="object-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="object-database" class="menu">
 			<div id="object-database-stats">
@@ -207,20 +207,20 @@
 				<div class="object-database-stat">Obj: <span id="object-database-total-objects"></span></div>
 			</div>
 			<div id="object-database-list" class="list"></div>
-			<button id="add-to-db-btn">Add to DB</button>
-			<button id="object-database-delete-all-btn">Delete All</button>
-			<button id="object-database-close-btn">Close</button>
+			<button id="add-to-db-btn"><i class="fas fa-plus"></i> Add to DB</button>
+			<button id="object-database-delete-all-btn"><i class="fas fa-trash-alt"></i> Delete All</button>
+			<button id="object-database-close-btn"><i class="fas fa-times"></i> Close</button>
 		</div>
 		<div id="add-to-db-menu" class="menu">
 			<div id="add-to-db-options">
 				<span>Handle:</span>
 				<input id="custom-entity-handle">
-				<button id="add-custom-entity-btn">Add</button>
+				<button id="add-custom-entity-btn"><i class="fas fa-plus"></i> Add</button>
 			</div>
-			<button id="add-to-db-menu-close">Back</button>
+			<button id="add-to-db-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="attachment-options-menu" class="menu">
-			<button id="attachment-options-detach">Detach</button>
+			<button id="attachment-options-detach"><i class="fas fa-unlink"></i> Detach</button>
 			<div id="attach-to-list" class="list"></div>
 			<div>
 				<div class="property">
@@ -299,7 +299,7 @@
 					<span>Fixed rotation</span>
 				</div>
 			</div>
-			<button id="attachment-options-menu-close">Back</button>
+			<button id="attachment-options-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="properties-menu" class="menu">
 			<div id="properties-menu-entity">
@@ -332,16 +332,16 @@
 					</button>
 				</div>
 				<div class="property multiple">
-					<button id="properties-select">Select</button>
-					<button id="properties-focus">Focus</button>
+					<button id="properties-select"><i class="fas fa-hand-pointer"></i> Select</button>
+					<button id="properties-focus"><i class="fas fa-crosshairs"></i> Focus</button>
 				</div>
 				<div class="property">
-					<button id="properties-add-to-db" class="add-remove-db">Add to DB</button>
-					<button id="properties-remove-from-db" class="add-remove-db">Remove from DB</button>
+					<button id="properties-add-to-db" class="add-remove-db"><i class="fas fa-database"></i> Add to DB</button>
+					<button id="properties-remove-from-db" class="add-remove-db"><i class="fas fa-minus-circle"></i> Remove from DB</button>
 				</div>
 				<div class="property">
-					<button id="properties-freeze">Freeze</button>
-					<button id="properties-unfreeze">Unfreeze</button>
+					<button id="properties-freeze"><i class="fas fa-snowflake"></i> Freeze</button>
+					<button id="properties-unfreeze"><i class="fas fa-wind"></i> Unfreeze</button>
 				</div>
 				<div class="property">
 					<div class="label">Position</div>
@@ -368,8 +368,8 @@
 					</div>
 				</div>
 				<div class="property multiple">
-					<button id="properties-place-here">Place Here</button>
-					<button id="properties-goto">Go To</button>
+					<button id="properties-place-here"><i class="fas fa-map-marker-alt"></i> Place Here</button>
+					<button id="properties-goto"><i class="fas fa-location-arrow"></i> Go To</button>
 				</div>
 				<div class="property">
 					<div class="label">Rotation</div>
@@ -396,134 +396,134 @@
 					</div>
 				</div>
 				<div class="property">
-					<button id="properties-reset-rotation">Reset Rotation</button>
+					<button id="properties-reset-rotation"><i class="fas fa-redo"></i> Reset Rotation</button>
 				</div>
 				<div class="property">
 					<div class="label">Health</div>
 					<input type="number" id="properties-health" min="0" step="1">
 				</div>
 				<div class="property multiple">
-					<button id="properties-invincible-on">Invincibility On</button>
-					<button id="properties-invincible-off">Invincibility Off</button>
+					<button id="properties-invincible-on"><i class="fas fa-shield-alt"></i> Invincibility On</button>
+					<button id="properties-invincible-off"><i class="fas fa-shield-alt fa-slash"></i> Invincibility Off</button>
 				</div>
 				<div class="property">
-					<button id="properties-visible">Visibility On</button>
-					<button id="properties-invisible">Visibility Off</button>
+					<button id="properties-visible"><i class="fas fa-eye"></i> Visibility On</button>
+					<button id="properties-invisible"><i class="fas fa-eye-slash"></i> Visibility Off</button>
 				</div>
 				<div class="property multiple">
-					<button id="properties-gravity-on">Gravity On</button>
-					<button id="properties-gravity-off">Gravity Off</button>
+					<button id="properties-gravity-on"><i class="fas fa-arrow-down"></i> Gravity On</button>
+					<button id="properties-gravity-off"><i class="fas fa-arrow-up"></i> Gravity Off</button>
 				</div>
 				<div class="property">
-					<button id="properties-collision-on">Collision On</button>
-					<button id="properties-collision-off">Collision Off</button>
+					<button id="properties-collision-on"><i class="fas fa-object-group"></i> Collision On</button>
+					<button id="properties-collision-off"><i class="fas fa-object-ungroup"></i> Collision Off</button>
 				</div>
 				<div class="property">
-					<button id="properties-clone">Clone</button>
+					<button id="properties-clone"><i class="fas fa-clone"></i> Clone</button>
 				</div>
 				<div class="property">
-					<button id="properties-attach">Attachment Options</button>
+					<button id="properties-attach"><i class="fas fa-link"></i> Attachment Options</button>
 				</div>
 				<div class="property ped-property">
-					<button id="properties-ped-options">Ped Options</button>
+					<button id="properties-ped-options"><i class="fas fa-user-cog"></i> Ped Options</button>
 				</div>
 				<div class="property vehicle-property">
-					<button id="properties-vehicle-options">Vehicle Options</button>
+					<button id="properties-vehicle-options"><i class="fas fa-car-alt"></i> Vehicle Options</button>
 				</div>
 				<div class="property object-property">
-					<button id="properties-lights-options">Light Options</button>
+					<button id="properties-lights-options"><i class="fas fa-lightbulb"></i> Light Options</button>
 				</div>
 				<div class="property">
-					<button id="properties-register-as-networked">Register as Networked</button>
-					<button id="properties-request-control">Request Control</button>
+					<button id="properties-register-as-networked"><i class="fas fa-network-wired"></i> Register as Networked</button>
+					<button id="properties-request-control"><i class="fas fa-gamepad"></i> Request Control</button>
 				</div>
 				<div class="property">
-					<button id="properties-delete">Delete</button>
+					<button id="properties-delete"><i class="fas fa-trash"></i> Delete</button>
 				</div>
 			</div>
-			<button id="properties-menu-close-btn">Close</button>
+			<button id="properties-menu-close-btn"><i class="fas fa-times"></i> Close</button>
 		</div>
 		<div id="ped-options-menu" class="menu">
 			<div id="ped-options" class="list">
 				<div class="property player-property">
-					<button id="properties-player-model">Change Model</button>
+					<button id="properties-player-model"><i class="fas fa-user-edit"></i> Change Model</button>
 				</div>
 				<div class="property">
 					<div class="label">Outfit</div>
 					<input type="number" id="properties-outfit" min="-1" step="1">
 				</div>
 				<div class="property">
-					<button id="properties-add-to-group">Add to Group</button>
-					<button id="properties-remove-from-group">Remove from Group</button>
+					<button id="properties-add-to-group"><i class="fas fa-users"></i> Add to Group</button>
+					<button id="properties-remove-from-group"><i class="fas fa-user-minus"></i> Remove from Group</button>
 				</div>
 				<div class="property">
-					<button id="properties-scenario">Scenarios</button>
+					<button id="properties-scenario"><i class="fas fa-theater-masks"></i> Scenarios</button>
 				</div>
 				<div class="property">
-					<button id="properties-animation">Animations</button>
+					<button id="properties-animation"><i class="fas fa-running"></i> Animations</button>
 				</div>
 				<div class="property">
-					<button id="properties-clear-ped-tasks">Clear Tasks</button>
+					<button id="properties-clear-ped-tasks"><i class="fas fa-stop-circle"></i> Clear Tasks</button>
 				</div>
 				<div class="property">
-					<button id="properties-clear-ped-tasks-immediately">Clear Tasks Immediately</button>
+					<button id="properties-clear-ped-tasks-immediately"><i class="fas fa-ban"></i> Clear Tasks Immediately</button>
 				</div>
 				<div class="property">
-					<button id="properties-give-weapon">Give Weapon</button>
+					<button id="properties-give-weapon"><i class="fas fa-gun"></i> Give Weapon</button>
 				</div>
 				<div class="property">
-					<button id="properties-remove-all-weapons">Remove All Weapons</button>
+					<button id="properties-remove-all-weapons"><i class="fas fa-skull-crossbones"></i> Remove All Weapons</button>
 				</div>
 				<div class="property">
-					<button id="properties-set-on-mount">Set On Mount</button>
+					<button id="properties-set-on-mount"><i class="fas fa-horse"></i> Set On Mount</button>
 				</div>
 				<div class="property">
-					<button id="properties-enter-vehicle">Enter Vehicle</button>
+					<button id="properties-enter-vehicle"><i class="fas fa-sign-in-alt"></i> Enter Vehicle</button>
 				</div>
 				<div class="property">
-					<button id="properties-resurrect-ped">Resurrect</button>
+					<button id="properties-resurrect-ped"><i class="fas fa-heartbeat"></i> Resurrect</button>
 				</div>
 				<div class="property multiple">
-					<button id="properties-ai-on">AI On</button>
-					<button id="properties-ai-off">AI Off</button>
+					<button id="properties-ai-on"><i class="fas fa-brain"></i> AI On</button>
+					<button id="properties-ai-off"><i class="fas fa-power-off"></i> AI Off</button>
 				</div>
 				<div class="property">
-					<button id="properties-clean">Clean</button>
+					<button id="properties-clean"><i class="fas fa-shower"></i> Clean</button>
 				</div>
 				<div class="property">
-					<button id="properties-knock-off-props">Knock Off Props</button>
+					<button id="properties-knock-off-props"><i class="fas fa-hat-cowboy"></i> Knock Off Props</button>
 				</div>
 				<div class="property">
-					<button id="properties-walk-style">Walk Style</button>
+					<button id="properties-walk-style"><i class="fas fa-walking"></i> Walk Style</button>
 				</div>
 				<div class="property">
-					<button id="properties-clone-ped">Clone</button>
+					<button id="properties-clone-ped"><i class="fas fa-clone"></i> Clone</button>
 				</div>
 				<div class="property">
-					<button id="properties-clone-to-target">Clone To Target</button>
+					<button id="properties-clone-to-target"><i class="fas fa-copy"></i> Clone To Target</button>
 				</div>
 				<div class="property multiple">
-					<button id="properties-look-at-entity">Look At</button>
-					<button id="properties-clear-look-at">Clear Look</button>
+					<button id="properties-look-at-entity"><i class="fas fa-eye"></i> Look At</button>
+					<button id="properties-clear-look-at"><i class="fas fa-eye-slash"></i> Clear Look</button>
 				</div>
 				<div class="property">
-					<button id="properties-go-to-waypoint">Go To Waypoint</button>
+					<button id="properties-go-to-waypoint"><i class="fas fa-map-marker"></i> Go To Waypoint</button>
 				</div>
 				<div class="property">
-					<button id="properties-go-to-entity">Go To Entity</button>
+					<button id="properties-go-to-entity"><i class="fas fa-route"></i> Go To Entity</button>
 				</div>
 				<div class="property">
-					<button id="properties-attack">Attack</button>
+					<button id="properties-attack"><i class="fas fa-fist-raised"></i> Attack</button>
 				</div>
 				<div class="property local">
 					<div class="label">Scale (local)</div>
 					<input type="number" id="properties-scale" min="0.1" max="10.0" step="0.1" value="1.0">
 				</div>
 				<div class="property local">
-					<button id="properties-config-flags">Config Flags</button>
+					<button id="properties-config-flags"><i class="fas fa-flag"></i> Config Flags</button>
 				</div>
 			</div>
-			<button id="ped-options-menu-close">Back</button>
+			<button id="ped-options-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="entity-select-menu" class="menu"></div>
 		<div id="walk-style-menu" class="menu">
@@ -534,7 +534,7 @@
 				</button>
 			</div>
 			<div id="walk-style-list" class="list"></div>
-			<button id="walk-style-menu-close">Back</button>
+			<button id="walk-style-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="weapon-menu" class="menu">
 			<div id="weapon-search" class="search">
@@ -544,26 +544,26 @@
 				</button>
 			</div>
 			<div id="weapon-list" class="list"></div>
-			<button id="weapon-menu-close">Back</button>
+			<button id="weapon-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="vehicle-options-menu" class="menu">
 			<div id="vehicle-options" class="list">
 				<div class="property">
-					<button id="properties-repair-vehicle">Repair Vehicle</button>
+					<button id="properties-repair-vehicle"><i class="fas fa-wrench"></i> Repair Vehicle</button>
 				</div>
 				<div class="property">
-					<button id="properties-get-in">Get Into Vehicle</button>
+					<button id="properties-get-in"><i class="fas fa-sign-in-alt"></i> Get Into Vehicle</button>
 				</div>
 				<div class="property multiple">
-					<button id="properties-engine-on">Engine On</button>
-					<button id="properties-engine-off">Engine Off</button>
+					<button id="properties-engine-on"><i class="fas fa-power-off"></i> Engine On</button>
+					<button id="properties-engine-off"><i class="fas fa-power-off"></i> Engine Off</button>
 				</div>
 				<div class="property multiple">
-					<button id="properties-vehicle-lights-on">Lights On</button>
-					<button id="properties-vehicle-lights-off">Lights Off</button>
+					<button id="properties-vehicle-lights-on"><i class="fas fa-lightbulb"></i> Lights On</button>
+					<button id="properties-vehicle-lights-off"><i class="fas fa-lightbulb"></i> Lights Off</button>
 				</div>
 			</div>
-			<button id="vehicle-options-menu-close">Back</button>
+			<button id="vehicle-options-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="scenario-menu" class="menu">
 			<div id="scenario-search" class="search">
@@ -573,8 +573,8 @@
 				</button>
 			</div>
 			<div id="scenario-list" class="list"></div>
-			<button id="scenario-stop">Stop Scenario</button>
-			<button id="scenario-menu-close">Back</button>
+			<button id="scenario-stop"><i class="fas fa-stop"></i> Stop Scenario</button>
+			<button id="scenario-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="save-load-db-menu" class="menu">
 			<div id="db-list" class="list"></div>
@@ -594,10 +594,10 @@
 			</div>
 			<div id="save-db-options">
 				<input id="save-db-name" type="text">
-				<button id="save-db-btn">Save</button>
+				<button id="save-db-btn"><i class="fas fa-save"></i> Save</button>
 			</div>
-			<button id="import-export-db-btn">Import/Export</button>
-			<button id="save-load-db-menu-close-btn">Close</button>
+			<button id="import-export-db-btn"><i class="fas fa-file-import"></i> Import/Export</button>
+			<button id="save-load-db-menu-close-btn"><i class="fas fa-times"></i> Close</button>
 		</div>
 		<div id="import-export-db">
 			<div id="import-export-controls">
@@ -609,11 +609,11 @@
 					<option value="backup">Spooner Backup</option>
 				</select>
 				<input type="text" id="import-url" placeholder="Import from URL">
-				<button id="import-db">Import</button>
-				<button id="export-db">Export</button>
+				<button id="import-db"><i class="fas fa-file-import"></i> Import</button>
+				<button id="export-db"><i class="fas fa-file-export"></i> Export</button>
 			</div>
 			<textarea id="import-export-content" spellcheck="false"></textarea>
-			<button id="import-export-db-close">Close</button>
+			<button id="import-export-db-close"><i class="fas fa-times"></i> Close</button>
 		</div>
 		<div id="lights-options-menu" class="menu">
 			<div id="lights-options" class="list">
@@ -632,7 +632,7 @@
 					<input type="number" id="properties-lights-type" min="0" max="20" step="1">
 				</div>
 			</div>
-			<button id="lights-options-menu-close">Back</button>
+			<button id="lights-options-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="animation-menu" class="menu">
 			<div id="animation-search" class="search">
@@ -668,8 +668,8 @@
 					<input type="number" id="animation-playback-rate" value="0.0">
 				</div>
 			</div>
-			<button id="animation-stop">Stop Animation</button>
-			<button id="animation-menu-close">Back</button>
+			<button id="animation-stop"><i class="fas fa-stop-circle"></i> Stop Animation</button>
+			<button id="animation-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="propset-menu" class="menu">
 			<div id="propset-search" class="search">
@@ -679,8 +679,8 @@
 				</button>
 			</div>
 			<div id="propset-list" class="list"></div>
-			<button id="propset-spawn-by-name" class="spawn-by-name">Spawn By Name</button>
-			<button id="propset-menu-close-btn">Back</button>
+			<button id="propset-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<button id="propset-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="pickup-menu" class="menu">
 			<div id="pickup-search" class="search">
@@ -690,8 +690,8 @@
 				</button>
 			</div>
 			<div id="pickup-list" class="list"></div>
-			<button id="pickup-spawn-by-name" class="spawn-by-name">Spawn By Name</button>
-			<button id="pickup-menu-close-btn">Back</button>
+			<button id="pickup-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<button id="pickup-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="player-model-menu" class="menu">
 			<div id="player-model-search" class="search">
@@ -701,8 +701,8 @@
 				</button>
 			</div>
 			<div id="player-model-list" class="list"></div>
-			<button id="player-model-spawn-by-name" class="spawn-by-name">Spawn By Name</button>
-			<button id="player-model-menu-close-btn">Back</button>
+			<button id="player-model-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<button id="player-model-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="config-flags-menu" class="menu">
 			<div id="config-flags-list" class="list"></div>
@@ -713,7 +713,7 @@
 					<i class="fas fa-plus"></i>
 				</button>
 			</div>
-			<button id="close-config-flags-menu">Back</button>
+			<button id="close-config-flags-menu"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="help-menu">
 			<h1>Object Spooner Help</h1>
@@ -918,7 +918,7 @@
 				<p>Entering a URL of a JSON/XML file in the <strong>Import from URL</strong> field and clicking <strong>Import</strong> allows you to import from external web sources, such as pastebin.com, without needing to copy and paste. Be sure that the URL points to the raw version of the file when using such services.</p>
 			</div>
 			<div id="help-menu-controls">
-				<button id="help-menu-close-btn">Close</button>
+				<button id="help-menu-close-btn"><i class="fas fa-times"></i> Close</button>
 			</div>
 		</div>
 	</body>
