@@ -51,6 +51,7 @@ Config.ToggleControlsControl  = 49  -- 1
 Config.FocusControl           = 164  -- Left Alt
 Config.ToggleFocusModeControl = 162  -- Left Ctrl
 Config.EntityHandlesControl   = 77  -- M
+Config.CopyCameraToClipboard  = 50 -- 2
 
 -- Maximum movement speed
 Config.MaxSpeed = 1.00

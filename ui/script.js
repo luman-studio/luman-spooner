@@ -1587,6 +1587,10 @@ function hideControls() {
 	document.getElementById('controls').style.display = 'none';
 }
 
+function copyCameraToClipboard(data) {
+	copyToClipboard(`SetCamCoord(${data.camX}, ${data.camY}, ${data.camZ}) SetCamRot(${data.cursorX}, ${data.cursorY}, ${data.cursorZ})`)
+}
+
 function populatePedConfigFlagsList(flags) {
 	var configFlagsList = document.getElementById('config-flags-list');
 
@@ -1678,6 +1682,17 @@ window.addEventListener('message', function(event) {
 			break;
 		case 'hideControls':
 			hideControls();
+			break;
+		case 'copyCameraToClipboard':
+			copyCameraToClipboard({
+				cursorX: event.data.cursorX,
+				cursorY: event.data.cursorY,
+				cursorZ: event.data.cursorZ,
+				camX: event.data.camX,
+				camY: event.data.camY,
+				camZ: event.data.camZ,
+				camHeading: event.data.camHeading,
+			});
 			break;
 	}
 });

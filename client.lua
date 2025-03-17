@@ -3184,6 +3184,19 @@ function MainSpoonerUpdates()
 		end
 
 		SetCamRot(Cam, pitch2, 0.0, yaw2)
+
+		if IsRawKeyPressed(Config.CopyCameraToClipboard) then
+			SendNUIMessage({
+				type = 'copyCameraToClipboard',
+				cursorX = string.format('%.2f', spawnPos.x),
+				cursorY = string.format('%.2f', spawnPos.y),
+				cursorZ = string.format('%.2f', spawnPos.z),
+				camX = string.format('%.2f', x2),
+				camY = string.format('%.2f', y2),
+				camZ = string.format('%.2f', z2),
+				camHeading = string.format('%.2f', yaw2),
+			})
+		end
 	end
 end
 
