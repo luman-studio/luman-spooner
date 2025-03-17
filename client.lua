@@ -2734,22 +2734,8 @@ RegisterCommand('spooner_migrate_old_dbs', function(source, args, raw)
 	MigrateOldSavedDbs()
 end)
 
-function CheckControls(func, pad, controls)
-	if type(controls) == 'number' then
-		return func(pad, controls)
-	end
-
-	for _, control in ipairs(controls) do
-		if func(pad, control) then
-			return true
-		end
-	end
-
-	return false
-end
-
 function MainSpoonerUpdates()
-	if IsUsingKeyboard(0) and CheckControls(IsDisabledControlJustPressed, 0, Config.ToggleControl) then
+	if IsUsingKeyboard(0) and IsRawKeyPressed(Config.ToggleControl) then
 		TriggerServerEvent('spooner:toggle')
 	end
 
@@ -2802,7 +2788,7 @@ function MainSpoonerUpdates()
 			freeFocus = FreeFocus
 		})
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.IncreaseSpeedControl) then
+		if IsRawKeyDown(Config.IncreaseSpeedControl) then
 			if SpeedMode == 0 then
 				Speed = Speed + Config.SpeedIncrement
 			elseif SpeedMode == 1 then
@@ -2812,7 +2798,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.DecreaseSpeedControl) then
+		if IsRawKeyDown(Config.DecreaseSpeedControl) then
 			if SpeedMode == 0 then
 				Speed = Speed - Config.SpeedIncrement
 			elseif SpeedMode == 1 then
@@ -2840,11 +2826,11 @@ function MainSpoonerUpdates()
 			RotateSpeed = Config.MaxRotateSpeed
 		end
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.UpControl) then
+		if IsRawKeyDown(Config.UpControl) then
 			z2 = z2 + Speed
 		end
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.DownControl) then
+		if IsRawKeyDown(Config.DownControl) then
 			z2 = z2 - Speed
 		end
 
@@ -2864,27 +2850,27 @@ function MainSpoonerUpdates()
 		local dx2 = Speed * math.sin(r2)
 		local dy2 = Speed * math.cos(r2)
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.ForwardControl) then
+		if IsRawKeyDown(Config.ForwardControl) then
 			x2 = x2 + dx1
 			y2 = y2 + dy1
 		end
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.BackwardControl) then
+		if IsRawKeyDown(Config.BackwardControl) then
 			x2 = x2 - dx1
 			y2 = y2 - dy1
 		end
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.LeftControl) then
+		if IsRawKeyDown(Config.LeftControl) then
 			x2 = x2 + dx2
 			y2 = y2 + dy2
 		end
 
-		if CheckControls(IsDisabledControlPressed, 0, Config.RightControl) then
+		if IsRawKeyDown(Config.RightControl) then
 			x2 = x2 - dx2
 			y2 = y2 - dy2
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.SpawnControl) and CurrentSpawn then
+		if IsRawKeyPressed(Config.SpawnControl) and CurrentSpawn then
 			local entity
 
 			if CurrentSpawn.type == 1 then
@@ -2919,7 +2905,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.SelectControl) then
+		if IsDisabledControlJustPressed(0, Config.SelectControl) then
 			if AttachedEntity then
 				AttachedEntity = nil
 			elseif entity and CanModifyEntity(entity) then
@@ -2931,7 +2917,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.DeleteControl) and entity then
+		if IsDisabledControlJustPressed(0, Config.DeleteControl) and entity then
 			if AttachedEntity then
 				RemoveEntity(AttachedEntity)
 				AttachedEntity = nil
@@ -2940,29 +2926,29 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if CheckControls(IsDisabledControlJustReleased, 0, Config.SpawnMenuControl) then
+		if IsRawKeyReleased(Config.SpawnMenuControl) then
 			SendNUIMessage({
 				type = 'openSpawnMenu'
 			})
 			SetNuiFocus(true, true)
 		end
 
-		if CheckControls(IsDisabledControlJustReleased, 0, Config.DbMenuControl) then
+		if IsRawKeyReleased(Config.DbMenuControl) then
 			OpenDatabaseMenu()
 		end
 
-		if CheckControls(IsDisabledControlJustReleased, 0, Config.SaveLoadDbMenuControl) then
+		if IsRawKeyReleased(Config.SaveLoadDbMenuControl) then
 			OpenSaveDbMenu()
 		end
 
-		if CheckControls(IsDisabledControlJustReleased, 0, Config.HelpMenuControl) then
+		if IsRawKeyReleased(Config.HelpMenuControl) then
 			SendNUIMessage({
 				type = 'openHelpMenu'
 			})
 			SetNuiFocus(true, true)
 		end
 
-		if CheckControls(IsDisabledControlJustReleased, 0, Config.ToggleControlsControl) then
+		if IsRawKeyReleased(Config.ToggleControlsControl) then
 			ShowControls = not ShowControls
 			if ShowControls then
 				SendNUIMessage({
@@ -2975,11 +2961,11 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.RotateModeControl) then
+		if IsRawKeyPressed(Config.RotateModeControl) then
 			RotateMode = (RotateMode + 1) % 3
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.AdjustModeControl) then
+		if IsRawKeyPressed(Config.AdjustModeControl) then
 			if AdjustMode < 4 then
 				AdjustMode = (AdjustMode + 1) % 4
 			else
@@ -2987,23 +2973,23 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.FreeAdjustModeControl) then
+		if IsRawKeyPressed(Config.FreeAdjustModeControl) then
 			AdjustMode = 4
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.AdjustOffControl) then
+		if IsRawKeyPressed(Config.AdjustOffControl) then
 			AdjustMode = 5
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.SpeedModeControl) then
+		if IsRawKeyPressed(Config.SpeedModeControl) then
 			SpeedMode = (SpeedMode + 1) % 3
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.PlaceOnGroundControl) then
+		if IsRawKeyPressed(Config.PlaceOnGroundControl) then
 			PlaceOnGround = not PlaceOnGround
 		end
 
-		if CheckControls(IsDisabledControlJustPressed, 0, Config.FocusControl) then
+		if IsRawKeyPressed(Config.FocusControl) then
 			if not entity or FocusTarget == entity then
 				UnfocusEntity()
 			else
@@ -3011,7 +2997,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if FocusTarget and CheckControls(IsDisabledControlJustPressed, 0, Config.ToggleFocusModeControl) then
+		if FocusTarget and IsRawKeyPressed(Config.ToggleFocusModeControl) then
 			if FreeFocus then
 				PointCamAtEntity(Cam, FocusTarget)
 				FreeFocus = false
@@ -3025,11 +3011,11 @@ function MainSpoonerUpdates()
 			local posChanged = false
 			local rotChanged = false
 
-			if CheckControls(IsDisabledControlJustReleased, 0, Config.PropMenuControl) then
+			if IsRawKeyReleased(Config.PropMenuControl) then
 				OpenPropertiesMenuForEntity(entity)
 			end
 
-			if CheckControls(IsDisabledControlJustPressed, 0, Config.CloneControl) then
+			if IsRawKeyPressed(Config.CloneControl) then
 				AttachedEntity = CloneEntity(entity)
 			end
 
@@ -3068,7 +3054,7 @@ function MainSpoonerUpdates()
 				edy2 = AdjustSpeed * math.cos(r2)
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.RotateLeftControl) then
+			if IsRawKeyDown(Config.RotateLeftControl) then
 				if RotateMode == 0 then
 					epitch2 = epitch2 + RotateSpeed
 				elseif RotateMode == 1 then
@@ -3080,7 +3066,7 @@ function MainSpoonerUpdates()
 				rotChanged = true
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.RotateRightControl) then
+			if IsRawKeyDown(Config.RotateRightControl) then
 				if RotateMode == 0 then
 					epitch2 = epitch2 - RotateSpeed
 				elseif RotateMode == 1 then
@@ -3092,35 +3078,35 @@ function MainSpoonerUpdates()
 				rotChanged = true
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.AdjustUpControl) then
+			if IsRawKeyDown(Config.AdjustUpControl) then
 				ez2 = ez2 + AdjustSpeed
 				posChanged = true
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.AdjustDownControl) then
+			if IsRawKeyDown(Config.AdjustDownControl) then
 				ez2 = ez2 - AdjustSpeed
 				posChanged = true
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.AdjustForwardControl) then
+			if IsRawKeyDown(Config.AdjustForwardControl) then
 				ex2 = ex2 + edx1
 				ey2 = ey2 + edy1
 				posChanged = true
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.AdjustBackwardControl) then
+			if IsRawKeyDown(Config.AdjustBackwardControl) then
 				ex2 = ex2 - edx1
 				ey2 = ey2 - edy1
 				posChanged = true
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.AdjustLeftControl) then
+			if IsRawKeyDown(Config.AdjustLeftControl) then
 				ex2 = ex2 + edx2
 				ey2 = ey2 + edy2
 				posChanged = true
 			end
 
-			if CheckControls(IsDisabledControlPressed, 0, Config.AdjustRightControl) then
+			if IsRawKeyDown(Config.AdjustRightControl) then
 				ex2 = ex2 - edx2
 				ey2 = ey2 - edy2
 				posChanged = true
@@ -3282,7 +3268,7 @@ end
 
 local function drawEntityHandles()
 	if Cam then
-		if IsDisabledControlJustPressed(0, Config.EntityHandlesControl) then
+		if IsRawKeyPressed(Config.EntityHandlesControl) then
 			showEntityHandles = not showEntityHandles
 		end
 
