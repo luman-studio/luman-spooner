@@ -5,7 +5,7 @@
 [x] Add the ability to copy entity coordinates.
 [x] Add the ability to copy entity rotation.
 
-[] Add the ability to copy camera coordinates and rotation.
+[x] Add the ability to copy camera coordinates and rotation.
 
 [] Add the ability to copy entity attachment settings.
 [] Copy attachment parameter as native (AttachEntity)
