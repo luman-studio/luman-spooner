@@ -2610,6 +2610,14 @@ window.addEventListener('load', function() {
 		copyToClipboard(p + ', ' + r + ', ' + y);
 	});
 
+	document.getElementById('copy-attachment-settings').addEventListener('click', function(event) {
+		sendMessage('getAttachmentSettings', {
+			handle: currentEntity()
+		}).then(resp => resp.json()).then(resp => {
+			copyToClipboard(resp.value);
+		});
+	});
+
 	document.getElementById('add-to-db-btn').addEventListener('click', function(event) {
 		document.getElementById('object-database').style.display = 'none';
 		document.getElementById('add-to-db-menu').style.display = 'flex';
@@ -2643,6 +2651,7 @@ window.addEventListener('load', function() {
 
 function test() {
 	document.querySelector('#properties-menu').style.display = 'flex';
+	document.getElementById('attachment-options-menu').style.display = 'flex';
 }
 // Uncomment for testing in browser
 // setTimeout(() => {

@@ -7,8 +7,7 @@
 
 [x] Add the ability to copy camera coordinates and rotation.
 
-[] Add the ability to copy entity attachment settings.
-[] Copy attachment parameter as native (AttachEntity)
+[x] Add the ability to copy entity attachment settings as native (AttachEntity)
 [] Add the ability to search bones in Attachments menu.
 
 [] Add the ability to copy animation name.

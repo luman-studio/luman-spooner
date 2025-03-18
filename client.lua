@@ -1397,9 +1397,9 @@ function AttachEntity(from, to, bone, x, y, z, pitch, roll, yaw, useSoftPinning,
 		bone = 0
 	end
 
-	local boneIndex = GetBoneIndex(to, bone)
-
-	AttachEntityToEntity(from, to, boneIndex, x, y, z, pitch, roll, yaw, false, useSoftPinning, collision, false, vertex, fixedRot, false, false)
+	AttachEntityToEntity(GetAttachValues(
+		from, to, bone, x, y, z, pitch, roll, yaw, useSoftPinning, collision, vertex, fixedRot
+	))
 
 	if EntityIsInDatabase(from) then
 		AddEntityToDatabase(from, nil, {
@@ -1417,6 +1417,15 @@ function AttachEntity(from, to, bone, x, y, z, pitch, roll, yaw, useSoftPinning,
 			fixedRot = fixedRot
 		})
 	end
+end
+
+function GetAttachValues(from, to, bone, x, y, z, pitch, roll, yaw, useSoftPinning, collision, vertex, fixedRot)
+	local boneIndex = GetBoneIndex(to, bone)
+	local p9 = false
+	local isPed = false
+	local p15 = false
+	local p16 = false
+	return from, to, boneIndex, x, y, z, pitch, roll, yaw, p9, useSoftPinning, collision, isPed, vertex, fixedRot, p15, p16
 end
 
 function LoadDatabase(db, relative, replace)
