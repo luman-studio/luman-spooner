@@ -14,7 +14,18 @@ Tool for spawning, placing, and removing entities, inspired by Menyoo's Object S
 
 # Example
 
-[![Spooner Example](https://i.imgur.com/HLzNYUIm.jpg)](https://imgur.com/HLzNYUI)
+<p align="center">
+  <img src="showcase/entity-properties-menu1.png" alt="Description" width=100% height=50%>
+</p>
+
+<div style="display: flex; justify-content: center; gap: 10px;">
+  <a>
+    <img src="showcase/ped-options-menu1.png" alt="Description" width="50%" height="auto">
+  </a>
+  <a>
+    <img src="showcase/vehicle-options-menu1.png" alt="Description" width="50%" height="auto">
+  </a>
+</div>
 
 # Requirements
 
@@ -148,21 +159,3 @@ To export, select the desired format and click **Export**. The output will be di
 To import, paste the input into the text box, select the appropriate format, and click **Import**. Objects imported will be added to your current database.
 
 Entering a URL of a JSON/XML file in the **Import from URL** field and clicking **Import** allows you to import from external web sources, such as pastebin.com, without needing to copy and paste. Be sure that the URL points to the raw version of the file when using such services.
-
-# Adjustments by Luman Studio
-
-<p align="center">
-  <img src="showcase/entity-properties-menu1.png" alt="Description" width=100% height=50%>
-</p>
-
-<div style="display: flex; justify-content: center; gap: 10px;">
-  <a>
-    <img src="showcase/entity-properties-menu2.png" alt="Description" width="30%" height="auto">
-  </a>
-  <a>
-    <img src="showcase/ped-options-menu1.png" alt="Description" width="30%" height="auto">
-  </a>
-  <a>
-    <img src="showcase/vehicle-options-menu1.png" alt="Description" width="30%" height="auto">
-  </a>
-</div>
