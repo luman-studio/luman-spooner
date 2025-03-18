@@ -8,7 +8,7 @@
 [x] Add the ability to copy camera coordinates and rotation.
 
 [x] Add the ability to copy entity attachment settings as native (AttachEntity)
-[] Add the ability to search bones in Attachments menu.
+[x] Add the ability to search bones in Attachments menu.
 
 [] Add the ability to copy animation name.
 [] Copy animation parameters as native (PlayAnimation -> print('TaskPlayAnim', json.encode(anim)))

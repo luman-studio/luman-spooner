@@ -945,16 +945,19 @@ function populatePickupList(filter) {
 	});
 }
 
-function populateBoneNameList() {
+function populateBoneNameList(filter) {
 	var boneList = document.getElementById('attachment-bone-name');
 
 	boneList.innerHTML = '<option></option>';
 
 	bones.forEach(bone => {
-		var option = document.createElement('option');
-		option.value = bone;
-		option.innerHTML = bone;
-		boneList.appendChild(option);
+		// Apply filter if provided
+		if (!filter || filter === '' || bone.toLowerCase().includes(filter.toLowerCase())) {
+			var option = document.createElement('option');
+			option.value = bone;
+			option.innerHTML = bone;
+			boneList.appendChild(option);
+		}
 	});
 }
 
@@ -1766,6 +1769,10 @@ window.addEventListener('load', function() {
 
 	document.getElementById('propset-search-filter').addEventListener('input', function(event) {
 		populatePropsetList(this.value);
+	});
+
+	document.querySelector('#bone-search-filter').addEventListener('input', function(event) {
+		populateBoneNameList(this.value);
 	});
 
 	document.querySelector('#ped-spawn-by-name').addEventListener('click', function(event) {
