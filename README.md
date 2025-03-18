@@ -18,12 +18,12 @@ Tool for spawning, placing, and removing entities, inspired by Menyoo's Object S
   <img src="showcase/entity-properties-menu1.png" alt="Description" width=100% height=50%>
 </p>
 
-<div style="display: flex; justify-content: center; gap: 10px;">
+<div style="display: flex; justify-content: center;">
   <a>
-    <img src="showcase/ped-options-menu1.png" alt="Description" width="50%" height="auto">
+    <img src="showcase/ped-options-menu1.png" alt="Description" width="49%" height="auto">
   </a>
   <a>
-    <img src="showcase/vehicle-options-menu1.png" alt="Description" width="50%" height="auto">
+    <img src="showcase/vehicle-options-menu1.png" alt="Description" width="49%" height="auto">
   </a>
 </div>
 
