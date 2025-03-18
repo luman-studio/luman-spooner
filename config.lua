@@ -13,8 +13,8 @@ else
 	-- GTA V Controls. Mouse Buttons not detectable as Raw Keys.
 	Config.SelectControl          = 176   -- Left mouse button
 	Config.DeleteControl          = 177   -- Right mouse button
-	Config.LookLrControl          = 176   -- Left mouse button
-	Config.LookUdControl          = 177   -- Right mouse button
+	Config.LookLrControl          = 1
+	Config.LookUdControl          = 2
 end
 -- Raw keys:
 Config.IncreaseSpeedControl   = 33  -- Page Up
