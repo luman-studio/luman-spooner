@@ -715,7 +715,7 @@ function SpawnVehicle(name, model, x, y, z, pitch, roll, yaw, collisionDisabled,
 	return veh
 end
 
-function PlayAnimation(ped, anim)
+function PlayAnimation(entity, anim)
 	if not DoesAnimDictExist(anim.dict) then
 		return false
 	end
@@ -726,15 +726,23 @@ function PlayAnimation(ped, anim)
 		Wait(0)
 	end
 
-	TaskPlayAnim(GetAnimationValues(ped, anim))
+	if GetEntityType(entity) == 3 then -- object
+		PlayEntityAnim(GetAnimationValues(entity, anim))
+	else -- ped
+		TaskPlayAnim(GetAnimationValues(entity, anim))
+	end
 
 	RemoveAnimDict(anim.dict)
 
 	return true
 end
 
-function GetAnimationValues(ped, anim)
-	return ped, anim.dict, anim.name, anim.blendInSpeed, anim.blendOutSpeed, anim.duration, anim.flag, anim.playbackRate, false, false, false, '', false
+function GetAnimationValues(entity, anim)
+	if GetEntityType(entity) == 3 then -- object
+		return entity, anim.name, anim.dict, anim.blendInSpeed, true, true, false, 0.0, 0
+	else -- ped
+		return entity, anim.dict, anim.name, anim.blendInSpeed, anim.blendOutSpeed, anim.duration, anim.flag, anim.playbackRate, false, false, false, '', false
+	end
 end
 
 local function startScenario(ped, scenario)
@@ -1018,7 +1026,7 @@ AddEventHandler('onResourceStop', function(resourceName)
 		DisableSpoonerMode()
 
 		if Config.CleanUpOnStop then
-			RemoveAllFromDatabase();
+			RemoveAllFromDatabase()
 		end
 	end
 end)
@@ -1105,7 +1113,7 @@ RegisterNUICallback('deleteEntity', function(data, cb)
 end)
 
 RegisterNUICallback('removeAllFromDatabase', function(data, cb)
-	RemoveAllFromDatabase();
+	RemoveAllFromDatabase()
 	cb({})
 end)
 
@@ -2197,6 +2205,17 @@ function TryClearTasks(handle)
 	end
 end
 
+function TryStopEntityAnim(handle)
+	local animation = GetAnimationInfo(handle)
+	if animation then
+		StopEntityAnim(handle, animation.name, animation.dict, -1000.0)
+	end
+	if Database[handle] then
+		Database[handle].scenario = nil
+		Database[handle].animation = nil
+	end
+end
+
 RegisterNUICallback('clearPedTasks', function(data, cb)
 	TryClearTasks(data.handle)
 	cb({})
@@ -2460,6 +2479,10 @@ RegisterNUICallback('playAnimation', function(data, cb)
 			Database[data.handle].animation = animation
 			Database[data.handle].scenario = nil
 		end
+
+		-- Always store animation info
+		-- Later it can be needed for animation stop and copy to clipboard
+		StoreAnimationInfo(data.handle, animation)
 	end
 
 	cb({})
@@ -3355,7 +3378,7 @@ function UpdateDbEntities()
 				startScenario(entity, properties.scenario)
 			end
 		elseif properties.animation then
-			if not IsEntityPlayingAnim(entity, properties.animation.dict, properties.animation.name, properties.animation.flag) then
+			if not IsEntityPlayingAnim(entity, properties.animation.dict, properties.animation.name, 3) then
 				PlayAnimation(entity, properties.animation)
 			end
 		end

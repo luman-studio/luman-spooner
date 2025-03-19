@@ -11,7 +11,7 @@
 [x] Add the ability to search bones in Attachments menu.
 
 [x] Copy animation parameters as native (PlayAnimation -> print('TaskPlayAnim', json.encode(anim)))
-[] Implement an animation playback tab for objects.
+[x] Implement an animation playback tab for objects.
 
 
 [] Improve ped cloning. Clone completely with all clothes components.

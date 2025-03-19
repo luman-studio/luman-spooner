@@ -2319,13 +2319,13 @@ window.addEventListener('load', function() {
 	});
 
 	document.querySelector('#properties-animation').addEventListener('click', function(event) {
-		document.querySelector('#ped-options-menu').style.display = 'none';
+		document.querySelector('#properties-menu').style.display = 'none';
 		document.querySelector('#animation-menu').style.display = 'flex';
 	});
 
 	document.querySelector('#animation-menu-close').addEventListener('click', function(event) {
 		document.querySelector('#animation-menu').style.display = 'none';
-		document.querySelector('#ped-options-menu').style.display = 'flex';
+		document.querySelector('#properties-menu').style.display = 'flex';
 	});
 
 	document.querySelector('#animation-search-filter').addEventListener('input', function(event) {
@@ -2540,7 +2540,7 @@ window.addEventListener('load', function() {
 	});
 
 	document.getElementById('animation-stop').addEventListener('click', function(event) {
-		sendMessage('clearPedTasks', {
+		sendMessage('stopAnimation', {
 			handle: currentEntity()
 		});
 	});

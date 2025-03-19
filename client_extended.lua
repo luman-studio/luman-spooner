@@ -18,14 +18,45 @@ RegisterNUICallback('getAttachmentSettings', function(data, cb)
 	cb({value = clipboard})
 end)
 
+----------------
+-- Animations --
+----------------
+
+local animationInfo = {}
+
+function StoreAnimationInfo(entity, animation)
+	animationInfo[tostring(entity)] = animation
+end
+
+function GetAnimationInfo(entity)
+	return animationInfo[tostring(entity)]
+end
+
 RegisterNUICallback('getAnimationSettings', function(data, cb)
-	local props = GetEntityProperties(data.handle)
-	if not props or not props.animation then return cb({value = 'nil'}) end
+	local animation = GetAnimationInfo(data.handle)
+	if not animation then return cb({value = 'nil'}) end
 	
 	local entity = data.handle
-	local clipboard = ("TaskPlayAnim(%s, '%s', '%s', %s, %s, %s, %s, %s, %s, %s, %s, '%s', %s)"):format(
-		GetAnimationValues(entity, props.animation)
-	)
+	local clipboard = ''
+	if GetEntityType(entity) == 3 then
+		clipboard = ("PlayEntityAnim(%s, '%s', '%s', %s, %s, %s, %s, %s, %s)"):format(
+			GetAnimationValues(entity, animation)
+		)
+	else
+		clipboard = ("TaskPlayAnim(%s, '%s', '%s', %s, %s, %s, %s, %s, %s, %s, %s, '%s', %s)"):format(
+			GetAnimationValues(entity, animation)
+		)
+	end
 
 	cb({value = clipboard})
+end)
+
+RegisterNUICallback('stopAnimation', function(data, cb)
+	local entity = data.handle
+	if GetEntityType(entity) == 3 then -- object
+		TryStopEntityAnim(entity)
+	else -- ped
+		TryClearTasks(entity)
+	end
+	cb({})
 end)
