@@ -2625,6 +2625,14 @@ window.addEventListener('load', function() {
 		});
 	});
 
+	document.getElementById('copy-animation-settings').addEventListener('click', function(event) {
+		sendMessage('getAnimationSettings', {
+			handle: currentEntity()
+		}).then(resp => resp.json()).then(resp => {
+			copyToClipboard(resp.value);
+		});
+	});
+
 	document.getElementById('add-to-db-btn').addEventListener('click', function(event) {
 		document.getElementById('object-database').style.display = 'none';
 		document.getElementById('add-to-db-menu').style.display = 'flex';
@@ -2657,8 +2665,9 @@ window.addEventListener('load', function() {
 });
 
 function test() {
-	document.querySelector('#properties-menu').style.display = 'flex';
-	document.getElementById('attachment-options-menu').style.display = 'flex';
+	// document.querySelector('#properties-menu').style.display = 'flex';
+	// document.getElementById('attachment-options-menu').style.display = 'flex';
+	document.querySelector('#animation-menu').style.display = 'flex';
 }
 // Uncomment for testing in browser
 // setTimeout(() => {

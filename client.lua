@@ -726,11 +726,15 @@ function PlayAnimation(ped, anim)
 		Wait(0)
 	end
 
-	TaskPlayAnim(ped, anim.dict, anim.name, anim.blendInSpeed, anim.blendOutSpeed, anim.duration, anim.flag, anim.playbackRate, false, false, false, '', false)
+	TaskPlayAnim(GetAnimationValues(ped, anim))
 
 	RemoveAnimDict(anim.dict)
 
 	return true
+end
+
+function GetAnimationValues(ped, anim)
+	return ped, anim.dict, anim.name, anim.blendInSpeed, anim.blendOutSpeed, anim.duration, anim.flag, anim.playbackRate, false, false, false, '', false
 end
 
 local function startScenario(ped, scenario)

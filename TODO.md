@@ -10,8 +10,7 @@
 [x] Add the ability to copy entity attachment settings as native (AttachEntity)
 [x] Add the ability to search bones in Attachments menu.
 
-[] Add the ability to copy animation name.
-[] Copy animation parameters as native (PlayAnimation -> print('TaskPlayAnim', json.encode(anim)))
+[x] Copy animation parameters as native (PlayAnimation -> print('TaskPlayAnim', json.encode(anim)))
 [] Implement an animation playback tab for objects.
 
 
