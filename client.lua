@@ -717,6 +717,7 @@ end
 
 function PlayAnimation(entity, anim)
 	if not DoesAnimDictExist(anim.dict) then
+		print('Error: Anim doesnt exist (dict, name)', anim.dict, anim.name)
 		return false
 	end
 
@@ -734,6 +735,7 @@ function PlayAnimation(entity, anim)
 
 	RemoveAnimDict(anim.dict)
 
+	print('Anim played (dict, name):', anim.dict, anim.name)
 	return true
 end
 
