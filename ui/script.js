@@ -187,7 +187,9 @@ function updateSpoonerHud(data) {
 	document.getElementById('cam-x').innerHTML = data.camX;
 	document.getElementById('cam-y').innerHTML = data.camY;
 	document.getElementById('cam-z').innerHTML = data.camZ;
-	document.getElementById('cam-heading').innerHTML = data.camHeading;
+	document.getElementById('cam-rot-x').innerHTML = data.camRotX;
+	document.getElementById('cam-rot-y').innerHTML = data.camRotY;
+	document.getElementById('cam-rot-z').innerHTML = data.camRotZ;
 	document.getElementById('cursor-x').innerHTML = data.cursorX;
 	document.getElementById('cursor-y').innerHTML = data.cursorY;
 	document.getElementById('cursor-z').innerHTML = data.cursorZ;
@@ -1591,7 +1593,7 @@ function hideControls() {
 }
 
 function copyCameraToClipboard(data) {
-	copyToClipboard(`SetCamCoord(${data.camX}, ${data.camY}, ${data.camZ}) SetCamRot(${data.cursorX}, ${data.cursorY}, ${data.cursorZ})`)
+	copyToClipboard(`SetCamCoord(cam, ${data.camX}, ${data.camY}, ${data.camZ}) SetCamRot(cam, ${data.camRotX}, ${data.camRotY}, ${data.camRotZ})`)
 }
 
 function populatePedConfigFlagsList(flags) {
@@ -1688,13 +1690,12 @@ window.addEventListener('message', function(event) {
 			break;
 		case 'copyCameraToClipboard':
 			copyCameraToClipboard({
-				cursorX: event.data.cursorX,
-				cursorY: event.data.cursorY,
-				cursorZ: event.data.cursorZ,
 				camX: event.data.camX,
 				camY: event.data.camY,
 				camZ: event.data.camZ,
-				camHeading: event.data.camHeading,
+				camRotX: event.data.camRotX,
+				camRotY: event.data.camRotY,
+				camRotZ: event.data.camRotZ,
 			});
 			break;
 	}

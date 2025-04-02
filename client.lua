@@ -2821,7 +2821,9 @@ function MainSpoonerUpdates()
 			camX = string.format('%.2f', x2),
 			camY = string.format('%.2f', y2),
 			camZ = string.format('%.2f', z2),
-			camHeading = string.format('%.2f', yaw2),
+			camRotX = string.format('%.2f', pitch2),
+			camRotY = string.format('%.2f', roll2),
+			camRotZ = string.format('%.2f', yaw2),
 			focusTarget = FocusTarget,
 			freeFocus = FreeFocus
 		})
@@ -3224,15 +3226,15 @@ function MainSpoonerUpdates()
 		SetCamRot(Cam, pitch2, 0.0, yaw2)
 
 		if IsRawKeyPressed(Config.CopyCameraToClipboard) then
+			local camRot = GetCamRot(Cam)
 			SendNUIMessage({
 				type = 'copyCameraToClipboard',
-				cursorX = string.format('%.2f', spawnPos.x),
-				cursorY = string.format('%.2f', spawnPos.y),
-				cursorZ = string.format('%.2f', spawnPos.z),
 				camX = string.format('%.2f', x2),
 				camY = string.format('%.2f', y2),
 				camZ = string.format('%.2f', z2),
-				camHeading = string.format('%.2f', yaw2),
+				camRotX = string.format('%.2f', pitch2),
+				camRotY = string.format('%.2f', roll2),
+				camRotZ = string.format('%.2f', yaw2),
 			})
 		end
 	end
