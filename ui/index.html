@@ -340,11 +340,11 @@
 						Model
 					</button>
 				</div>
-
 				<div class="property multiple">
-					<button id="properties-select"><i class="fas fa-hand-pointer"></i> Select</button>
-					<button id="properties-focus"><i class="fas fa-crosshairs"></i> Focus</button>
+					<button id="copy-position" ><i class="fas fa-clipboard"></i> Copy Pos</button>
 				</div>
+
+				<br>
 
 				<div class="property ped-property">
 					<button id="properties-ped-options"><i class="fas fa-user-cog"></i> Ped Options</button>
@@ -382,24 +382,23 @@
 								<div class="input-label">Z</div>
 								<input type="number" class="set-coords adjust-input" id="properties-z" step="0.01">
 							</div>
+
+							<div class="labelled-input">
+								<div class="input-label"></div>
+								<button id="copy-position" >
+									<i class="fas fa-clipboard"></i>
+									Copy Pos
+								</button>
+							</div>
 							<div class="labelled-input">
 								<div class="input-label"></div>
 								<div class="property multiple">
-									<button id="copy-position" >
-										<i class="fas fa-clipboard"></i>
-										Copy Pos
-									</button>
+	
 									<button id="properties-freeze"><i class="fas fa-snowflake"></i> Freeze Pos</button>
 									<button id="properties-unfreeze"><i class="fas fa-wind"></i> Unfreeze Pos</button>
 								</div>
 							</div>
-							<div class="labelled-input">
-								<div class="input-label"></div>
-								<div class="property multiple">
-									<button id="properties-place-here"><i class="fas fa-map-marker-alt"></i> Entity To Cursor</button>
-									<button id="properties-goto"><i class="fas fa-location-arrow"></i> TP Player</button>
-								</div>
-							</div>
+
 							</div>
 					</div>
 
@@ -445,6 +444,16 @@
 						<div class="label">Health</div>
 						<input type="number" id="properties-health" min="0" step="1">
 					</div>
+
+					<div class="property multiple">
+						<button id="properties-select"><i class="fas fa-hand-pointer"></i> Select</button>
+						<button id="properties-focus"><i class="fas fa-crosshairs"></i> Focus</button>
+					</div>
+					<div class="property multiple">
+						<button id="properties-place-here"><i class="fas fa-map-marker-alt"></i> Entity To Cursor</button>
+						<button id="properties-goto"><i class="fas fa-location-arrow"></i> TP Player</button>
+					</div>
+
 					<div class="property multiple">
 						<button id="properties-invincible-on"><i class="fas fa-shield-alt"></i> Invincibility On</button>
 						<button id="properties-invincible-off"><i class="fas fa-shield-alt fa-slash"></i> Invincibility Off</button>
