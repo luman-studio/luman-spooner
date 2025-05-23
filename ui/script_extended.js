@@ -34,3 +34,7 @@ document.onkeyup = function (data) {
         });
     }
 };
+
+function formatNumber(num) {
+    return Number(num).toLocaleString('en', {useGrouping: false, minimumFractionDigits: 1});
+}

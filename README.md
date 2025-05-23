@@ -154,7 +154,7 @@ The **Import/Export** menu allows you to import and export databases in a number
 |--------|-------------|---------|---------|
 | Spooner DB JSON | The native format used by the spooner | Yes | Yes |
 | Map Editor XML | XML format used by the [Lambdarevolution map editor](https://allmods.net/red-dead-redemption-2/tools-red-dead-redemption-2/rdr2-map-editor-v0-10/) and the [objectloader](https://github.com/kibook/redm-objectloader) resource | Yes | No |
-| Ymap | Native map format used by GTA V/RDR2 | Yes | No |
+| Ymap | Native map format used by GTA V/RDR2 | Yes | Yes |
 | propplacer JSON | [RedEM:RP propplacer](https://github.com/RedEM-RP/redemrp_propplacer) JSON database | Yes | No |
 | Spooner Backup | Backup of all spooner databases | Yes | Yes |
 

@@ -2579,7 +2579,7 @@ window.addEventListener('load', function() {
 		var y = document.getElementById('properties-y').value;
 		var z = document.getElementById('properties-z').value;
 
-		copyToClipboard(x + ', ' + y + ', ' + z)
+		copyToClipboard(formatNumber(x) + ', ' + formatNumber(y) + ', ' + formatNumber(z))
 	});
 
 	document.getElementById('copy-rotation').addEventListener('click', function(event) {
@@ -2587,7 +2587,7 @@ window.addEventListener('load', function() {
 		var r = document.getElementById('properties-roll').value;
 		var y = document.getElementById('properties-yaw').value;
 
-		copyToClipboard(p + ', ' + r + ', ' + y);
+		copyToClipboard(formatNumber(p) + ', ' + formatNumber(r) + ', ' + formatNumber(y));
 	});
 
 	document.getElementById('copy-attachment-position').addEventListener('click', function(event) {
@@ -2595,7 +2595,7 @@ window.addEventListener('load', function() {
 		var y = document.getElementById('attachment-y').value;
 		var z = document.getElementById('attachment-z').value;
 
-		copyToClipboard(x + ', ' + y + ', ' + z)
+		copyToClipboard(formatNumber(x) + ', ' + formatNumber(y) + ', ' + formatNumber(z))
 	});
 
 	document.getElementById('copy-entity-id').addEventListener('click', function(event) {
@@ -2615,7 +2615,7 @@ window.addEventListener('load', function() {
 		var r = document.getElementById('attachment-roll').value;
 		var y = document.getElementById('attachment-yaw').value;
 
-		copyToClipboard(p + ', ' + r + ', ' + y);
+		copyToClipboard(formatNumber(p) + ', ' + formatNumber(r) + ', ' + formatNumber(y));
 	});
 
 	document.getElementById('copy-attachment-settings').addEventListener('click', function(event) {
