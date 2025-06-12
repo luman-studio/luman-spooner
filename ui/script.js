@@ -2141,6 +2141,13 @@ window.addEventListener('load', function() {
 		});
 	});
 
+	// TODO: Add permission
+	document.querySelector('#properties-physics-push').addEventListener('click', function(event) {
+		sendMessage('physicsPush', {
+			handle: currentEntity()
+		});
+	});
+
 	document.querySelector('#properties-gravity-off').addEventListener('click', function(event) {
 		sendMessage('gravityOff', {
 			handle: currentEntity()
