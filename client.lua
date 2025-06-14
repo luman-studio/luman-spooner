@@ -1162,27 +1162,32 @@ RegisterNUICallback('removeEntityFromDatabase', function(data, cb)
 	cb({})
 end)
 
-RegisterNUICallback('freezeEntity', function(data, cb)
-	if Permissions.properties.freeze and CanModifyEntity(data.handle) then
-		RequestControl(data.handle)
-		FreezeEntityPosition(data.handle, true)
-
-		if not Config.isRDR and Database[data.handle] then
-			Database[data.handle].isFrozen = true
+function freezeEntity(handle)
+	if Permissions.properties.freeze and CanModifyEntity(handle) then
+		RequestControl(handle)
+		FreezeEntityPosition(handle, true)
+		if not Config.isRDR and Database[handle] then
+			Database[handle].isFrozen = true
 		end
 	end
+end
+RegisterNUICallback('freezeEntity', function(data, cb)
+	freezeEntity(data.handle)
 	cb({})
 end)
 
-RegisterNUICallback('unfreezeEntity', function(data, cb)
-	if Permissions.properties.freeze and CanModifyEntity(data.handle) then
-		RequestControl(data.handle)
-		FreezeEntityPosition(data.handle, false)
+function unfreezeEntity(handle)
+	if Permissions.properties.freeze and CanModifyEntity(handle) then
+		RequestControl(handle)
+		FreezeEntityPosition(handle, false)
 
-		if not Config.isRDR and Database[data.handle] then
-			Database[data.handle].isFrozen = false
+		if not Config.isRDR and Database[handle] then
+			Database[handle].isFrozen = false
 		end
 	end
+end
+RegisterNUICallback('unfreezeEntity', function(data, cb)
+	unfreezeEntity(data.handle)
 	cb({})
 end)
 

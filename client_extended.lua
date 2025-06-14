@@ -70,8 +70,8 @@ RegisterNUICallback('physicsPush', function(data, cb)
 		--
 		local x, y, z = 0.0, 0.0, -1.0
 		local object = data.handle
-		SetEntityHeading(object, GetEntityHeading(PlayerPedId())) -- for direction
-        local off = GetObjectOffsetFromCoords(GetEntityCoords(object), GetEntityHeading(object), x*50.0, y*50.0, z*50.0)
+		unfreezeEntity(object)
+		local off = GetObjectOffsetFromCoords(GetEntityCoords(object), GetEntityHeading(object), x*50.0, y*50.0, z*50.0)
         local di = (GetEntityCoords(object) - off) / 10.0
         local s1, s2, s3 = 5.0, 5.0, 5.0
         ApplyForceToEntity(object, 1, di.x * s1, di.y * s2, di.z * s3, 0.0, 0.0, 0.0, 0, false, true, true, false, true)
