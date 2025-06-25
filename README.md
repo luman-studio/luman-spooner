@@ -14,9 +14,15 @@ Tool for spawning, placing, and removing entities, inspired by Menyoo's Object S
 
 # Example
 
+- Copying entity details such as **Id**, **NetId**, **Model**, **Coords**, **Rotation** etc.
+- General UI/UX improvements, including better element placementto prioritize frequently used features and adding icons for each button.
 <p align="center">
   <img src="showcase/entity-properties-menu1.png" alt="Description" width=100% height=50%>
 </p>
+
+- Preview of object animations.
+- More transparent menu background to allow better visibility of the game view when the menu overlaps it.
+- Copying an animation to the clipboard will generate the coresponding code (e.g. `PlayEntityAnim` or `TaskPlayAnim`) with the selected parameters directly from the menu.
 
 <p align="center">
   <img src="showcase/animations.gif" alt="Description" width=100% height=50%>
