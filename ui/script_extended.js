@@ -38,3 +38,16 @@ document.onkeyup = function (data) {
 function formatNumber(num) {
     return Number(num).toLocaleString('en', {useGrouping: false, minimumFractionDigits: 1});
 }
+
+///////////////////
+// Player Bucket //
+///////////////////
+let playerRoutingBucket = 0;
+window.addEventListener('message', function(event) {
+	switch (event.data.type) {
+        case 'onRequestPlayerRoutingBucket':
+            playerRoutingBucket = event.data.bucket;
+            document.getElementById('routing-bucket').innerHTML = playerRoutingBucket;
+            break;
+    }
+});

@@ -214,6 +214,8 @@ function EnableSpoonerMode()
 	SendNUIMessage({
 		type = 'showSpoonerHud'
 	})
+
+	TriggerEvent('spooner:onSpoonerEnabled')
 end
 
 function DisableSpoonerMode()
@@ -1301,13 +1303,19 @@ RegisterNUICallback('openPropertiesMenuForEntity', function(data, cb)
 	cb({})
 end)
 
+function getDataForPropertiesMenu(entity)
+	return {
+		entity = entity,
+		properties = json.encode(GetEntityProperties(entity)),
+		inDb = EntityIsInDatabase(entity),
+		hasNetworkControl = NetworkHasControlOfEntity(entity)
+	}
+end
+
 RegisterNUICallback('updatePropertiesMenu', function(data, cb)
-	cb({
-		entity = data.handle,
-		properties = json.encode(GetEntityProperties(data.handle)),
-		inDb = EntityIsInDatabase(data.handle),
-		hasNetworkControl = NetworkHasControlOfEntity(data.handle)
-	})
+	local entity = data.handle
+	local data = getDataForPropertiesMenu(entity)
+	cb(data)
 end)
 
 RegisterNUICallback('invincibleOn', function(data, cb)

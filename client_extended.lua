@@ -68,7 +68,7 @@ RegisterNUICallback('physicsPush', function(data, cb)
 		RequestControl(data.handle)
 
 		--
-		local x, y, z = 0.0, 0.0, -1.0
+		local x, y, z = 0.0, 0.0, -0.5
 		local object = data.handle
 		unfreezeEntity(object)
 		local off = GetObjectOffsetFromCoords(GetEntityCoords(object), GetEntityHeading(object), x*50.0, y*50.0, z*50.0)
@@ -77,4 +77,25 @@ RegisterNUICallback('physicsPush', function(data, cb)
         ApplyForceToEntity(object, 1, di.x * s1, di.y * s2, di.z * s3, 0.0, 0.0, 0.0, 0, false, true, true, false, true)
 	end
 	cb({})
+end)
+
+-------------------
+-- Player Bucket --
+-------------------
+AddEventHandler('spooner:onSpoonerEnabled', function()
+	TriggerServerEvent('spooner:requestPlayerRoutingBucket', PlayerPedId())
+end)
+
+RegisterNetEvent('spooner:onRequestPlayerRoutingBucket', function(bucket)
+	SendNUIMessage({
+		type = 'onRequestPlayerRoutingBucket',
+		bucket = bucket,
+	})
+end)
+
+RegisterNetEvent('spooner:onPlayerBucketChange', function(bucket)
+	SendNUIMessage({
+		type = 'onRequestPlayerRoutingBucket',
+		bucket = bucket,
+	})
 end)

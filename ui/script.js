@@ -1532,6 +1532,9 @@ function updatePermissions(data) {
 	document.getElementById('properties-vehicle-lights-off').disabled = !permissions.properties.vehicle.lights;
 	document.getElementById('properties-register-as-networked').disabled = !permissions.properties.registerAsNetworked;
 	document.getElementById('add-to-db-btn').disabled = permissions.maxEntities || !permissions.modify.other;
+
+	// 
+	document.getElementById('properties-physics-push').disabled = false;
 }
 
 function currentEntity() {
@@ -2673,9 +2676,11 @@ window.addEventListener('load', function() {
 });
 
 function test() {
-	// document.querySelector('#properties-menu').style.display = 'flex';
+	// Uncomment coresponding menu for testing
+
+	document.querySelector('#properties-menu').style.display = 'flex';
 	// document.getElementById('attachment-options-menu').style.display = 'flex';
-	document.querySelector('#animation-menu').style.display = 'flex';
+	// document.querySelector('#animation-menu').style.display = 'flex';
 }
 // Uncomment for testing in browser
 // setTimeout(() => {
