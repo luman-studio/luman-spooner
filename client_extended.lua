@@ -99,3 +99,28 @@ RegisterNetEvent('spooner:onPlayerBucketChange', function(bucket)
 		bucket = bucket,
 	})
 end)
+
+-------------------------------------------------------
+-- Disable collision for entity white it is selected --
+-------------------------------------------------------
+local hadCollisionDisabled = false
+AddEventHandler('spooner:onEntitySelected', function(entity)
+	if not entity or not DoesEntityExist(entity) then
+		return
+	end
+
+	-- Disable collision while entity selected
+	hadCollisionDisabled = GetEntityCollisionDisabled(entity)
+	SetEntityCollision(entity, false)
+end)
+
+AddEventHandler('spooner:onEntityUnselected', function(entity)
+	if not entity or not DoesEntityExist(entity) then
+		return
+	end
+
+	-- Keep collision disabled if it was before selection
+	if not hadCollisionDisabled then
+		SetEntityCollision(entity, true)
+	end
+end)

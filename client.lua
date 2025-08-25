@@ -227,6 +227,7 @@ function DisableSpoonerMode()
 		Cam = nil
 	end
 
+	TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 	AttachedEntity = nil
 
 	SendNUIMessage({
@@ -2609,6 +2610,7 @@ end)
 
 RegisterNUICallback('selectEntity', function(data, cb)
 	if CanModifyEntity(data.handle) then
+		TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 		if AttachedEntity == data.handle then
 			AttachedEntity = nil
 		else
@@ -2617,6 +2619,7 @@ RegisterNUICallback('selectEntity', function(data, cb)
 			end
 
 			AttachedEntity = data.handle
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
 		end
 	end
 	cb({})
@@ -2959,6 +2962,7 @@ function MainSpoonerUpdates()
 		end
 
 		if IsDisabledControlJustPressed(0, Config.SelectControl) then
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
 				AttachedEntity = nil
 			elseif entity and CanModifyEntity(entity) then
@@ -2967,10 +2971,12 @@ function MainSpoonerUpdates()
 				else
 					AttachedEntity = entity
 				end
+				TriggerEvent('spooner:onEntitySelected', AttachedEntity)
 			end
 		end
 
 		if IsDisabledControlJustPressed(0, Config.DeleteControl) and entity then
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
 				RemoveEntity(AttachedEntity)
 				AttachedEntity = nil
@@ -3069,7 +3075,9 @@ function MainSpoonerUpdates()
 			end
 
 			if IsRawKeyPressed(Config.CloneControl) then
+				TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 				AttachedEntity = CloneEntity(entity)
+				TriggerEvent('spooner:onEntitySelected', AttachedEntity)
 			end
 
 			local ex1, ey1, ez1, epitch1, eroll1, eyaw1
