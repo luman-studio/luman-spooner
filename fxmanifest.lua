@@ -79,5 +79,6 @@ else
 	print("WARNING: spooner has not been configured. Please edit fxmanifest.lua and set the gameName variable.")
 end
 
+client_script "slaxml.lua"
 client_script "client.lua"
 client_script "client_extended.lua"
