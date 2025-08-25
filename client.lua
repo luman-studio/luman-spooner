@@ -767,15 +767,20 @@ function SpawnPed(props)
 		return nil
 	end
 
-	if not LoadModel(props.model) then
-		return nil
-	end
-
-	local ped
-	if Config.isRDR then
-		ped = CreatePed_2(props.model, props.x, props.y, props.z, 0.0, true, false)
+	-- Use specified ped / spawn new one
+	if DoesEntityExist(props.handle) then
+		ped = props.handle
 	else
-		ped = CreatePed(0, props.model, props.x, props.y, props.z, 0.0, true, false)
+		if not LoadModel(props.model) then
+			return nil
+		end
+
+		local ped
+		if Config.isRDR then
+			ped = CreatePed_2(props.model, props.x, props.y, props.z, 0.0, true, false)
+		else
+			ped = CreatePed(0, props.model, props.x, props.y, props.z, 0.0, true, false)
+		end
 	end
 
 	SetModelAsNoLongerNeeded(props.model)
@@ -1746,6 +1751,7 @@ function CloneEntity(entity)
 	local clone
 
 	if props.type == 1 then
+		props.handle = ClonePed(entity, true, true, true)
 		clone = SpawnPed(props)
 	elseif props.type == 2 then
 		clone = SpawnVehicle(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible)
