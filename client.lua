@@ -2822,6 +2822,13 @@ function MainSpoonerUpdates()
 			entity = FocusTarget
 		end
 
+		local interiorId = GetInteriorFromPrimaryView() -- Cam
+		local interiorName = 'None'
+		if interiorId ~= 0 then
+			local _,interiorHash = GetInteriorLocationAndNamehash(interiorId)
+			interiorName = InteriorsHash[interiorHash] or interiorHash
+		end
+
 		SendNUIMessage({
 			type = 'updateSpoonerHud',
 			entity = entity,
@@ -2847,7 +2854,8 @@ function MainSpoonerUpdates()
 			camRotY = string.format('%.2f', roll2),
 			camRotZ = string.format('%.2f', yaw2),
 			focusTarget = FocusTarget,
-			freeFocus = FreeFocus
+			freeFocus = FreeFocus,
+			interiorId = interiorName,
 		})
 
 		if IsRawKeyDown(Config.IncreaseSpeedControl) then

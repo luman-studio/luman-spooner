@@ -73,7 +73,8 @@ elseif gameName == "gta5" then
 		"data/gta5/scenarios.lua",
 		"data/gta5/vehicles.lua",
 		"data/gta5/walkstyles.lua",
-		"data/gta5/weapons.lua"
+		"data/gta5/weapons.lua",
+		"data/gta5/interiors.lua",
 	}
 else
 	print("WARNING: spooner has not been configured. Please edit fxmanifest.lua and set the gameName variable.")

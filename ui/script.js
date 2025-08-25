@@ -193,6 +193,7 @@ function updateSpoonerHud(data) {
 	document.getElementById('cursor-x').innerHTML = data.cursorX;
 	document.getElementById('cursor-y').innerHTML = data.cursorY;
 	document.getElementById('cursor-z').innerHTML = data.cursorZ;
+	document.getElementById('interior-id').innerHTML = data.interiorId;
 
 	if (data.speedMode == 1) {
 		document.querySelector('#adjust-speed').innerHTML = `[${data.adjustSpeed.toFixed(3)}]`;

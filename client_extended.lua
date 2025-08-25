@@ -124,3 +124,13 @@ AddEventHandler('spooner:onEntityUnselected', function(entity)
 		SetEntityCollision(entity, true)
 	end
 end)
+
+---------------
+-- Interiors --
+---------------
+InteriorsHash = {}
+if Interiors ~= nil then
+	for k,v in ipairs(Interiors) do
+		InteriorsHash[GetHashKey(v.name)] = v.name 
+	end
+end
