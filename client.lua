@@ -2851,6 +2851,12 @@ function MainSpoonerUpdates()
 		if interiorId ~= 0 then
 			local _,interiorHash = GetInteriorLocationAndNamehash(interiorId)
 			interiorName = InteriorsHash[interiorHash] or interiorHash
+			
+			local roomHash = GetRoomKeyForGameViewport()
+			local roomId = GetInteriorRoomIndexByHash(interiorId, roomHash)
+			interiorRoomName = GetInteriorRoomName(interiorId, roomId)
+
+			interiorName = interiorName .. ' (' .. interiorRoomName .. ')'
 		end
 
 		SendNUIMessage({
