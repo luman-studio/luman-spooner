@@ -77,6 +77,8 @@ function copyToClipboard(text) {
 
 	selection.removeAllRanges();
 	e.remove();
+
+	notify('Copied to clipboard! Use Ctrl + V to have it.');
 }
 
 function showSpoonerHud() {
@@ -1600,7 +1602,6 @@ function hideControls() {
 
 function copyCameraToClipboard(data) {
 	copyToClipboard(`SetCamCoord(cam, ${data.camX}, ${data.camY}, ${data.camZ}) SetCamRot(cam, ${data.camRotX}, ${data.camRotY}, ${data.camRotZ})`)
-	notify('Camera coppied to clipboard! Use Ctrl + V to have it.');
 }
 
 function populatePedConfigFlagsList(flags) {
@@ -2593,7 +2594,7 @@ window.addEventListener('load', function() {
 		var y = document.getElementById('properties-y').value;
 		var z = document.getElementById('properties-z').value;
 
-		copyToClipboard(formatNumber(x) + ', ' + formatNumber(y) + ', ' + formatNumber(z))
+		copyToClipboard(formatNumber(x) + ', ' + formatNumber(y) + ', ' + formatNumber(z));
 	});
 
 	document.getElementById('copy-rotation').addEventListener('click', function(event) {
