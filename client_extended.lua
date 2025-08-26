@@ -134,3 +134,29 @@ if Interiors ~= nil then
 		InteriorsHash[GetHashKey(v.name)] = v.name 
 	end
 end
+
+------------------
+-- Notification --
+------------------
+function notify(message)
+    SetNotificationTextEntry('STRING')
+    AddTextComponentString(message .. '    ~l~[' .. GetGameTimer() .. ']')
+    DrawNotification(false, false)
+    TriggerEvent('chat:addMessage', message)
+	PlaySoundFrontend(-1, "DLC_VW_CONTINUE", "dlc_vw_table_games_frontend_sounds", 1)
+end
+RegisterNUICallback('notify', function(data, cb)
+	local msg = data.message
+	notify(msg)
+	cb({})
+end)
+
+
+---------------
+-- UI Loaded --
+---------------
+uiLoaded = false
+RegisterNUICallback('loaded', function(data, cb)
+	uiLoaded = true
+	cb({})
+end)

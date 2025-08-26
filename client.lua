@@ -279,13 +279,37 @@ AddEventHandler('spooner:toggle', ToggleSpoonerMode)
 AddEventHandler('spooner:openDatabaseMenu', OpenDatabaseMenu)
 AddEventHandler('spooner:openSaveDbMenu', OpenSaveDbMenu)
 
+local mainThreadActivated = false
 AddEventHandler('spooner:init', function(permissions)
-	Permissions = permissions
+	-- Deactivate current thread if activate
+	if mainThreadActivated then
+		mainThreadActivated = false
+		Wait(0)
+	end
 
+	-- Wait for UI loading
+	while not uiLoaded do Wait(0) end
+
+	-- Update in-UI permissions
+	Permissions = permissions
 	SendNUIMessage({
 		type = 'updatePermissions',
 		permissions = json.encode(permissions)
 	})
+
+	-- Activate main thread
+	mainThreadActivated = true
+	while mainThreadActivated do
+		MainSpoonerUpdates()
+
+		if Config.isRDR then
+			SpoonerPrompts:handleEvents()
+		end
+
+		drawEntityHandles()
+
+		Wait(0)
+	end
 end)
 
 AddEventHandler('spooner:refreshPermissions', function()
@@ -3354,7 +3378,7 @@ local function drawEntityHandle(type, entity, camCoords)
 	end
 end
 
-local function drawEntityHandles()
+function drawEntityHandles()
 	if Cam then
 		if IsRawKeyPressed(Config.EntityHandlesControl) then
 			showEntityHandles = not showEntityHandles
@@ -3380,20 +3404,7 @@ end
 
 CreateThread(function()
 	TriggerEvent('chat:addSuggestion', '/spooner', 'Toggle spooner mode', {})
-
 	TriggerServerEvent('spooner:init')
-
-	while true do
-		MainSpoonerUpdates()
-
-		if Config.isRDR then
-			SpoonerPrompts:handleEvents()
-		end
-
-		drawEntityHandles()
-
-		Wait(0)
-	end
 end)
 
 function UpdateDbEntities()

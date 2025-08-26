@@ -51,3 +51,18 @@ window.addEventListener('message', function(event) {
             break;
     }
 });
+
+//////////////////
+// Notification //
+//////////////////
+function notify(message) {
+    fetch(`https://${GetParentResourceName()}/notify`,{
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: JSON.stringify({
+            message: message
+        })
+    });
+}

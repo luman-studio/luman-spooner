@@ -1477,6 +1477,8 @@ function openAttachToMenu(fromEntity, data) {
 }
 
 function updatePermissions(data) {
+	console.log('Permissions loaded');
+	
 	var permissions = JSON.parse(data.permissions);
 
 	document.getElementById('spawn-menu-peds').disabled = !permissions.spawn.ped;
@@ -1598,6 +1600,7 @@ function hideControls() {
 
 function copyCameraToClipboard(data) {
 	copyToClipboard(`SetCamCoord(cam, ${data.camX}, ${data.camY}, ${data.camZ}) SetCamRot(cam, ${data.camRotX}, ${data.camRotY}, ${data.camRotZ})`)
+	notify('Camera coppied to clipboard! Use Ctrl + V to have it.');
 }
 
 function populatePedConfigFlagsList(flags) {
@@ -2674,6 +2677,8 @@ window.addEventListener('load', function() {
 			});
 		}, handle);
 	});
+
+	sendMessage('loaded', {});
 });
 
 function test() {
