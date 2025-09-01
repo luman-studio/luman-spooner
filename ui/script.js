@@ -1593,11 +1593,11 @@ function openEntitySelect(menuId, onEntitySelect, ignoreEntity) {
 }
 
 function showControls() {
-	document.getElementById('controls').style.display = 'flex';
+	document.getElementById('hud').style.display = 'flex';
 }
 
 function hideControls() {
-	document.getElementById('controls').style.display = 'none';
+	document.getElementById('hud').style.display = 'none';
 }
 
 function copyCameraToClipboard(data) {
