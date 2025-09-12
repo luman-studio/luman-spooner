@@ -2848,16 +2848,21 @@ function MainSpoonerUpdates()
 
 		local interiorId = GetInteriorFromPrimaryView() -- Cam
 		local interiorName = 'None'
+		local interiorRoomName = 'None'
 		if interiorId ~= 0 then
 			local _,interiorHash = GetInteriorLocationAndNamehash(interiorId)
 			interiorName = InteriorsHash[interiorHash] or interiorHash
 			
-			local roomHash = GetRoomKeyForGameViewport()
-			local roomId = GetInteriorRoomIndexByHash(interiorId, roomHash)
-			interiorRoomName = GetInteriorRoomName(interiorId, roomId)
+			if Config.isRDR then
+				interiorRoomName = 'Unknown'
+			else
+				local roomHash = GetRoomKeyForGameViewport()
+				local roomId = GetInteriorRoomIndexByHash(interiorId, roomHash)
+				interiorRoomName = GetInteriorRoomName(interiorId, roomId)
+			end
 
-			interiorName = interiorName .. ' (' .. interiorRoomName .. ')'
 		end
+		interiorName = interiorName .. ' (' .. interiorRoomName .. ')'
 
 		SendNUIMessage({
 			type = 'updateSpoonerHud',
