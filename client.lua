@@ -799,7 +799,6 @@ function SpawnPed(props)
 			return nil
 		end
 
-		local ped
 		if Config.isRDR then
 			ped = CreatePed_2(props.model, props.x, props.y, props.z, 0.0, true, false)
 		else
