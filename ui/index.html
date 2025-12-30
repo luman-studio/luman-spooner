@@ -182,24 +182,40 @@
 		</div>
 		<div id="ped-menu" class="menu">
 			<div id="ped-search" class="search">
-				<input type="text" id="ped-search-filter" class="search-filter" value="">
+				<input type="text" id="ped-search-filter" class="search-filter" value="" placeholder="Search peds...">
 				<button id="favourite-peds" class="favourites">
 					<i class="far fa-star"></i>
 				</button>
 			</div>
+			<div id="ped-pagination-controls" class="pagination-controls">
+				<button id="ped-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<span id="ped-pagination-info">0-0 of 0</span>
+				<button id="ped-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+			</div>
 			<div id="ped-list" class="list"></div>
-			<button id="ped-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<div id="ped-nav-hint" class="nav-hint">
+				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | Click to preview | <span class="key">Enter</span> Spawn</span>
+			</div>
+			<button id="ped-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="ped-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="vehicle-menu" class="menu">
 			<div id="vehicle-search" class="search">
-				<input type="text" id="vehicle-search-filter" class="search-filter" value="">
+				<input type="text" id="vehicle-search-filter" class="search-filter" value="" placeholder="Search vehicles...">
 				<button id="favourite-vehicles" class="favourites">
 					<i class="far fa-star"></i>
 				</button>
 			</div>
+			<div id="vehicle-pagination-controls" class="pagination-controls">
+				<button id="vehicle-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<span id="vehicle-pagination-info">0-0 of 0</span>
+				<button id="vehicle-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+			</div>
 			<div id="vehicle-list" class="list"></div>
-			<button id="vehicle-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<div id="vehicle-nav-hint" class="nav-hint">
+				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | Click to preview | <span class="key">Enter</span> Spawn</span>
+			</div>
+			<button id="vehicle-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="vehicle-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="object-menu" class="menu">
@@ -209,16 +225,16 @@
 					<i class="far fa-star"></i>
 				</button>
 			</div>
-			<div id="object-pagination-controls">
+			<div id="object-pagination-controls" class="pagination-controls">
 				<button id="object-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
 				<span id="object-pagination-info">0-0 of 0</span>
 				<button id="object-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
 			</div>
 			<div id="object-list" class="list"></div>
-			<div id="object-nav-hint">
+			<div id="object-nav-hint" class="nav-hint">
 				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | Click to preview | <span class="key">Enter</span> Spawn</span>
 			</div>
-			<button id="object-spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
+			<button id="object-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="object-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="object-database" class="menu">
@@ -734,24 +750,40 @@
 		</div>
 		<div id="propset-menu" class="menu">
 			<div id="propset-search" class="search">
-				<input type="text" id="propset-search-filter" class="search-filter" value="">
+				<input type="text" id="propset-search-filter" class="search-filter" value="" placeholder="Search propsets...">
 				<button id="favourite-propsets" class="favourites">
 					<i class="far fa-star"></i>
 				</button>
 			</div>
+			<div id="propset-pagination-controls" class="pagination-controls">
+				<button id="propset-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<span id="propset-pagination-info">0-0 of 0</span>
+				<button id="propset-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+			</div>
 			<div id="propset-list" class="list"></div>
-			<button id="propset-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<div id="propset-nav-hint" class="nav-hint">
+				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | <span class="key">Enter</span> Spawn</span>
+			</div>
+			<button id="propset-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="propset-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="pickup-menu" class="menu">
 			<div id="pickup-search" class="search">
-				<input type="text" id="pickup-search-filter" class="search-filter" value="">
+				<input type="text" id="pickup-search-filter" class="search-filter" value="" placeholder="Search pickups...">
 				<button id="favourite-pickups" class="favourites">
 					<i class="far fa-star"></i>
 				</button>
 			</div>
+			<div id="pickup-pagination-controls" class="pagination-controls">
+				<button id="pickup-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<span id="pickup-pagination-info">0-0 of 0</span>
+				<button id="pickup-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+			</div>
 			<div id="pickup-list" class="list"></div>
-			<button id="pickup-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<div id="pickup-nav-hint" class="nav-hint">
+				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | <span class="key">Enter</span> Spawn</span>
+			</div>
+			<button id="pickup-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="pickup-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="player-model-menu" class="menu">

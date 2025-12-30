@@ -1155,23 +1155,35 @@ RegisterNUICallback('spawnAndAttachObject', function(data, cb)
 	cb({})
 end)
 
--- Object preview functions
-function ClearObjectPreview()
+-- ============================================================================
+-- Unified Preview System
+-- ============================================================================
+
+-- Preview types: 'ped', 'vehicle', 'object', 'propset', 'pickup'
+local PreviewType = nil
+
+function ClearPreview()
 	if PreviewEntity and DoesEntityExist(PreviewEntity) then
 		DeleteEntity(PreviewEntity)
 	end
 	PreviewEntity = nil
 	PreviewModelName = nil
+	PreviewType = nil
 end
 
-function SpawnObjectPreview(modelName)
+-- Legacy alias for backward compatibility
+function ClearObjectPreview()
+	ClearPreview()
+end
+
+function SpawnPreview(modelName, entityType)
 	-- Don't spawn if same model already previewing
 	if PreviewModelName == modelName and PreviewEntity and DoesEntityExist(PreviewEntity) then
 		return
 	end
 
 	-- Clear existing preview first
-	ClearObjectPreview()
+	ClearPreview()
 
 	local model = GetHashKey(modelName)
 
@@ -1186,6 +1198,7 @@ function SpawnObjectPreview(modelName)
 	CreateThread(function()
 		local timeout = 50
 		local requestedModel = modelName
+		local requestedType = entityType
 		while not HasModelLoaded(model) and timeout > 0 do
 			Wait(10)
 			timeout = timeout - 1
@@ -1205,12 +1218,30 @@ function SpawnObjectPreview(modelName)
 			local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 			local spawnPos, _, _ = GetInView(x, y, z, pitch, roll, yaw)
 
-			-- Create the preview object
-			PreviewEntity = CreateObjectNoOffset(model, spawnPos.x, spawnPos.y, spawnPos.z, false, false, false)
+			-- Create preview entity based on type
+			if requestedType == 'ped' then
+				if Config.isRDR then
+					PreviewEntity = CreatePed_2(model, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, false, false)
+				else
+					PreviewEntity = CreatePed(0, model, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, false, false)
+				end
+			elseif requestedType == 'vehicle' then
+				PreviewEntity = CreateVehicle(model, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, false, false)
+			else
+				-- Default: object
+				PreviewEntity = CreateObjectNoOffset(model, spawnPos.x, spawnPos.y, spawnPos.z, false, false, false)
+			end
+
 			SetModelAsNoLongerNeeded(model)
 
 			if PreviewEntity and PreviewEntity > 0 then
 				PreviewModelName = requestedModel
+				PreviewType = requestedType
+
+				-- Set random outfit for peds (otherwise they're invisible)
+				if requestedType == 'ped' then
+					SetRandomOutfitVariation(PreviewEntity, true)
+				end
 
 				-- Make it semi-transparent and non-solid
 				SetEntityAlpha(PreviewEntity, 180, false)
@@ -1221,15 +1252,161 @@ function SpawnObjectPreview(modelName)
 	end)
 end
 
-RegisterNUICallback('previewObject', function(data, cb)
+-- Preview callbacks for all entity types
+RegisterNUICallback('previewPed', function(data, cb)
 	if data.modelName then
-		SpawnObjectPreview(data.modelName)
+		SpawnPreview(data.modelName, 'ped')
 	end
 	cb({})
 end)
 
+RegisterNUICallback('previewVehicle', function(data, cb)
+	if data.modelName then
+		SpawnPreview(data.modelName, 'vehicle')
+	end
+	cb({})
+end)
+
+RegisterNUICallback('previewObject', function(data, cb)
+	if data.modelName then
+		SpawnPreview(data.modelName, 'object')
+	end
+	cb({})
+end)
+
+RegisterNUICallback('previewPropset', function(data, cb)
+	if data.modelName then
+		SpawnPreview(data.modelName, 'propset')
+	end
+	cb({})
+end)
+
+RegisterNUICallback('previewPickup', function(data, cb)
+	if data.modelName then
+		SpawnPreview(data.modelName, 'pickup')
+	end
+	cb({})
+end)
+
+-- Clear preview callbacks
+RegisterNUICallback('clearPedPreview', function(data, cb)
+	ClearPreview()
+	cb({})
+end)
+
+RegisterNUICallback('clearVehiclePreview', function(data, cb)
+	ClearPreview()
+	cb({})
+end)
+
 RegisterNUICallback('clearObjectPreview', function(data, cb)
-	ClearObjectPreview()
+	ClearPreview()
+	cb({})
+end)
+
+RegisterNUICallback('clearPropsetPreview', function(data, cb)
+	ClearPreview()
+	cb({})
+end)
+
+RegisterNUICallback('clearPickupPreview', function(data, cb)
+	ClearPreview()
+	cb({})
+end)
+
+-- ============================================================================
+-- Spawn and Attach callbacks for all entity types
+-- ============================================================================
+
+RegisterNUICallback('spawnAndAttachPed', function(data, cb)
+	ClearPreview()
+
+	if data.modelName and (Permissions.spawn.byName or Contains(Peds, data.modelName)) then
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		local yaw2 = yaw
+		if yaw2 < 0.0 then
+			yaw2 = yaw2 + 360.0
+		end
+
+		local entity = SpawnPed({
+			name = data.modelName,
+			model = GetHashKey(data.modelName),
+			x = spawnPos.x,
+			y = spawnPos.y,
+			z = spawnPos.z,
+			pitch = 0.0,
+			roll = 0.0,
+			yaw = yaw2 + 180.0,
+			collisionDisabled = false,
+			isVisible = true,
+			outfit = -1,
+			isInGroup = false,
+			blockNonTemporaryEvents = false
+		})
+
+		if entity then
+			PlaceOnGroundProperly(entity)
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
+			AttachedEntity = entity
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
+		end
+	end
+	SetNuiFocus(false, false)
+	cb({})
+end)
+
+RegisterNUICallback('spawnAndAttachVehicle', function(data, cb)
+	ClearPreview()
+
+	if data.modelName and (Permissions.spawn.byName or Contains(Vehicles, data.modelName)) then
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		local yaw2 = yaw
+		if yaw2 < 0.0 then
+			yaw2 = yaw2 + 360.0
+		end
+
+		local entity = SpawnVehicle(data.modelName, GetHashKey(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true)
+
+		if entity then
+			PlaceOnGroundProperly(entity)
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
+			AttachedEntity = entity
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
+		end
+	end
+	SetNuiFocus(false, false)
+	cb({})
+end)
+
+RegisterNUICallback('spawnAndAttachPropset', function(data, cb)
+	ClearPreview()
+
+	if data.modelName and (Permissions.spawn.byName or Contains(Propsets, data.modelName)) then
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		local yaw2 = yaw
+		if yaw2 < 0.0 then
+			yaw2 = yaw2 + 360.0
+		end
+
+		local entity = SpawnPropset(data.modelName, GetHashKey(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, yaw2)
+
+		if entity then
+			PlaceOnGroundProperly(entity)
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
+			AttachedEntity = entity
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
+		end
+	end
+	SetNuiFocus(false, false)
 	cb({})
 end)
 

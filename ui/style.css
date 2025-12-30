@@ -480,8 +480,8 @@ textarea {
 	flex-grow: 1;
 }
 
-/* Object menu pagination and preview controls */
-#object-pagination-controls {
+/* Spawn menu pagination and preview controls (unified for all spawn menus) */
+.pagination-controls {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -490,45 +490,49 @@ textarea {
 	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-#object-pagination-controls button {
+.pagination-controls button {
 	padding: 0.25vh 0.5vw;
 	font-size: 1.5vh;
 	min-width: 2vw;
 }
 
-#object-pagination-info {
+#ped-pagination-info,
+#vehicle-pagination-info,
+#object-pagination-info,
+#propset-pagination-info,
+#pickup-pagination-info {
 	font-size: 1.25vh;
 	color: #aaa;
 	min-width: 10vw;
 	text-align: center;
 }
 
-#object-nav-hint {
+.nav-hint {
 	font-size: 1.1vh;
 	color: #888;
 	text-align: center;
 	padding: 0.25vh 0;
 }
 
-#object-nav-hint .key {
+.nav-hint .key {
 	background-color: rgba(255, 255, 255, 0.2);
 	padding: 0.1vh 0.3vw;
 	border-radius: 2px;
 	font-family: monospace;
 }
 
-#object-spawn-btn {
+.spawn-btn {
 	width: 100%;
 	margin-top: 0.5vh;
 	font-size: 1.75vh;
 	padding: 0.5vh 0;
 }
 
-#object-spawn-btn:enabled {
+.spawn-btn:enabled {
 	background-color: rgba(0, 128, 0, 0.5);
 	border-color: #0f0;
 }
 
-#object-spawn-btn:hover:enabled {
+.spawn-btn:hover:enabled {
 	background-color: rgba(0, 200, 0, 0.6);
 }
