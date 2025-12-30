@@ -1,7 +1,7 @@
 -- Set this to one of the following:
 -- FiveM: "gta5"
 -- RedM: "rdr3"
-local gameName = "gta5"
+local gameName = "rdr3"
 
 fx_version "cerulean"
 game(gameName)

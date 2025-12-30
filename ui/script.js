@@ -12,6 +12,16 @@ var walkStyles = [];
 
 var lastSpawnMenu = -1;
 
+// Pagination state for objects
+var objectPagination = {
+	pageSize: 100,
+	currentPage: 0,
+	filteredObjects: [],
+	selectedIndex: -1
+};
+
+var searchDebounceTimer = null;
+
 var propertiesMenuUpdate;
 
 const favouriteTypes = [
@@ -362,9 +372,15 @@ function closeObjectMenu(selected) {
 		});
 		selected.className = 'object selected';
 	} else {
+		// Clear preview when closing menu without spawning
+		sendMessage('clearObjectPreview', {});
 		document.querySelector('#spawn-menu').style.display = 'flex';
 		lastSpawnMenu = -1;
 	}
+
+	// Reset selection state
+	objectPagination.selectedIndex = -1;
+	updateSpawnButtonState();
 }
 
 function closePropsetMenu(selected) {
@@ -664,47 +680,200 @@ function populateVehicleList(filter) {
 	});
 }
 
-function populateObjectList(filter) {
-	var objectList = document.getElementById('object-list');
+function filterObjects(filter) {
 	var favsOnly = document.getElementById('favourite-objects').hasAttribute('data-active');
+	var filterLower = filter ? filter.toLowerCase() : '';
 
-	objectList.innerHTML = '';
+	objectPagination.filteredObjects = [];
 
-	objects.forEach(name => {
+	for (var i = 0; i < objects.length; i++) {
+		var name = objects[i];
 		var isFav = favourites.objects[name];
 
 		if (favsOnly && !isFav) {
-			return;
+			continue;
 		}
 
-		if (!filter || filter == '' || name.toLowerCase().includes(filter.toLowerCase())) {
-			var div = document.createElement('div');
-
-			if (isFav) {
-				div.className = 'object favourite';
-			} else {
-				div.className = 'object';
-			}
-
-			div.setAttribute('data-model', name);
-			div.setAttribute('data-favourite-type', 'objects');
-			div.setAttribute('data-favourite-name', name);
-
-			div.innerHTML = name;
-
-			div.addEventListener('click', function(event) {
-				closeObjectMenu(this);
-			});
-
-			if (isFav) {
-				div.addEventListener('contextmenu', favouriteOnClick);
-			} else {
-				div.addEventListener('contextmenu', nonFavouriteOnClick);
-			}
-
-			objectList.appendChild(div);
+		if (!filter || filter === '' || name.toLowerCase().includes(filterLower)) {
+			objectPagination.filteredObjects.push(name);
 		}
-	});
+	}
+
+	objectPagination.currentPage = 0;
+	objectPagination.selectedIndex = -1;
+}
+
+function renderObjectPage() {
+	var objectList = document.getElementById('object-list');
+	var start = objectPagination.currentPage * objectPagination.pageSize;
+	var end = Math.min(start + objectPagination.pageSize, objectPagination.filteredObjects.length);
+
+	objectList.innerHTML = '';
+
+	for (var i = start; i < end; i++) {
+		var name = objectPagination.filteredObjects[i];
+		var isFav = favourites.objects[name];
+
+		var div = document.createElement('div');
+
+		if (objectPagination.selectedIndex === i) {
+			div.className = 'object selected';
+		} else if (isFav) {
+			div.className = 'object favourite';
+		} else {
+			div.className = 'object';
+		}
+
+		div.setAttribute('data-model', name);
+		div.setAttribute('data-favourite-type', 'objects');
+		div.setAttribute('data-favourite-name', name);
+		div.setAttribute('data-index', i);
+
+		div.innerHTML = name;
+
+		// Click selects for preview, doesn't close menu
+		div.addEventListener('click', function(event) {
+			var index = parseInt(this.getAttribute('data-index'));
+			selectObjectByIndex(index);
+		});
+
+		if (isFav) {
+			div.addEventListener('contextmenu', favouriteOnClick);
+		} else {
+			div.addEventListener('contextmenu', nonFavouriteOnClick);
+		}
+
+		objectList.appendChild(div);
+	}
+
+	updateObjectPaginationInfo();
+	updateSpawnButtonState();
+}
+
+function updateSpawnButtonState() {
+	var spawnBtn = document.getElementById('object-spawn-btn');
+	if (objectPagination.selectedIndex >= 0) {
+		spawnBtn.disabled = false;
+	} else {
+		spawnBtn.disabled = true;
+	}
+}
+
+function updateObjectPaginationInfo() {
+	var infoEl = document.getElementById('object-pagination-info');
+	var total = objectPagination.filteredObjects.length;
+	var start = objectPagination.currentPage * objectPagination.pageSize + 1;
+	var end = Math.min(start + objectPagination.pageSize - 1, total);
+	var totalPages = Math.ceil(total / objectPagination.pageSize);
+	var currentPage = objectPagination.currentPage + 1;
+
+	if (total === 0) {
+		infoEl.innerHTML = 'No results';
+	} else {
+		infoEl.innerHTML = start + '-' + end + ' of ' + total + ' (Page ' + currentPage + '/' + totalPages + ')';
+	}
+
+	document.getElementById('object-prev-page').disabled = objectPagination.currentPage === 0;
+	document.getElementById('object-next-page').disabled = end >= total;
+}
+
+function objectPrevPage() {
+	if (objectPagination.currentPage > 0) {
+		objectPagination.currentPage--;
+		objectPagination.selectedIndex = -1; // Reset selection on page change
+		renderObjectPage();
+	}
+}
+
+function objectNextPage() {
+	var totalPages = Math.ceil(objectPagination.filteredObjects.length / objectPagination.pageSize);
+	if (objectPagination.currentPage < totalPages - 1) {
+		objectPagination.currentPage++;
+		objectPagination.selectedIndex = -1; // Reset selection on page change
+		renderObjectPage();
+	}
+}
+
+var previewDebounceTimer = null;
+
+function selectObjectByIndex(index) {
+	if (index < 0 || index >= objectPagination.filteredObjects.length) {
+		return;
+	}
+
+	objectPagination.selectedIndex = index;
+
+	// Calculate which page this index is on
+	var targetPage = Math.floor(index / objectPagination.pageSize);
+	if (targetPage !== objectPagination.currentPage) {
+		objectPagination.currentPage = targetPage;
+	}
+
+	renderObjectPage();
+
+	// Scroll the selected item into view
+	var objectList = document.getElementById('object-list');
+	var selectedEl = objectList.querySelector('.object.selected');
+	if (selectedEl) {
+		selectedEl.scrollIntoView({ block: 'nearest' });
+	}
+
+	// Show preview (with debounce to avoid lag when navigating fast)
+	if (previewDebounceTimer) {
+		clearTimeout(previewDebounceTimer);
+	}
+	previewDebounceTimer = setTimeout(function() {
+		var modelName = objectPagination.filteredObjects[index];
+		sendMessage('previewObject', { modelName: modelName });
+	}, 150);
+}
+
+function objectNavigate(direction) {
+	var newIndex = objectPagination.selectedIndex + direction;
+
+	if (newIndex < 0) {
+		newIndex = 0;
+	} else if (newIndex >= objectPagination.filteredObjects.length) {
+		newIndex = objectPagination.filteredObjects.length - 1;
+	}
+
+	if (newIndex !== objectPagination.selectedIndex) {
+		selectObjectByIndex(newIndex);
+	}
+}
+
+function spawnSelectedObject() {
+	if (objectPagination.selectedIndex < 0) {
+		return;
+	}
+	var modelName = objectPagination.filteredObjects[objectPagination.selectedIndex];
+	if (modelName) {
+		document.querySelector('#object-menu').style.display = 'none';
+		// Spawn and attach to camera immediately
+		sendMessage('spawnAndAttachObject', {
+			modelName: modelName
+		});
+		// Reset selection state
+		objectPagination.selectedIndex = -1;
+		updateSpawnButtonState();
+	}
+}
+
+function populateObjectList(filter, immediate) {
+	// Use debounce for search to prevent lag (unless immediate is true)
+	if (searchDebounceTimer) {
+		clearTimeout(searchDebounceTimer);
+	}
+
+	if (immediate) {
+		filterObjects(filter);
+		renderObjectPage();
+	} else {
+		searchDebounceTimer = setTimeout(function() {
+			filterObjects(filter);
+			renderObjectPage();
+		}, 150);
+	}
 }
 
 function populateScenarioList(filter) {
@@ -1729,7 +1898,7 @@ window.addEventListener('load', function() {
 		populateVehicleList();
 
 		objects = JSON.parse(resp.objects);
-		populateObjectList();
+		populateObjectList('', true); // immediate on initial load
 
 		scenarios = JSON.parse(resp.scenarios);
 		populateScenarioList();
@@ -1776,6 +1945,65 @@ window.addEventListener('load', function() {
 		populateObjectList(this.value);
 	});
 
+	// Object pagination controls
+	document.getElementById('object-prev-page').addEventListener('click', function(event) {
+		objectPrevPage();
+	});
+
+	document.getElementById('object-next-page').addEventListener('click', function(event) {
+		objectNextPage();
+	});
+
+	// Spawn button click
+	document.getElementById('object-spawn-btn').addEventListener('click', function(event) {
+		spawnSelectedObject();
+	});
+
+	// Keyboard navigation for object menu (on document level)
+	document.addEventListener('keydown', function(event) {
+		var objectMenu = document.getElementById('object-menu');
+		var objectMenuVisible = objectMenu && objectMenu.style.display === 'flex';
+		if (!objectMenuVisible) return;
+
+		var searchFilter = document.getElementById('object-search-filter');
+		var isSearchFocused = document.activeElement === searchFilter;
+
+		switch (event.key) {
+			case 'ArrowDown':
+				event.preventDefault();
+				objectNavigate(1);
+				break;
+			case 'ArrowUp':
+				event.preventDefault();
+				objectNavigate(-1);
+				break;
+			case 'PageDown':
+				event.preventDefault();
+				objectNextPage();
+				if (objectPagination.filteredObjects.length > 0) {
+					selectObjectByIndex(objectPagination.currentPage * objectPagination.pageSize);
+				}
+				break;
+			case 'PageUp':
+				event.preventDefault();
+				objectPrevPage();
+				if (objectPagination.filteredObjects.length > 0) {
+					selectObjectByIndex(objectPagination.currentPage * objectPagination.pageSize);
+				}
+				break;
+			case 'Enter':
+				if (!isSearchFocused && objectPagination.selectedIndex >= 0) {
+					event.preventDefault();
+					spawnSelectedObject();
+				}
+				break;
+			case 'Escape':
+				event.preventDefault();
+				closeObjectMenu();
+				break;
+		}
+	});
+
 	document.getElementById('propset-search-filter').addEventListener('input', function(event) {
 		populatePropsetList(this.value);
 	});
@@ -1804,13 +2032,6 @@ window.addEventListener('load', function() {
 		});
 	});
 
-	document.querySelector('#object-spawn-by-name').addEventListener('click', function(event) {
-		document.querySelector('#object-menu').style.display = 'none';
-
-		sendMessage('closeObjectMenu', {
-			modelName: document.querySelector('#object-search-filter').value
-		});
-	});
 
 	document.querySelector('#propset-spawn-by-name').addEventListener('click', function(event) {
 		document.querySelector('#propset-menu').style.display = 'none';
@@ -2460,7 +2681,7 @@ window.addEventListener('load', function() {
 				populateVehicleList(document.getElementById('vehicle-search-filter').value);
 				break;
 			case 'favourite-objects':
-				populateObjectList(document.getElementById('object-search-filter').value);
+				populateObjectList(document.getElementById('object-search-filter').value, true);
 				break;
 			case 'favourite-player-models':
 				populatePlayerModelList(document.getElementById('player-model-search-filter').value);

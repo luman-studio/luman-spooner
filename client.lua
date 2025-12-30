@@ -17,6 +17,10 @@ local FocusTargetPos
 local FreeFocus = false
 local showEntityHandles = false
 
+-- Preview entity for prop browser
+local PreviewEntity = nil
+local PreviewModelName = nil
+
 local SpoonerPrompts, ClearTasksPrompt, DetachPrompt
 
 if Config.isRDR then
@@ -229,6 +233,11 @@ function DisableSpoonerMode()
 
 	TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 	AttachedEntity = nil
+
+	-- Clear any preview entity
+	if ClearObjectPreview then
+		ClearObjectPreview()
+	end
 
 	SendNUIMessage({
 		type = 'hideSpoonerHud'
@@ -1101,6 +1110,9 @@ RegisterNUICallback('closeVehicleMenu', function(data, cb)
 end)
 
 RegisterNUICallback('closeObjectMenu', function(data, cb)
+	-- Clear preview when closing menu
+	ClearObjectPreview()
+
 	if data.modelName and (Permissions.spawn.byName or Contains(Objects, data.modelName)) then
 		CurrentSpawn = {
 			modelName = data.modelName,
@@ -1108,6 +1120,116 @@ RegisterNUICallback('closeObjectMenu', function(data, cb)
 		}
 	end
 	SetNuiFocus(false, false)
+	cb({})
+end)
+
+RegisterNUICallback('spawnAndAttachObject', function(data, cb)
+	-- Clear preview first
+	ClearObjectPreview()
+
+	if data.modelName and (Permissions.spawn.byName or Contains(Objects, data.modelName)) then
+		-- Get spawn position from camera view
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		-- Calculate yaw from camera
+		local yaw2 = yaw
+		if yaw2 < 0.0 then
+			yaw2 = yaw2 + 360.0
+		end
+
+		-- Spawn the object
+		local entity = SpawnObject(data.modelName, GetHashKey(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true, nil, nil, nil)
+
+		if entity then
+			PlaceOnGroundProperly(entity)
+
+			-- Attach to camera immediately
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
+			AttachedEntity = entity
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
+		end
+	end
+	SetNuiFocus(false, false)
+	cb({})
+end)
+
+-- Object preview functions
+function ClearObjectPreview()
+	if PreviewEntity and DoesEntityExist(PreviewEntity) then
+		DeleteEntity(PreviewEntity)
+	end
+	PreviewEntity = nil
+	PreviewModelName = nil
+end
+
+function SpawnObjectPreview(modelName)
+	-- Don't spawn if same model already previewing
+	if PreviewModelName == modelName and PreviewEntity and DoesEntityExist(PreviewEntity) then
+		return
+	end
+
+	-- Clear existing preview first
+	ClearObjectPreview()
+
+	local model = GetHashKey(modelName)
+
+	-- Check if model is valid and can be loaded
+	if not IsModelInCdimage(model) then
+		return
+	end
+
+	RequestModel(model)
+
+	-- Wait for model to load with timeout (async)
+	CreateThread(function()
+		local timeout = 50
+		local requestedModel = modelName
+		while not HasModelLoaded(model) and timeout > 0 do
+			Wait(10)
+			timeout = timeout - 1
+			-- Check if preview was cancelled or changed
+			if PreviewModelName ~= nil then
+				return
+			end
+		end
+
+		if not HasModelLoaded(model) then
+			return
+		end
+
+		-- Get spawn position in front of camera
+		if Cam then
+			local x, y, z = table.unpack(GetCamCoord(Cam))
+			local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+			local spawnPos, _, _ = GetInView(x, y, z, pitch, roll, yaw)
+
+			-- Create the preview object
+			PreviewEntity = CreateObjectNoOffset(model, spawnPos.x, spawnPos.y, spawnPos.z, false, false, false)
+			SetModelAsNoLongerNeeded(model)
+
+			if PreviewEntity and PreviewEntity > 0 then
+				PreviewModelName = requestedModel
+
+				-- Make it semi-transparent and non-solid
+				SetEntityAlpha(PreviewEntity, 180, false)
+				SetEntityCollision(PreviewEntity, false, false)
+				FreezeEntityPosition(PreviewEntity, true)
+			end
+		end
+	end)
+end
+
+RegisterNUICallback('previewObject', function(data, cb)
+	if data.modelName then
+		SpawnObjectPreview(data.modelName)
+	end
+	cb({})
+end)
+
+RegisterNUICallback('clearObjectPreview', function(data, cb)
+	ClearObjectPreview()
 	cb({})
 end)
 
@@ -3276,6 +3398,12 @@ function MainSpoonerUpdates()
 					end
 				end
 			end
+		end
+
+		-- Update preview entity position (follows cursor)
+		if PreviewEntity and DoesEntityExist(PreviewEntity) then
+			SetEntityCoordsNoOffset(PreviewEntity, spawnPos.x, spawnPos.y, spawnPos.z)
+			PlaceOnGroundProperly(PreviewEntity)
 		end
 
 		if FocusTarget then

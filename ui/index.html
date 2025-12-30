@@ -204,13 +204,21 @@
 		</div>
 		<div id="object-menu" class="menu">
 			<div id="object-search" class="search">
-				<input type="text" id="object-search-filter" class="search-filter" value="">
+				<input type="text" id="object-search-filter" class="search-filter" value="" placeholder="Search objects...">
 				<button id="favourite-objects" class="favourites">
 					<i class="far fa-star"></i>
 				</button>
 			</div>
+			<div id="object-pagination-controls">
+				<button id="object-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<span id="object-pagination-info">0-0 of 0</span>
+				<button id="object-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+			</div>
 			<div id="object-list" class="list"></div>
-			<button id="object-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name</button>
+			<div id="object-nav-hint">
+				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | Click to preview | <span class="key">Enter</span> Spawn</span>
+			</div>
+			<button id="object-spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="object-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="object-database" class="menu">
