@@ -3743,7 +3743,7 @@ function UpdateDbEntities()
 				startScenario(entity, properties.scenario)
 			end
 		elseif properties.animation then
-			if not IsEntityPlayingAnim(entity, properties.animation.dict, properties.animation.name, 3) then
+			if not IsAnimationPaused(entity) and not IsEntityPlayingAnim(entity, properties.animation.dict, properties.animation.name, 3) then
 				PlayAnimation(entity, properties.animation)
 			end
 		end

@@ -504,6 +504,62 @@
 					</div>
 				</details>
 
+				<details id="offset-section">
+					<summary>Offset From Entity</summary>
+					<div class="property">
+						<button id="offset-select-reference"><i class="fas fa-crosshairs"></i> Select Reference Entity</button>
+					</div>
+					<div id="offset-display" style="display: none;">
+						<div class="property">
+							<div class="label">Reference: <span id="offset-reference-id"></span></div>
+						</div>
+						<div class="property">
+							<div class="label">Local Offset (relative to reference)</div>
+							<div class="labelled-input-group">
+								<div class="labelled-input">
+									<div class="input-label">X</div>
+									<input type="text" id="offset-local-x" readonly>
+								</div>
+								<div class="labelled-input">
+									<div class="input-label">Y</div>
+									<input type="text" id="offset-local-y" readonly>
+								</div>
+								<div class="labelled-input">
+									<div class="input-label">Z</div>
+									<input type="text" id="offset-local-z" readonly>
+								</div>
+							</div>
+						</div>
+						<div class="property">
+							<div class="label">Rotation Offset</div>
+							<div class="labelled-input-group">
+								<div class="labelled-input">
+									<div class="input-label">Pitch</div>
+									<input type="text" id="offset-pitch" readonly>
+								</div>
+								<div class="labelled-input">
+									<div class="input-label">Roll</div>
+									<input type="text" id="offset-roll" readonly>
+								</div>
+								<div class="labelled-input">
+									<div class="input-label">Yaw</div>
+									<input type="text" id="offset-yaw" readonly>
+								</div>
+							</div>
+						</div>
+						<div class="property">
+							<div class="label">Distance: <span id="offset-distance"></span></div>
+						</div>
+						<div class="property multiple">
+							<button id="offset-copy-local"><i class="fas fa-clipboard"></i> Copy Local</button>
+							<button id="offset-copy-all"><i class="fas fa-clipboard"></i> Copy All</button>
+						</div>
+						<div class="property">
+							<button id="offset-clear"><i class="fas fa-times"></i> Clear Reference</button>
+						</div>
+					</div>
+				</details>
+
 				<div class="property">
 					<button id="properties-clone"><i class="fas fa-clone"></i> Clone</button>
 				</div>
@@ -742,6 +798,19 @@
 				<div class="property">
 					<div class="label">Playback Rate</div>
 					<input type="number" id="animation-playback-rate" value="0.0">
+				</div>
+			</div>
+			<div id="animation-timeline" style="display: none;">
+				<div class="property">
+					<div class="label">Animation Timeline</div>
+					<div id="animation-timeline-controls">
+						<input type="range" id="animation-time-slider" min="0" max="1" step="0.001" value="0">
+						<div id="animation-time-display">0.0%</div>
+						<div class="property multiple">
+							<button id="animation-pause"><i class="fas fa-pause"></i> Pause</button>
+							<button id="animation-resume" style="display:none"><i class="fas fa-play"></i> Resume</button>
+						</div>
+					</div>
 				</div>
 			</div>
 			<button id="copy-animation-settings"><i class="fas fa-clipboard"></i></button>

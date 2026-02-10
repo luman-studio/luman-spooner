@@ -521,6 +521,36 @@ textarea {
 	font-family: monospace;
 }
 
+#animation-time-slider {
+	width: 100%;
+	-webkit-appearance: none;
+	height: 6px;
+	background: rgba(255, 255, 255, 0.3);
+	border-radius: 3px;
+	outline: none;
+	border: none;
+	margin: 6px 0;
+}
+
+#animation-time-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	width: 14px;
+	height: 14px;
+	background: #ff0000;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+#animation-time-display {
+	text-align: center;
+	font-size: 1.8vh;
+	margin: 4px 0;
+}
+
+#animation-timeline-controls {
+	padding: 4px 0;
+}
+
 .spawn-btn {
 	width: 100%;
 	margin-top: 0.5vh;

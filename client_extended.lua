@@ -53,12 +53,133 @@ end)
 
 RegisterNUICallback('stopAnimation', function(data, cb)
 	local entity = data.handle
+	ClearPausedAnimation(entity)
 	if GetEntityType(entity) == 3 then -- object
 		TryStopEntityAnim(entity)
 	else -- ped
 		TryClearTasks(entity)
 	end
 	cb({})
+end)
+
+----------------------------
+-- Animation Timeline/Pause
+----------------------------
+
+local PausedAnimations = {}
+
+function IsAnimationPaused(entity)
+	return PausedAnimations[entity] ~= nil
+end
+
+function ClearPausedAnimation(entity)
+	PausedAnimations[entity] = nil
+end
+
+RegisterNUICallback('pauseAnimation', function(data, cb)
+	local entity = data.handle
+	local anim = GetAnimationInfo(entity)
+	if anim and DoesEntityExist(entity) then
+		local time = GetEntityAnimCurrentTime(entity, anim.dict, anim.name)
+		PausedAnimations[entity] = { dict = anim.dict, name = anim.name, time = time }
+		RequestControl(entity)
+		if GetEntityType(entity) == 3 then
+			StopEntityAnim(entity, anim.name, anim.dict, 0.0)
+		else
+			ClearPedTasksImmediately(entity)
+		end
+	end
+	cb({})
+end)
+
+RegisterNUICallback('resumeAnimation', function(data, cb)
+	local entity = data.handle
+	local paused = PausedAnimations[entity]
+	if paused and DoesEntityExist(entity) then
+		local anim = GetAnimationInfo(entity)
+		if anim then
+			RequestControl(entity)
+			PlayAnimation(entity, anim)
+			Wait(0)
+			SetEntityAnimCurrentTime(entity, anim.dict, anim.name, paused.time)
+		end
+		PausedAnimations[entity] = nil
+	end
+	cb({})
+end)
+
+RegisterNUICallback('setAnimationTime', function(data, cb)
+	local entity = data.handle
+	local time = data.time * 1.0
+	local anim = GetAnimationInfo(entity)
+	if anim and DoesEntityExist(entity) then
+		RequestControl(entity)
+		if PausedAnimations[entity] then
+			PausedAnimations[entity].time = time
+			PlayAnimation(entity, anim)
+			Wait(0)
+			SetEntityAnimCurrentTime(entity, anim.dict, anim.name, time)
+			Wait(0)
+			if GetEntityType(entity) == 3 then
+				StopEntityAnim(entity, anim.name, anim.dict, 0.0)
+			else
+				ClearPedTasksImmediately(entity)
+			end
+		else
+			SetEntityAnimCurrentTime(entity, anim.dict, anim.name, time)
+		end
+	end
+	cb({})
+end)
+
+RegisterNUICallback('getAnimationTime', function(data, cb)
+	local entity = data.handle
+	local anim = GetAnimationInfo(entity)
+	local time = 0.0
+	local isPaused = PausedAnimations[entity] ~= nil
+	if isPaused then
+		time = PausedAnimations[entity].time
+	elseif anim and DoesEntityExist(entity) then
+		time = GetEntityAnimCurrentTime(entity, anim.dict, anim.name)
+	end
+	cb({ time = time, isPaused = isPaused, hasAnimation = anim ~= nil })
+end)
+
+----------------------
+-- Entity Offset Tool
+----------------------
+
+RegisterNUICallback('getEntityOffset', function(data, cb)
+	local entity = data.handle
+	local reference = data.reference
+
+	if DoesEntityExist(entity) and DoesEntityExist(reference) then
+		local pos1 = GetEntityCoords(entity)
+		local pos2 = GetEntityCoords(reference)
+		local rot1 = GetEntityRotation(entity, 2)
+		local rot2 = GetEntityRotation(reference, 2)
+
+		local localOffset = GetOffsetFromEntityGivenWorldCoords(reference, pos1.x, pos1.y, pos1.z)
+
+		local dPitch = rot1.x - rot2.x
+		local dRoll = rot1.y - rot2.y
+		local dYaw = rot1.z - rot2.z
+
+		cb({
+			worldX = string.format('%.4f', pos1.x - pos2.x),
+			worldY = string.format('%.4f', pos1.y - pos2.y),
+			worldZ = string.format('%.4f', pos1.z - pos2.z),
+			localX = string.format('%.4f', localOffset.x),
+			localY = string.format('%.4f', localOffset.y),
+			localZ = string.format('%.4f', localOffset.z),
+			dPitch = string.format('%.2f', dPitch),
+			dRoll = string.format('%.2f', dRoll),
+			dYaw = string.format('%.2f', dYaw),
+			distance = string.format('%.4f', #(pos1 - pos2))
+		})
+	else
+		cb({ error = true })
+	end
 end)
 
 --

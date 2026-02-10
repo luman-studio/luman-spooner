@@ -918,6 +918,79 @@ function playAnimation(animation) {
 		flag: parseInt(document.querySelector('#animation-flag').value),
 		playbackRate: parseFloat(document.querySelector('#animation-playback-rate').value)
 	});
+
+	startAnimTimeline();
+}
+
+// Animation Timeline
+var animTimelineInterval = null;
+
+function startAnimTimeline() {
+	var timeline = document.getElementById('animation-timeline');
+	timeline.style.display = 'block';
+
+	if (animTimelineInterval) clearInterval(animTimelineInterval);
+	animTimelineInterval = setInterval(function() {
+		sendMessage('getAnimationTime', {
+			handle: currentEntity()
+		}).then(r => r.json()).then(function(data) {
+			if (!data.hasAnimation) {
+				document.getElementById('animation-timeline').style.display = 'none';
+				return;
+			}
+			var slider = document.getElementById('animation-time-slider');
+			if (!slider.matches(':active')) {
+				slider.value = data.time;
+			}
+			document.getElementById('animation-time-display').innerText =
+				(data.time * 100).toFixed(1) + '%';
+
+			document.getElementById('animation-pause').style.display = data.isPaused ? 'none' : 'inline-block';
+			document.getElementById('animation-resume').style.display = data.isPaused ? 'inline-block' : 'none';
+		});
+	}, 100);
+}
+
+function stopAnimTimeline() {
+	if (animTimelineInterval) {
+		clearInterval(animTimelineInterval);
+		animTimelineInterval = null;
+	}
+	document.getElementById('animation-timeline').style.display = 'none';
+}
+
+// Entity Offset
+var offsetReferenceEntity = null;
+var offsetInterval = null;
+
+function startOffsetPolling(entity, reference) {
+	offsetReferenceEntity = reference;
+	document.getElementById('offset-display').style.display = 'block';
+	document.getElementById('offset-reference-id').innerText = reference;
+
+	if (offsetInterval) clearInterval(offsetInterval);
+	offsetInterval = setInterval(function() {
+		sendMessage('getEntityOffset', {
+			handle: currentEntity(),
+			reference: offsetReferenceEntity
+		}).then(r => r.json()).then(function(data) {
+			if (data.error) { clearOffsetReference(); return; }
+			document.getElementById('offset-local-x').value = data.localX;
+			document.getElementById('offset-local-y').value = data.localY;
+			document.getElementById('offset-local-z').value = data.localZ;
+			document.getElementById('offset-pitch').value = data.dPitch;
+			document.getElementById('offset-roll').value = data.dRoll;
+			document.getElementById('offset-yaw').value = data.dYaw;
+			document.getElementById('offset-distance').innerText = data.distance;
+		});
+	}, 500);
+}
+
+function clearOffsetReference() {
+	offsetReferenceEntity = null;
+	if (offsetInterval) clearInterval(offsetInterval);
+	offsetInterval = null;
+	document.getElementById('offset-display').style.display = 'none';
 }
 
 function setWalkStyle(selected) {
@@ -1916,6 +1989,7 @@ function closePropertiesMenu(loseFocus) {
 	document.querySelector('#vehicle-options-menu').style.display = 'none';
 
 	clearInterval(propertiesMenuUpdate);
+	clearOffsetReference();
 
 	if (loseFocus) {
 		sendMessage('closePropertiesMenu', {});
@@ -2895,6 +2969,7 @@ window.addEventListener('load', function() {
 	document.querySelector('#animation-menu-close').addEventListener('click', function(event) {
 		document.querySelector('#animation-menu').style.display = 'none';
 		document.querySelector('#properties-menu').style.display = 'flex';
+		stopAnimTimeline();
 	});
 
 	document.querySelector('#animation-search-filter').addEventListener('input', function(event) {
@@ -3112,6 +3187,22 @@ window.addEventListener('load', function() {
 		sendMessage('stopAnimation', {
 			handle: currentEntity()
 		});
+		stopAnimTimeline();
+	});
+
+	document.getElementById('animation-pause').addEventListener('click', function(event) {
+		sendMessage('pauseAnimation', { handle: currentEntity() });
+	});
+
+	document.getElementById('animation-resume').addEventListener('click', function(event) {
+		sendMessage('resumeAnimation', { handle: currentEntity() });
+	});
+
+	document.getElementById('animation-time-slider').addEventListener('input', function() {
+		sendMessage('setAnimationTime', {
+			handle: currentEntity(),
+			time: parseFloat(this.value)
+		});
 	});
 
 	document.getElementById('scenario-stop').addEventListener('click', function(event) {
@@ -3219,6 +3310,36 @@ window.addEventListener('load', function() {
 			document.getElementById('add-to-db-menu').style.display = 'none';
 			openDatabase(resp);
 		});
+	});
+
+	// Offset tool
+	document.getElementById('offset-select-reference').addEventListener('click', function(event) {
+		var handle = currentEntity();
+		openEntitySelect('properties-menu', function(entity) {
+			startOffsetPolling(handle, entity);
+		}, handle);
+	});
+
+	document.getElementById('offset-clear').addEventListener('click', function(event) {
+		clearOffsetReference();
+	});
+
+	document.getElementById('offset-copy-local').addEventListener('click', function(event) {
+		var x = document.getElementById('offset-local-x').value;
+		var y = document.getElementById('offset-local-y').value;
+		var z = document.getElementById('offset-local-z').value;
+		copyToClipboard(x + ', ' + y + ', ' + z);
+	});
+
+	document.getElementById('offset-copy-all').addEventListener('click', function(event) {
+		var lx = document.getElementById('offset-local-x').value;
+		var ly = document.getElementById('offset-local-y').value;
+		var lz = document.getElementById('offset-local-z').value;
+		var p = document.getElementById('offset-pitch').value;
+		var r = document.getElementById('offset-roll').value;
+		var yw = document.getElementById('offset-yaw').value;
+		var d = document.getElementById('offset-distance').innerText;
+		copyToClipboard('Local: ' + lx + ', ' + ly + ', ' + lz + ' | Rot: ' + p + ', ' + r + ', ' + yw + ' | Distance: ' + d);
 	});
 
 	document.getElementById('properties-attack').addEventListener('click', function(event) {
