@@ -108,6 +108,7 @@ function getSpawnMenuElements(configId) {
 		prevPageBtn: document.getElementById(configId + '-prev-page'),
 		nextPageBtn: document.getElementById(configId + '-next-page'),
 		spawnBtn: document.getElementById(configId + '-spawn-btn'),
+		spawnByNameBtn: document.getElementById(configId + '-spawn-by-name'),
 		closeBtn: document.getElementById(configId + '-menu-close-btn'),
 		navHint: document.getElementById(configId + '-nav-hint')
 	};
@@ -326,6 +327,29 @@ function spawnSelectedItem(configId) {
 	}
 }
 
+function spawnByNameOrHash(configId) {
+	var config = SpawnMenuConfig[configId];
+	var elements = getSpawnMenuElements(configId);
+	var name = elements.searchFilter ? elements.searchFilter.value.trim() : '';
+
+	if (!name) {
+		return;
+	}
+
+	elements.menu.style.display = 'none';
+
+	if (config.supportsAttach) {
+		sendMessage(config.spawnAttachMessage, { modelName: name });
+	} else {
+		sendMessage(config.closeMessage, { modelName: name });
+	}
+
+	// Clear preview
+	if (config.supportsPreview) {
+		sendMessage(config.clearPreviewMessage, {});
+	}
+}
+
 function closeEntitySpawnMenu(configId) {
 	var config = SpawnMenuConfig[configId];
 	var state = spawnMenuStates[configId];
@@ -392,6 +416,13 @@ function setupSpawnMenuEventListeners(configId) {
 	if (elements.spawnBtn) {
 		elements.spawnBtn.addEventListener('click', function(event) {
 			spawnSelectedItem(configId);
+		});
+	}
+
+	// Spawn By Name/Hash button
+	if (elements.spawnByNameBtn) {
+		elements.spawnByNameBtn.addEventListener('click', function(event) {
+			spawnByNameOrHash(configId);
 		});
 	}
 

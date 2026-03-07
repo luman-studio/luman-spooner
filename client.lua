@@ -625,6 +625,19 @@ function IsDatabaseFull()
 	return Permissions.maxEntities and GetDatabaseSize() >= Permissions.maxEntities
 end
 
+function ResolveModelHash(name)
+	if type(name) == 'number' then
+		return name
+	end
+	if type(name) == 'string' then
+		local n = tonumber(name)
+		if n then
+			return math.floor(n)
+		end
+	end
+	return GetHashKey(name)
+end
+
 function LoadModel(model)
 	if IsModelInCdimage(model) then
 		RequestModel(model)
@@ -1140,7 +1153,7 @@ RegisterNUICallback('spawnAndAttachObject', function(data, cb)
 		end
 
 		-- Spawn the object
-		local entity = SpawnObject(data.modelName, GetHashKey(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true, nil, nil, nil)
+		local entity = SpawnObject(data.modelName, ResolveModelHash(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true, nil, nil, nil)
 
 		if entity then
 			PlaceOnGroundProperly(entity)
@@ -1185,7 +1198,7 @@ function SpawnPreview(modelName, entityType)
 	-- Clear existing preview first
 	ClearPreview()
 
-	local model = GetHashKey(modelName)
+	local model = ResolveModelHash(modelName)
 
 	-- Check if model is valid and can be loaded
 	if not IsModelInCdimage(model) then
@@ -1333,7 +1346,7 @@ RegisterNUICallback('spawnAndAttachPed', function(data, cb)
 
 		local entity = SpawnPed({
 			name = data.modelName,
-			model = GetHashKey(data.modelName),
+			model = ResolveModelHash(data.modelName),
 			x = spawnPos.x,
 			y = spawnPos.y,
 			z = spawnPos.z,
@@ -1371,7 +1384,7 @@ RegisterNUICallback('spawnAndAttachVehicle', function(data, cb)
 			yaw2 = yaw2 + 360.0
 		end
 
-		local entity = SpawnVehicle(data.modelName, GetHashKey(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true)
+		local entity = SpawnVehicle(data.modelName, ResolveModelHash(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true)
 
 		if entity then
 			PlaceOnGroundProperly(entity)
@@ -1397,7 +1410,7 @@ RegisterNUICallback('spawnAndAttachPropset', function(data, cb)
 			yaw2 = yaw2 + 360.0
 		end
 
-		local entity = SpawnPropset(data.modelName, GetHashKey(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, yaw2)
+		local entity = SpawnPropset(data.modelName, ResolveModelHash(data.modelName), spawnPos.x, spawnPos.y, spawnPos.z, yaw2)
 
 		if entity then
 			PlaceOnGroundProperly(entity)
@@ -2788,7 +2801,7 @@ end)
 
 RegisterNUICallback('setPlayerModel', function(data, cb)
 	if Permissions.properties.ped.changeModel and data.modelName then
-		local model = GetHashKey(data.modelName)
+		local model = ResolveModelHash(data.modelName)
 
 		if LoadModel(model) then
 			SetPlayerModel(PlayerId(), model, true)
@@ -3279,7 +3292,7 @@ function MainSpoonerUpdates()
 			if CurrentSpawn.type == 1 then
 				entity = SpawnPed{
 					name = CurrentSpawn.modelName,
-					model = GetHashKey(CurrentSpawn.modelName),
+					model = ResolveModelHash(CurrentSpawn.modelName),
 					x = spawnPos.x,
 					y = spawnPos.y,
 					z = spawnPos.z,
@@ -3294,13 +3307,13 @@ function MainSpoonerUpdates()
 				}
 
 			elseif CurrentSpawn.type == 2 then
-				entity = SpawnVehicle(CurrentSpawn.modelName, GetHashKey(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true)
+				entity = SpawnVehicle(CurrentSpawn.modelName, ResolveModelHash(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true)
 			elseif CurrentSpawn.type == 3 then
-				entity = SpawnObject(CurrentSpawn.modelName, GetHashKey(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true, nil, nil, nil)
+				entity = SpawnObject(CurrentSpawn.modelName, ResolveModelHash(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, false, true, nil, nil, nil)
 			elseif CurrentSpawn.type == 4 then
-				entity = SpawnPropset(CurrentSpawn.modelName, GetHashKey(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z, yaw2)
+				entity = SpawnPropset(CurrentSpawn.modelName, ResolveModelHash(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z, yaw2)
 			elseif CurrentSpawn.type == 5 then
-				entity = SpawnPickup(CurrentSpawn.modelName, GetHashKey(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z)
+				entity = SpawnPickup(CurrentSpawn.modelName, ResolveModelHash(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z)
 			end
 
 			if entity then
