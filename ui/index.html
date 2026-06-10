@@ -47,7 +47,7 @@
 							<div class="control-help">Saved DBs</div>
 						</div>
 						<div class="control-and-help">
-							<div class="control">vu</div>
+							<div class="control-mouse"><svg class="mk" viewBox="0 0 24 24"><rect class="btn" x="11" y="3" width="2" height="4" rx="1"/><rect class="body" x="6" y="2" width="12" height="20" rx="4"/></svg></div>
 							<div>Speed +/-</div>
 						</div>
 						<div class="control-and-help">
@@ -81,7 +81,7 @@
 					</div>
 					<div id="entity-controls" class="control-set" style="display: none;">
 						<div class="control-and-help">
-							<div>[LMB]</div>
+							<div class="control-mouse"><svg class="mk" viewBox="0 0 24 24"><path class="btn" d="M12 2 L10 2 A4 4 0 0 0 6 6 L6 9 L12 9 Z"/><rect class="body" x="6" y="2" width="12" height="20" rx="4"/><line class="body" x1="12" y1="2" x2="12" y2="9"/><line class="body" x1="6" y1="9" x2="18" y2="9"/></svg></div>
 							<div class="control-help">Select</div>
 						</div>
 						<div class="control-and-help">
@@ -127,7 +127,7 @@
 							<div class="control-help">Focus Mode</div>
 						</div>
 						<div class="control-and-help">
-							<div>[RMB]</div>
+							<div class="control-mouse"><svg class="mk" viewBox="0 0 24 24"><path class="btn" d="M12 2 L14 2 A4 4 0 0 1 18 6 L18 9 L12 9 Z"/><rect class="body" x="6" y="2" width="12" height="20" rx="4"/><line class="body" x1="12" y1="2" x2="12" y2="9"/><line class="body" x1="6" y1="9" x2="18" y2="9"/></svg></div>
 							<div class="control-help">Delete</div>
 						</div>
 					</div>
@@ -188,9 +188,9 @@
 				</button>
 			</div>
 			<div id="ped-pagination-controls" class="pagination-controls">
-				<button id="ped-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<button id="ped-prev-page" title="Previous page"><i class="fas fa-chevron-left"></i></button>
 				<span id="ped-pagination-info">0-0 of 0</span>
-				<button id="ped-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+				<button id="ped-next-page" title="Next page"><i class="fas fa-chevron-right"></i></button>
 			</div>
 			<div id="ped-list" class="list"></div>
 			<div id="ped-nav-hint" class="nav-hint">
@@ -208,9 +208,9 @@
 				</button>
 			</div>
 			<div id="vehicle-pagination-controls" class="pagination-controls">
-				<button id="vehicle-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<button id="vehicle-prev-page" title="Previous page"><i class="fas fa-chevron-left"></i></button>
 				<span id="vehicle-pagination-info">0-0 of 0</span>
-				<button id="vehicle-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+				<button id="vehicle-next-page" title="Next page"><i class="fas fa-chevron-right"></i></button>
 			</div>
 			<div id="vehicle-list" class="list"></div>
 			<div id="vehicle-nav-hint" class="nav-hint">
@@ -228,9 +228,9 @@
 				</button>
 			</div>
 			<div id="object-pagination-controls" class="pagination-controls">
-				<button id="object-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<button id="object-prev-page" title="Previous page"><i class="fas fa-chevron-left"></i></button>
 				<span id="object-pagination-info">0-0 of 0</span>
-				<button id="object-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+				<button id="object-next-page" title="Next page"><i class="fas fa-chevron-right"></i></button>
 			</div>
 			<div id="object-list" class="list"></div>
 			<div id="object-nav-hint" class="nav-hint">
@@ -828,9 +828,9 @@
 				</button>
 			</div>
 			<div id="propset-pagination-controls" class="pagination-controls">
-				<button id="propset-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<button id="propset-prev-page" title="Previous page"><i class="fas fa-chevron-left"></i></button>
 				<span id="propset-pagination-info">0-0 of 0</span>
-				<button id="propset-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+				<button id="propset-next-page" title="Next page"><i class="fas fa-chevron-right"></i></button>
 			</div>
 			<div id="propset-list" class="list"></div>
 			<div id="propset-nav-hint" class="nav-hint">
@@ -848,9 +848,9 @@
 				</button>
 			</div>
 			<div id="pickup-pagination-controls" class="pagination-controls">
-				<button id="pickup-prev-page" title="Previous page (Page Up)"><i class="fas fa-chevron-left"></i></button>
+				<button id="pickup-prev-page" title="Previous page"><i class="fas fa-chevron-left"></i></button>
 				<span id="pickup-pagination-info">0-0 of 0</span>
-				<button id="pickup-next-page" title="Next page (Page Down)"><i class="fas fa-chevron-right"></i></button>
+				<button id="pickup-next-page" title="Next page"><i class="fas fa-chevron-right"></i></button>
 			</div>
 			<div id="pickup-list" class="list"></div>
 			<div id="pickup-nav-hint" class="nav-hint">
@@ -986,7 +986,7 @@
 						<td>Toggle <strong>entity handles</strong></td>
 					</tr>
 					<tr>
-						<td><span class="control">vu</span> Mouse wheel</td>
+						<td><span class="control-mouse"><svg class="mk" viewBox="0 0 24 24"><rect class="btn" x="11" y="3" width="2" height="4" rx="1"/><rect class="body" x="6" y="2" width="12" height="20" rx="4"/></svg></span> Mouse wheel</td>
 						<td>Increase/Decrease currently selected <strong>speed</strong></td>
 					</tr>
 					<tr>

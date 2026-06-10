@@ -1141,6 +1141,12 @@ RegisterNUICallback('spawnAndAttachObject', function(data, cb)
 	ClearObjectPreview()
 
 	if data.modelName and (Permissions.spawn.byName or Contains(Objects, data.modelName)) then
+		-- Remember selection so it can be re-spawned with the spawn control (E)
+		CurrentSpawn = {
+			modelName = data.modelName,
+			type = 3
+		}
+
 		-- Get spawn position from camera view
 		local x, y, z = table.unpack(GetCamCoord(Cam))
 		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
@@ -1335,6 +1341,12 @@ RegisterNUICallback('spawnAndAttachPed', function(data, cb)
 	ClearPreview()
 
 	if data.modelName and (Permissions.spawn.byName or Contains(Peds, data.modelName)) then
+		-- Remember selection so it can be re-spawned with the spawn control (E)
+		CurrentSpawn = {
+			modelName = data.modelName,
+			type = 1
+		}
+
 		local x, y, z = table.unpack(GetCamCoord(Cam))
 		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
@@ -1375,6 +1387,12 @@ RegisterNUICallback('spawnAndAttachVehicle', function(data, cb)
 	ClearPreview()
 
 	if data.modelName and (Permissions.spawn.byName or Contains(Vehicles, data.modelName)) then
+		-- Remember selection so it can be re-spawned with the spawn control (E)
+		CurrentSpawn = {
+			modelName = data.modelName,
+			type = 2
+		}
+
 		local x, y, z = table.unpack(GetCamCoord(Cam))
 		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
@@ -1401,6 +1419,12 @@ RegisterNUICallback('spawnAndAttachPropset', function(data, cb)
 	ClearPreview()
 
 	if data.modelName and (Permissions.spawn.byName or Contains(Propsets, data.modelName)) then
+		-- Remember selection so it can be re-spawned with the spawn control (E)
+		CurrentSpawn = {
+			modelName = data.modelName,
+			type = 4
+		}
+
 		local x, y, z = table.unpack(GetCamCoord(Cam))
 		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
@@ -3204,7 +3228,7 @@ function MainSpoonerUpdates()
 			interiorId = interiorName,
 		})
 
-		if IsRawKeyDown(Config.IncreaseSpeedControl) then
+		if IsDisabledControlJustPressed(0, Config.IncreaseSpeedControl) then
 			if SpeedMode == 0 then
 				Speed = Speed + Config.SpeedIncrement
 			elseif SpeedMode == 1 then
@@ -3214,7 +3238,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if IsRawKeyDown(Config.DecreaseSpeedControl) then
+		if IsDisabledControlJustPressed(0, Config.DecreaseSpeedControl) then
 			if SpeedMode == 0 then
 				Speed = Speed - Config.SpeedIncrement
 			elseif SpeedMode == 1 then

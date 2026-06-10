@@ -9,16 +9,18 @@ if Config.isRDR then
 	Config.DeleteControl          = `INPUT_CONTEXT_LT` -- Right mouse button
 	Config.LookLrControl          = `INPUT_LOOK_LR`
 	Config.LookUdControl          = `INPUT_LOOK_UD`
+	Config.IncreaseSpeedControl   = `INPUT_CURSOR_SCROLL_UP`   -- Mouse wheel up
+	Config.DecreaseSpeedControl   = `INPUT_CURSOR_SCROLL_DOWN` -- Mouse wheel down
 else
 	-- GTA V Controls. Mouse Buttons not detectable as Raw Keys.
 	Config.SelectControl          = 176   -- Left mouse button
 	Config.DeleteControl          = 177   -- Right mouse button
 	Config.LookLrControl          = 1
 	Config.LookUdControl          = 2
+	Config.IncreaseSpeedControl   = 241   -- Mouse wheel up (INPUT_CURSOR_SCROLL_UP)
+	Config.DecreaseSpeedControl   = 242   -- Mouse wheel down (INPUT_CURSOR_SCROLL_DOWN)
 end
 -- Raw keys:
-Config.IncreaseSpeedControl   = 33  -- Page Up
-Config.DecreaseSpeedControl   = 34  -- Page Down
 Config.UpControl              = 32  -- Spacebar
 Config.DownControl            = 160  -- Left Shift
 Config.ForwardControl         = 87  -- W

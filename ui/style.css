@@ -358,6 +358,35 @@ strong {
 	font-size: 4vh;
 }
 
+/* Mouse keycaps (the keyboard font has no mouse/scroll glyphs) */
+.control-mouse {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 3.4vh;
+	height: 4vh;
+	color: #fff;
+	border: 0.25vh solid #fff;
+	border-radius: 0.7vh;
+	box-sizing: border-box;
+	vertical-align: middle;
+}
+
+.control-mouse svg.mk {
+	width: 2.4vh;
+	height: 3vh;
+}
+
+.control-mouse svg.mk .body {
+	fill: none;
+	stroke: #fff;
+	stroke-width: 1.6;
+}
+
+.control-mouse svg.mk .btn {
+	fill: #fff;
+}
+
 #import-export-db {
 	display: none;
 	flex-flow: column;
