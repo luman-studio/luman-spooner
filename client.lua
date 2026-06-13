@@ -980,7 +980,8 @@ function SpawnPickup(name, model, x, y, z)
 		return nil
 	end
 
-	local pickup = CreatePickup(model, x, y, z, 0, 0, false, 0, 0, 0.0, 0)
+	-- Fix pickups with OneSync: flag 32 (LowPriority)
+	local pickup = CreatePickup(model, x, y, z, 32, 0, false, 0, 0, 0.0, 0)
 
 	if not pickup or pickup < 1 then
 		return nil
