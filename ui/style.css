@@ -163,6 +163,7 @@ input:disabled {
 	padding: 0.5vh 0.5vw;
 	flex-flow: column;
 	min-width: 10%;
+	max-width: 30%;
 	overflow: auto;
 }
 
@@ -208,6 +209,9 @@ input:disabled {
 
 .object {
 	padding: 0.25vh 0.25vw;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .object:hover {
@@ -578,6 +582,25 @@ textarea {
 
 #animation-timeline-controls {
 	padding: 4px 0;
+}
+
+#animation-selected-info {
+	padding: 0.5vh 0.25vw;
+	margin: 0.25vh 0;
+	border-top: 1px solid rgba(255, 255, 255, 0.3);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#animation-selected-info .label {
+	font-size: 1.25vh;
+	color: #aaa;
+}
+
+#animation-selected-name {
+	font-size: 1.6vh;
+	word-break: break-all;
+	white-space: normal;
+	color: #fff;
 }
 
 .spawn-btn {

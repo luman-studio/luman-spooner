@@ -260,11 +260,15 @@ end
 -- Notification --
 ------------------
 function notify(message)
-    SetNotificationTextEntry('STRING')
-    AddTextComponentString(message .. '    ~l~[' .. GetGameTimer() .. ']')
-    DrawNotification(false, false)
-    TriggerEvent('chat:addMessage', message)
-	PlaySoundFrontend(-1, "DLC_VW_CONTINUE", "dlc_vw_table_games_frontend_sounds", 1)
+    -- GTA V notification natives don't exist in RedM, so guard them.
+    if SetNotificationTextEntry then
+        SetNotificationTextEntry('STRING')
+        AddTextComponentString(message .. '    ~l~[' .. GetGameTimer() .. ']')
+        DrawNotification(false, false)
+        PlaySoundFrontend(-1, "DLC_VW_CONTINUE", "dlc_vw_table_games_frontend_sounds", 1)
+    end
+
+    TriggerEvent('chat:addMessage', { args = { '[Spooner]', message } })
 end
 RegisterNUICallback('notify', function(data, cb)
 	local msg = data.message

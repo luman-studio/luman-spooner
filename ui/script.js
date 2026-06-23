@@ -173,6 +173,7 @@ function renderSpawnMenuPage(configId) {
 		div.setAttribute('data-menu-id', configId);
 
 		div.innerHTML = name;
+		div.title = name;
 
 		// Click selects for preview
 		div.addEventListener('click', function(event) {
@@ -498,6 +499,12 @@ function initAllSpawnMenus() {
 // ============================================================================
 
 var propertiesMenuUpdate;
+
+// Animation copy/paste buffer (set by Copy Animation, used by Paste Animation)
+var copiedAnimation = null;
+
+// Scenario copy/paste buffer (set by Copy Scenario, used by Paste Scenario)
+var copiedScenario = null;
 
 const favouriteTypes = [
 	'peds',
@@ -929,6 +936,13 @@ function giveWeapon(weapon) {
 	});
 }
 
+// Shorten an animation's dict to its last 3 segments + the action name,
+// e.g. "ai_combat@...@holstered@base@1h" + "back_left_-135" -> "holstered@base@1h: back_left_-135"
+function shortAnimLabel(dict, name) {
+	var shortDict = dict.split('@').slice(-3).join('@');
+	return shortDict + ': ' + name;
+}
+
 function playAnimation(animation) {
 	document.querySelectorAll('#animation-list .object').forEach(e => {
 		if (favourites.animations[e.getAttribute('data-dict') + ': ' + e.getAttribute('data-name')]) {
@@ -938,6 +952,9 @@ function playAnimation(animation) {
 		}
 	});
 	animation.className = 'object selected';
+
+	document.getElementById('animation-selected-name').innerHTML =
+		animation.getAttribute('data-dict') + ': ' + animation.getAttribute('data-name');
 
 	sendMessage('playAnimation', {
 		handle: currentEntity(),
@@ -1106,6 +1123,7 @@ function populatePedList(filter) {
 			div.setAttribute('data-favourite-name', name);
 
 			div.innerHTML = name;
+			div.title = name;
 
 			div.addEventListener('click', function(event) {
 				closePedMenu(this);
@@ -1161,6 +1179,7 @@ function populatePlayerModelList(filter) {
 			div.setAttribute('data-favourite-name', name);
 
 			div.innerHTML = name;
+			div.title = name;
 
 			div.addEventListener('click', function(event) {
 				pedList.querySelectorAll('.object').forEach(e => {
@@ -1212,6 +1231,7 @@ function populateVehicleList(filter) {
 			div.setAttribute('data-favourite-name', name);
 
 			div.innerHTML = name;
+			div.title = name;
 
 			div.addEventListener('click', function(event) {
 				closeVehicleMenu(this);
@@ -1278,6 +1298,7 @@ function renderObjectPage() {
 		div.setAttribute('data-index', i);
 
 		div.innerHTML = name;
+		div.title = name;
 
 		// Click selects for preview, doesn't close menu
 		div.addEventListener('click', function(event) {
@@ -1565,7 +1586,8 @@ function populateAnimationList(filter) {
 		div.setAttribute('data-favourite-type', 'animations');
 		div.setAttribute('data-favourite-name', results[i].label);
 
-		div.innerHTML = results[i].label;
+		div.innerHTML = shortAnimLabel(results[i].dict, results[i].name);
+		div.title = results[i].label;
 
 		div.addEventListener('click', function() {
 			playAnimation(this);
@@ -1713,6 +1735,7 @@ function populateWalkStyleList(filter) {
 				div.setAttribute('data-favourite-name', name);
 
 				div.innerHTML = name;
+				div.title = name;
 
 				div.addEventListener('click', function(event) {
 					setWalkStyle(this);
@@ -2026,6 +2049,14 @@ function closePropertiesMenu(loseFocus) {
 		sendMessage('closePropertiesMenu', {});
 	}
 }
+
+// Close the properties menu with Tab (the same key that opens it)
+document.addEventListener('keydown', function(event) {
+	if (event.key === 'Tab' && document.querySelector('#properties-menu').style.display === 'flex') {
+		event.preventDefault();
+		closePropertiesMenu(true);
+	}
+});
 
 function loadDatabase(name) {
 	var relative = document.querySelector('#load-db-relative').checked;
@@ -2612,6 +2643,70 @@ window.addEventListener('load', function() {
 
 	document.querySelector('#properties-clone').addEventListener('click', function(event) {
 		sendMessage('cloneEntity', {
+			handle: currentEntity()
+		});
+	});
+
+	document.querySelector('#properties-copy-animation').addEventListener('click', function(event) {
+		sendMessage('copyAnimation', {
+			handle: currentEntity()
+		}).then(resp => resp.json()).then(function(resp) {
+			if (resp && resp.ok) {
+				copiedAnimation = {
+					dict: resp.dict,
+					name: resp.name,
+					blendInSpeed: resp.blendInSpeed,
+					blendOutSpeed: resp.blendOutSpeed,
+					duration: resp.duration,
+					flag: resp.flag,
+					playbackRate: resp.playbackRate
+				};
+			} else {
+				copiedAnimation = null;
+			}
+		});
+	});
+
+	document.querySelector('#properties-paste-animation').addEventListener('click', function(event) {
+		if (!copiedAnimation) {
+			return;
+		}
+
+		// Re-apply using the exact same path as the animation tab
+		sendMessage('playAnimation', {
+			handle: currentEntity(),
+			dict: copiedAnimation.dict,
+			name: copiedAnimation.name,
+			blendInSpeed: copiedAnimation.blendInSpeed,
+			blendOutSpeed: copiedAnimation.blendOutSpeed,
+			duration: copiedAnimation.duration,
+			flag: copiedAnimation.flag,
+			playbackRate: copiedAnimation.playbackRate
+		});
+	});
+
+	document.querySelector('#properties-copy-scenario').addEventListener('click', function(event) {
+		sendMessage('copyScenario', {
+			handle: currentEntity()
+		}).then(resp => resp.json()).then(function(resp) {
+			copiedScenario = (resp && resp.ok) ? resp.scenario : null;
+		});
+	});
+
+	document.querySelector('#properties-paste-scenario').addEventListener('click', function(event) {
+		if (!copiedScenario) {
+			return;
+		}
+
+		// Re-apply using the exact same path as the scenario tab
+		sendMessage('performScenario', {
+			handle: currentEntity(),
+			scenario: copiedScenario
+		});
+	});
+
+	document.querySelector('#properties-clear-tasks-props').addEventListener('click', function(event) {
+		sendMessage('clearTasksAndProps', {
 			handle: currentEntity()
 		});
 	});

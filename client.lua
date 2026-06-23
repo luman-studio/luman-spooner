@@ -2106,24 +2106,91 @@ RegisterNUICallback('goToEntity', function(data, cb)
 	cb({})
 end)
 
-function CloneEntity(entity)
+-- Clone only the entity itself (model, animation, scenario, weapons, etc.).
+-- Attachment handling (to its parent / its children) is done by the callers below.
+function CloneEntityBody(entity)
 	local props = GetEntityProperties(entity)
-	local clone
 
 	if props.type == 1 then
 		props.handle = ClonePed(entity, true, true, true)
-		clone = SpawnPed(props)
+		return SpawnPed(props)
 	elseif props.type == 2 then
-		clone = SpawnVehicle(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible)
+		return SpawnVehicle(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible)
 	elseif props.type == 3 then
-		clone = SpawnObject(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible, props.lightsIntensity, props.lightsColour, props.lightsType)
+		return SpawnObject(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible, props.lightsIntensity, props.lightsColour, props.lightsType)
 	elseif props.type == 5 then
-		clone = SpawnPickup(props.name, props.model, props.x, props.y, props.z)
-	else
+		return SpawnPickup(props.name, props.model, props.x, props.y, props.z)
+	end
+
+	return nil
+end
+
+-- Return all database entities currently attached to the given entity
+function GetAttachedChildren(entity)
+	local children = {}
+
+	for child, props in pairs(Database) do
+		if child ~= entity and props.attachment and props.attachment.to == entity then
+			table.insert(children, child)
+		end
+	end
+
+	return children
+end
+
+-- Clone an entity together with every prop/entity attached to it (recursively),
+-- re-attaching each cloned child to the cloned parent with the same offsets.
+function CloneEntityTree(entity)
+	-- Snapshot children and their attachment offsets before cloning,
+	-- since cloning adds new entries to the Database.
+	local children = GetAttachedChildren(entity)
+	local childAttachments = {}
+
+	for _, child in ipairs(children) do
+		local a = Database[child].attachment
+		childAttachments[child] = {
+			bone           = a.bone,
+			x              = a.x,
+			y              = a.y,
+			z              = a.z,
+			pitch          = a.pitch,
+			roll           = a.roll,
+			yaw            = a.yaw,
+			useSoftPinning = a.useSoftPinning,
+			collision      = a.collision,
+			vertex         = a.vertex,
+			fixedRot       = a.fixedRot
+		}
+	end
+
+	local clone = CloneEntityBody(entity)
+
+	if not clone then
 		return nil
 	end
 
-	if clone and props.attachment and props.attachment.to ~= 0 then
+	for _, child in ipairs(children) do
+		local childClone = CloneEntityTree(child)
+
+		if childClone then
+			local a = childAttachments[child]
+			AttachEntity(childClone, clone, a.bone, a.x, a.y, a.z, a.pitch, a.roll, a.yaw, a.useSoftPinning, a.collision, a.vertex, a.fixedRot)
+		end
+	end
+
+	return clone
+end
+
+function CloneEntity(entity)
+	local props = GetEntityProperties(entity)
+	local clone = CloneEntityTree(entity)
+
+	if not clone then
+		return nil
+	end
+
+	-- Re-attach the clone to whatever the original was attached to
+	if props.attachment and props.attachment.to ~= 0 then
 		AttachEntity(clone, props.attachment.to, props.attachment.bone, props.attachment.x, props.attachment.y, props.attachment.z, props.attachment.pitch, props.attachment.roll, props.attachment.yaw, props.attachment.useSoftPinning, props.attachment.collision, props.attachment.vertex, props.attachment.fixedRot)
 	end
 
@@ -2563,7 +2630,31 @@ end)
 
 RegisterNUICallback('performScenario', function(data, cb)
 	if Permissions.properties.ped.scenario and CanModifyEntity(data.handle) then
+		local oldScenario = Database[data.handle] and Database[data.handle].scenario
+
 		RequestControl(data.handle)
+
+		-- Remove props that were attached to the ped before the new scenario
+		for _, child in ipairs(GetAttachedChildren(data.handle)) do
+			RemoveEntity(child)
+		end
+
+		-- Abruptly end the current scenario so its prop is cleaned up
+		ClearPedTasksImmediately(data.handle)
+
+		-- Wait until the ped has actually left the old scenario, otherwise the
+		-- new scenario won't spawn its own prop on the first try
+		if oldScenario then
+			local hash = GetHashKey(oldScenario)
+			local tries = 0
+			while IsPedUsingScenarioHash(data.handle, hash) and tries < 20 do
+				Wait(25)
+				tries = tries + 1
+			end
+		end
+
+		Wait(100)
+
 		startScenario(data.handle, data.scenario)
 
 		if Database[data.handle] then
@@ -2600,6 +2691,30 @@ end
 
 RegisterNUICallback('clearPedTasks', function(data, cb)
 	TryClearTasks(data.handle)
+	cb({})
+end)
+
+-- Clear the ped's tasks (stops animation/scenario) and delete every prop
+-- attached to it.
+RegisterNUICallback('clearTasksAndProps', function(data, cb)
+	local entity = data.handle
+
+	if Permissions.properties.ped.clearTasks and CanModifyEntity(entity) then
+		RequestControl(entity)
+		-- Abrupt clear so a scenario instantly releases/cleans its own prop
+		ClearPedTasksImmediately(entity)
+
+		if Database[entity] then
+			Database[entity].scenario = nil
+			Database[entity].animation = nil
+		end
+	end
+
+	-- Delete every prop attached to the ped via the spooner
+	for _, child in ipairs(GetAttachedChildren(entity)) do
+		RemoveEntity(child)
+	end
+
 	cb({})
 end)
 
@@ -2868,6 +2983,62 @@ RegisterNUICallback('playAnimation', function(data, cb)
 	end
 
 	cb({})
+end)
+
+-- Return the animation currently applied to an entity so the UI can store it
+-- and later re-apply it via the normal playAnimation flow (paste).
+RegisterNUICallback('copyAnimation', function(data, cb)
+	local entity = data.handle
+	local anim = GetAnimationInfo(entity)
+
+	-- Fallback: the animation may still be stored on the entity's database entry
+	if not anim and Database[entity] then
+		anim = Database[entity].animation
+	end
+
+	if anim and anim.dict and anim.name then
+		cb({
+			ok           = true,
+			dict         = anim.dict,
+			name         = anim.name,
+			blendInSpeed = anim.blendInSpeed,
+			blendOutSpeed = anim.blendOutSpeed,
+			duration     = anim.duration,
+			flag         = anim.flag,
+			playbackRate = anim.playbackRate
+		})
+	else
+		cb({ ok = false })
+	end
+end)
+
+-- Return the scenario an entity is running so the UI can re-apply it (paste).
+-- For world/ambient peds we detect it by testing every known scenario hash.
+RegisterNUICallback('copyScenario', function(data, cb)
+	local entity = data.handle
+
+	if not DoesEntityExist(entity) then
+		return cb({ ok = false })
+	end
+
+	-- 1) Scenario we applied via the spooner
+	local scenario = Database[entity] and Database[entity].scenario
+
+	-- 2) Otherwise try to detect a world ped's active scenario
+	if not scenario and Scenarios then
+		for _, name in ipairs(Scenarios) do
+			if IsPedUsingScenarioHash(entity, GetHashKey(name)) then
+				scenario = name
+				break
+			end
+		end
+	end
+
+	if scenario then
+		cb({ ok = true, scenario = scenario })
+	else
+		cb({ ok = false })
+	end
 end)
 
 RegisterNUICallback('loadPermissions', function(data, cb)

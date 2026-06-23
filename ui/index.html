@@ -393,6 +393,13 @@
 				<div class="property ped-property object-property">
 					<button id="properties-animation"><i class="fas fa-running"></i> Animations</button>
 				</div>
+				<div class="property multiple ped-property">
+					<button id="properties-copy-scenario"><i class="fas fa-copy"></i> Copy Scenario</button>
+					<button id="properties-paste-scenario"><i class="fas fa-paste"></i> Paste Scenario</button>
+				</div>
+				<div class="property ped-property">
+					<button id="properties-clear-tasks-props"><i class="fas fa-broom"></i> Clear Tasks + Props</button>
+				</div>
 
 				<details open="true">
 					<summary>Position</summary>
@@ -777,6 +784,10 @@
 				</button>
 			</div>
 			<div id="animation-list" class="list"></div>
+			<div id="animation-selected-info">
+				<div class="label">Selected Animation</div>
+				<div id="animation-selected-name">—</div>
+			</div>
 			<div id="animation-settings">
 				<div class="property">
 					<div class="label">Max Search Results (Total Results: <span id="animation-search-total-results"></span>)</div>
@@ -815,6 +826,10 @@
 						</div>
 					</div>
 				</div>
+			</div>
+			<div class="property multiple">
+				<button id="properties-copy-animation"><i class="fas fa-copy"></i> Copy Animation</button>
+				<button id="properties-paste-animation"><i class="fas fa-paste"></i> Paste Animation</button>
 			</div>
 			<button id="copy-animation-settings"><i class="fas fa-clipboard"></i></button>
 			<button id="animation-stop"><i class="fas fa-stop-circle"></i> Stop Animation</button>
