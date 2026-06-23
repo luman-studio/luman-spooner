@@ -225,6 +225,7 @@ end)
 -- Disable collision for entity white it is selected --
 -------------------------------------------------------
 local hadCollisionDisabled = false
+local wasFrozenBeforeSelect = false
 AddEventHandler('spooner:onEntitySelected', function(entity)
 	if not entity or not DoesEntityExist(entity) then
 		return
@@ -233,9 +234,28 @@ AddEventHandler('spooner:onEntitySelected', function(entity)
 	-- Disable collision while entity selected
 	hadCollisionDisabled = GetEntityCollisionDisabled(entity)
 	SetEntityCollision(entity, false)
+
+	-- Remember the rotation the entity had when grabbed so the grab loop can hold it
+	-- steady each frame.
+	local pitch, roll, yaw = table.unpack(GetEntityRotation(entity, 2))
+	AttachedEntityRotation = { pitch = pitch, roll = roll, yaw = yaw }
+
+	-- Freeze peds while held AND clear their tasks. Freezing alone is not enough:
+	-- an active scenario/animation keeps driving the ped's heading, which is what
+	-- makes the rotation flicker/fight. Clearing the tasks stops that; the stored
+	-- animation/scenario is re-applied on placement.
+	if GetEntityType(entity) == 1 then
+		ClearPedTasksImmediately(entity)
+		wasFrozenBeforeSelect = IsEntityFrozen(entity)
+		FreezeEntityPosition(entity, true)
+	else
+		wasFrozenBeforeSelect = false
+	end
 end)
 
 AddEventHandler('spooner:onEntityUnselected', function(entity)
+	AttachedEntityRotation = nil
+
 	if not entity or not DoesEntityExist(entity) then
 		return
 	end
@@ -243,6 +263,11 @@ AddEventHandler('spooner:onEntityUnselected', function(entity)
 	-- Keep collision disabled if it was before selection
 	if not hadCollisionDisabled then
 		SetEntityCollision(entity, true)
+	end
+
+	-- Restore the ped's freeze state from before it was grabbed
+	if GetEntityType(entity) == 1 and not wasFrozenBeforeSelect then
+		FreezeEntityPosition(entity, false)
 	end
 end)
 

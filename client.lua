@@ -1365,7 +1365,7 @@ RegisterNUICallback('spawnAndAttachPed', function(data, cb)
 			z = spawnPos.z,
 			pitch = 0.0,
 			roll = 0.0,
-			yaw = yaw2 + 180.0,
+			yaw = yaw2,
 			collisionDisabled = false,
 			isVisible = true,
 			outfit = -1,
@@ -1711,6 +1711,24 @@ end
 function PlaceOnGroundProperly(entity)
 	local r1 = GetEntityRotation(entity, 2)
 
+	-- Temporarily detach any props attached to this entity so the ground placement
+	-- is computed from the entity's OWN bounds (e.g. a ped's feet) and not from an
+	-- attached prop, which would otherwise push the ped off the ground. The props
+	-- are re-attached with the exact same offsets right after.
+	local children = GetAttachedChildren(entity)
+	local childData = {}
+
+	for _, child in ipairs(children) do
+		local a = Database[child].attachment
+		childData[child] = {
+			bone = a.bone, x = a.x, y = a.y, z = a.z,
+			pitch = a.pitch, roll = a.roll, yaw = a.yaw,
+			useSoftPinning = a.useSoftPinning, collision = a.collision,
+			vertex = a.vertex, fixedRot = a.fixedRot
+		}
+		DetachEntity(child, true, true)
+	end
+
 	if Config.isRDR then
 		PlaceEntityOnGroundProperly(entity, false)
 	else
@@ -1723,8 +1741,16 @@ function PlaceOnGroundProperly(entity)
 		end
 	end
 
-	local r2 = GetEntityRotation(entity, 2)
-	SetEntityRotation(entity, r2.x, r2.y, r1.z, 2)
+	-- Only adjust the ground height: restore the entity's full original rotation
+	-- (pitch, roll and yaw) so grabbing/holding never tilts it to the terrain and
+	-- the rotation the user set while holding is kept exactly on placement.
+	SetEntityRotation(entity, r1.x, r1.y, r1.z, 2)
+
+	-- Re-attach the props with their original offsets
+	for _, child in ipairs(children) do
+		local a = childData[child]
+		AttachEntity(child, entity, a.bone, a.x, a.y, a.z, a.pitch, a.roll, a.yaw, a.useSoftPinning, a.collision, a.vertex, a.fixedRot)
+	end
 end
 
 RegisterNUICallback('placeEntityHere', function(data, cb)
@@ -2028,6 +2054,196 @@ end)
 
 RegisterNUICallback('deleteDb', function(data, cb)
 	DeleteDatabase(data.name)
+	cb({})
+end)
+
+-- Saved Peds: persist a single ped (model + animation/scenario + extras) so it
+-- can be re-spawned later from the "Saved Peds" category in the spawn menu.
+
+local SAVED_PED_PREFIX = 'SAVEDPED_'
+
+function BuildSavedPedProps(handle, savedName)
+	if not DoesEntityExist(handle) then
+		return nil
+	end
+
+	local db = Database[handle] or {}
+	local model = db.model or GetEntityModel(handle)
+
+	-- Capture any props attached to the ped so they can be re-spawned and
+	-- re-attached when the saved ped is loaded.
+	local attachments = {}
+	for _, child in ipairs(GetAttachedChildren(handle)) do
+		local cdb = Database[child]
+		if cdb and cdb.attachment then
+			local a = cdb.attachment
+			table.insert(attachments, {
+				name = cdb.name,
+				model = cdb.model,
+				type = cdb.type,
+				attachment = {
+					bone = a.bone,
+					x = a.x, y = a.y, z = a.z,
+					pitch = a.pitch, roll = a.roll, yaw = a.yaw,
+					useSoftPinning = a.useSoftPinning,
+					collision = a.collision,
+					vertex = a.vertex,
+					fixedRot = a.fixedRot
+				}
+			})
+		end
+	end
+
+	return {
+		savedName = savedName,
+		name = db.name or GetModelName(model),
+		model = model,
+		outfit = db.outfit or -1,
+		animation = db.animation,
+		scenario = db.scenario,
+		weapons = db.weapons or {},
+		walkStyle = db.walkStyle,
+		scale = db.scale,
+		pedConfigFlags = db.pedConfigFlags or (GetEntityType(handle) == 1 and GetPedConfigFlags(handle) or nil),
+		blockNonTemporaryEvents = db.blockNonTemporaryEvents or false,
+		attachments = attachments
+	}
+end
+
+function SaveSavedPed(props)
+	SetResourceKvp(SAVED_PED_PREFIX .. props.savedName, json.encode(props))
+end
+
+function LoadSavedPed(name)
+	local content = GetResourceKvpString(SAVED_PED_PREFIX .. name)
+	return content and json.decode(content)
+end
+
+function GetSavedPeds()
+	local peds = {}
+
+	local handle = StartFindKvp(SAVED_PED_PREFIX)
+
+	while true do
+		local kvp = FindKvp(handle)
+
+		if kvp then
+			table.insert(peds, string.sub(kvp, #SAVED_PED_PREFIX + 1))
+		else
+			break
+		end
+	end
+
+	EndFindKvp(handle)
+
+	table.sort(peds)
+
+	return peds
+end
+
+function DeleteSavedPed(name)
+	DeleteResourceKvp(SAVED_PED_PREFIX .. name)
+end
+
+RegisterNUICallback('saveCurrentPed', function(data, cb)
+	if data.name and data.name ~= '' and DoesEntityExist(data.handle) then
+		local props = BuildSavedPedProps(data.handle, data.name)
+
+		if props then
+			SaveSavedPed(props)
+		end
+	end
+
+	cb(json.encode(GetSavedPeds()))
+end)
+
+RegisterNUICallback('getSavedPeds', function(data, cb)
+	cb(json.encode(GetSavedPeds()))
+end)
+
+RegisterNUICallback('deleteSavedPed', function(data, cb)
+	DeleteSavedPed(data.name)
+	cb({})
+end)
+
+RegisterNUICallback('renameSavedPed', function(data, cb)
+	if data.oldName and data.newName and data.newName ~= '' and data.newName ~= data.oldName then
+		local saved = LoadSavedPed(data.oldName)
+
+		if saved then
+			saved.savedName = data.newName
+			SaveSavedPed(saved)
+			DeleteSavedPed(data.oldName)
+		end
+	end
+
+	cb(json.encode(GetSavedPeds()))
+end)
+
+RegisterNUICallback('spawnSavedPed', function(data, cb)
+	ClearPreview()
+
+	local saved = LoadSavedPed(data.name)
+
+	if saved then
+		CurrentSpawn = {
+			modelName = saved.name,
+			type = 1
+		}
+
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		local yaw2 = yaw
+		if yaw2 < 0.0 then
+			yaw2 = yaw2 + 360.0
+		end
+
+		local entity = SpawnPed({
+			name = saved.name,
+			model = ResolveModelHash(saved.model),
+			x = spawnPos.x,
+			y = spawnPos.y,
+			z = spawnPos.z,
+			pitch = 0.0,
+			roll = 0.0,
+			yaw = yaw2,
+			collisionDisabled = false,
+			isVisible = true,
+			outfit = saved.outfit or -1,
+			isInGroup = false,
+			animation = saved.animation,
+			scenario = saved.scenario,
+			weapons = saved.weapons,
+			walkStyle = saved.walkStyle,
+			scale = saved.scale,
+			pedConfigFlags = saved.pedConfigFlags,
+			blockNonTemporaryEvents = saved.blockNonTemporaryEvents
+		})
+
+		if entity then
+			PlaceOnGroundProperly(entity)
+
+			-- Re-spawn and re-attach any props that were saved with the ped
+			if saved.attachments then
+				for _, att in ipairs(saved.attachments) do
+					local child = SpawnObject(att.name, ResolveModelHash(att.model), spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, 0.0, false, true)
+
+					if child then
+						local a = att.attachment
+						AttachEntity(child, entity, a.bone, a.x, a.y, a.z, a.pitch, a.roll, a.yaw, a.useSoftPinning, a.collision, a.vertex, a.fixedRot)
+					end
+				end
+			end
+
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
+			AttachedEntity = entity
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
+		end
+	end
+
+	SetNuiFocus(false, false)
 	cb({})
 end)
 
@@ -3332,8 +3548,15 @@ function MainSpoonerUpdates()
 
 	if Cam then
 		DisableAllControlActions(0)
-		EnableControlAction(0, `INPUT_FRONTEND_PAUSE_ALTERNATE`, true)
 		EnableControlAction(0, `INPUT_MP_TEXT_CHAT_ALL`, true)
+
+		-- Escape should just leave the spooner instead of opening the game's pause
+		-- menu. The pause control stays disabled (no EnableControlAction above), so
+		-- we detect the press here and toggle the spooner off. When a NUI menu is
+		-- focused the key is handled in the UI instead, so this won't fire.
+		if IsDisabledControlJustPressed(0, `INPUT_FRONTEND_PAUSE_ALTERNATE`) or IsDisabledControlJustPressed(0, `INPUT_FRONTEND_PAUSE`) then
+			TriggerServerEvent('spooner:toggle')
+		end
 
 		local x1, y1, z1 = table.unpack(GetCamCoord(Cam))
 		local pitch1, roll1, yaw1 = table.unpack(GetCamRot(Cam, 2))
@@ -3494,7 +3717,7 @@ function MainSpoonerUpdates()
 					z = spawnPos.z,
 					pitch = 0.0,
 					roll = 0.0,
-					yaw = yaw2 + 180.0,
+					yaw = yaw2,
 					collisionDisabled = false,
 					isVisible = true,
 					outfit = -1,
@@ -3520,6 +3743,29 @@ function MainSpoonerUpdates()
 		if IsDisabledControlJustPressed(0, Config.SelectControl) then
 			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
+				if GetEntityType(AttachedEntity) == 1 then
+					-- A ped is shown statically (frozen) while held, but once placed its
+					-- animation/scenario resumes and it visually faces the opposite way.
+					-- Flip 180° on placement so the placed ped matches how it stood while
+					-- being held.
+					local p, r, y = table.unpack(GetEntityRotation(AttachedEntity, 2))
+					SetEntityRotation(AttachedEntity, p, r, y + 180.0, 2)
+
+					-- Re-apply the stored pose now that the ped is placed and unfrozen,
+					-- so freezing it while held doesn't leave it in a static stance.
+					if Database[AttachedEntity] then
+						if Database[AttachedEntity].animation then
+							PlayAnimation(AttachedEntity, Database[AttachedEntity].animation)
+						elseif Database[AttachedEntity].scenario then
+							startScenario(AttachedEntity, Database[AttachedEntity].scenario)
+						end
+					end
+
+					-- Settle the ped on the ground once, now that it's placed (skipped
+					-- every frame while held to avoid the flicker).
+					PlaceOnGroundProperly(AttachedEntity)
+				end
+
 				AttachedEntity = nil
 			elseif entity and CanModifyEntity(entity) then
 				if IsEntityAttached(entity) then
@@ -3647,7 +3893,16 @@ function MainSpoonerUpdates()
 				eyaw1 = Database[entity].attachment.yaw
 			else
 				ex1, ey1, ez1 = table.unpack(GetEntityCoords(entity))
-				epitch1, eroll1, eyaw1 = table.unpack(GetEntityRotation(entity, 2))
+
+				if entity == AttachedEntity and AttachedEntityRotation then
+					-- Use the rotation stored when the entity was grabbed as the base,
+					-- so a living ped can't drift/reset it between frames
+					epitch1 = AttachedEntityRotation.pitch
+					eroll1 = AttachedEntityRotation.roll
+					eyaw1 = AttachedEntityRotation.yaw
+				else
+					epitch1, eroll1, eyaw1 = table.unpack(GetEntityRotation(entity, 2))
+				end
 			end
 
 			local ex2 = ex1
@@ -3753,6 +4008,8 @@ function MainSpoonerUpdates()
 				end
 
 				if AttachedEntity then
+					local fpitch, froll, fyaw = epitch2, eroll2, eyaw2
+
 					if AdjustMode < 4 then
 						x2 = x1
 						y2 = y1
@@ -3767,19 +4024,43 @@ function MainSpoonerUpdates()
 						elseif AdjustMode == 2 then
 							SetEntityCoordsNoOffset(AttachedEntity, ex2, ey2, ez2 - axisY)
 						elseif AdjustMode == 3 then
+							-- Rotate via mouse along the active axis
 							if RotateMode == 0 then
-								SetEntityRotation(AttachedEntity, epitch2 - axisX * Config.SpeedLr, eroll2, eyaw2, 2)
+								fpitch = epitch2 - axisX * Config.SpeedLr
 							elseif RotateMode == 1 then
-								SetEntityRotation(AttachedEntity, epitch2, eroll2 - axisX * Config.SpeedLr, eyaw2, 2)
+								froll = eroll2 - axisX * Config.SpeedLr
 							else
-								SetEntityRotation(AttachedEntity, epitch2, eroll2, eyaw2 - axisX * Config.SpeedLr, 2)
+								fyaw = eyaw2 - axisX * Config.SpeedLr
 							end
 						end
 					elseif AdjustMode == 4 then
-						SetEntityCoordsNoOffset(AttachedEntity, spawnPos.x, spawnPos.y, spawnPos.z)
+						local fz = spawnPos.z
+
+						-- A ped's coords are its centre, so dropping it straight onto the
+						-- cursor point sinks it halfway underground. Offset by the model's
+						-- bottom so its feet (not its centre) sit on the surface. Done
+						-- manually instead of PlaceEntityOnGroundProperly to avoid the
+						-- per-frame re-orientation flicker.
+						if GetEntityType(AttachedEntity) == 1 then
+							local minDim = GetModelDimensions(GetEntityModel(AttachedEntity))
+							fz = spawnPos.z - minDim.z
+						end
+
+						SetEntityCoordsNoOffset(AttachedEntity, spawnPos.x, spawnPos.y, fz)
 					end
 
-					if PlaceOnGround or AdjustMode == 4 then
+					-- Re-assert the rotation every frame and remember it. This holds the
+					-- grabbed entity at the rotation it was taken with (plus any
+					-- adjustments) without freezing it, so a ped keeps playing its
+					-- animation/scenario pose and never drifts back on its own.
+					SetEntityRotation(AttachedEntity, fpitch, froll, fyaw, 2)
+					AttachedEntityRotation = { pitch = fpitch, roll = froll, yaw = fyaw }
+
+					-- Don't ground-place a ped every frame: PlaceEntityOnGroundProperly
+					-- re-orients the ped each call and makes it flicker (a periodic 180°
+					-- snap) while held. The cursor point is already on the surface, so it
+					-- follows fine; the ground placement is done once on release instead.
+					if (PlaceOnGround or AdjustMode == 4) and GetEntityType(AttachedEntity) ~= 1 then
 						PlaceOnGroundProperly(AttachedEntity)
 					end
 				end
@@ -3945,15 +4226,20 @@ function UpdateDbEntities()
 			NetworkRegisterEntityAsNetworked(entity)
 		end
 
-		if properties.scenario then
-			local hash = GetHashKey(properties.scenario)
+		-- Don't re-apply the scenario/animation to a ped that's currently being held
+		-- in the camera. While grabbed its tasks are cleared on purpose; re-applying
+		-- here (once per second) is what made saved peds snap 180° during the grab.
+		if entity ~= AttachedEntity then
+			if properties.scenario then
+				local hash = GetHashKey(properties.scenario)
 
-			if not IsPedUsingScenarioHash(entity, hash) then
-				startScenario(entity, properties.scenario)
-			end
-		elseif properties.animation then
-			if not IsAnimationPaused(entity) and not IsEntityPlayingAnim(entity, properties.animation.dict, properties.animation.name, 3) then
-				PlayAnimation(entity, properties.animation)
+				if not IsPedUsingScenarioHash(entity, hash) then
+					startScenario(entity, properties.scenario)
+				end
+			elseif properties.animation then
+				if not IsAnimationPaused(entity) and not IsEntityPlayingAnim(entity, properties.animation.dict, properties.animation.name, 3) then
+					PlayAnimation(entity, properties.animation)
+				end
 			end
 		end
 

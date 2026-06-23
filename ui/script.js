@@ -746,6 +746,9 @@ function openSpawnMenu() {
 		case 4:
 			document.querySelector('#pickup-menu').style.display = 'flex';
 			break;
+		case 5:
+			openSavedPedsMenu();
+			break;
 		default:
 			document.querySelector('#spawn-menu').style.display = 'flex';
 			break;
@@ -785,6 +788,156 @@ function openPickupMenu() {
 	document.querySelector('#spawn-menu').style.display = 'none';
 	document.querySelector('#pickup-menu').style.display = 'flex';
 	lastSpawnMenu = 4;
+}
+
+function openSavedPedsMenu() {
+	document.querySelector('#spawn-menu').style.display = 'none';
+	document.querySelector('#saved-peds-menu').style.display = 'flex';
+	lastSpawnMenu = 5;
+
+	sendMessage('getSavedPeds', {}).then(resp => resp.json()).then(resp => updateSavedPedsList(resp));
+}
+
+function closeSavedPedsMenu(spawned) {
+	document.querySelector('#saved-peds-menu').style.display = 'none';
+
+	if (!spawned) {
+		document.querySelector('#spawn-menu').style.display = 'flex';
+		lastSpawnMenu = -1;
+	}
+}
+
+function updateSavedPedsList(data) {
+	var names = JSON.parse(data);
+	var list = document.querySelector('#saved-peds-list');
+
+	list.innerHTML = '';
+
+	if (!names.length) {
+		var empty = document.createElement('div');
+		empty.className = 'saved-ped-empty';
+		empty.innerHTML = 'No saved peds yet';
+		list.appendChild(empty);
+		return;
+	}
+
+	names.forEach(function(name) {
+		list.appendChild(createSavedPedRow(name));
+	});
+}
+
+function createSavedPedRow(name) {
+	var row = document.createElement('div');
+	row.className = 'saved-ped';
+	row.setAttribute('data-name', name);
+
+	var label = document.createElement('span');
+	label.className = 'saved-ped-name';
+	label.title = 'Spawn';
+	label.innerHTML = name;
+	label.addEventListener('click', function(event) {
+		sendMessage('spawnSavedPed', {
+			name: row.getAttribute('data-name')
+		});
+		closeSavedPedsMenu(true);
+	});
+
+	var renameBtn = document.createElement('button');
+	renameBtn.className = 'saved-ped-action';
+	renameBtn.title = 'Rename';
+	renameBtn.innerHTML = '<i class="fas fa-pen"></i>';
+	renameBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		startRenameSavedPed(row);
+	});
+
+	var deleteBtn = document.createElement('button');
+	deleteBtn.className = 'saved-ped-action saved-ped-delete';
+	deleteBtn.title = 'Delete';
+	deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+	deleteBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+
+		sendMessage('deleteSavedPed', {
+			name: row.getAttribute('data-name')
+		});
+		row.remove();
+
+		if (!document.querySelector('#saved-peds-list .saved-ped')) {
+			updateSavedPedsList('[]');
+		}
+	});
+
+	row.appendChild(label);
+	row.appendChild(renameBtn);
+	row.appendChild(deleteBtn);
+
+	return row;
+}
+
+function startRenameSavedPed(row) {
+	var oldName = row.getAttribute('data-name');
+
+	row.innerHTML = '';
+
+	var input = document.createElement('input');
+	input.type = 'text';
+	input.className = 'saved-ped-rename-input';
+	input.value = oldName;
+
+	var confirmBtn = document.createElement('button');
+	confirmBtn.className = 'saved-ped-action';
+	confirmBtn.title = 'Confirm';
+	confirmBtn.innerHTML = '<i class="fas fa-check"></i>';
+
+	var cancelBtn = document.createElement('button');
+	cancelBtn.className = 'saved-ped-action saved-ped-delete';
+	cancelBtn.title = 'Cancel';
+	cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+
+	function commit() {
+		var newName = input.value.trim();
+
+		if (!newName || newName === oldName) {
+			cancel();
+			return;
+		}
+
+		sendMessage('renameSavedPed', {
+			oldName: oldName,
+			newName: newName
+		}).then(resp => resp.json()).then(resp => updateSavedPedsList(resp));
+	}
+
+	function cancel() {
+		row.replaceWith(createSavedPedRow(oldName));
+	}
+
+	confirmBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		commit();
+	});
+
+	cancelBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		cancel();
+	});
+
+	input.addEventListener('keydown', function(event) {
+		if (event.key === 'Enter') {
+			commit();
+		} else if (event.key === 'Escape') {
+			event.stopPropagation();
+			cancel();
+		}
+	});
+
+	row.appendChild(input);
+	row.appendChild(confirmBtn);
+	row.appendChild(cancelBtn);
+
+	input.focus();
+	input.select();
 }
 
 function closePedMenu(selected) {
@@ -2058,6 +2211,82 @@ document.addEventListener('keydown', function(event) {
 	}
 });
 
+// Escape on the spawn (F) menu: go back one level, or close it from the category list.
+// The entity sub-menus (peds/vehicles/objects/propsets/pickups) handle their own
+// Escape -> Back; here we cover the category list and the custom Saved Peds menu.
+document.addEventListener('keydown', function(event) {
+	if (event.key !== 'Escape') {
+		return;
+	}
+
+	if (document.querySelector('#saved-peds-menu').style.display === 'flex') {
+		// Let an in-progress rename input cancel itself instead of leaving the menu
+		if (document.activeElement && document.activeElement.classList.contains('saved-ped-rename-input')) {
+			return;
+		}
+		event.preventDefault();
+		closeSavedPedsMenu(false);
+		return;
+	}
+
+	if (document.querySelector('#spawn-menu').style.display === 'flex') {
+		event.preventDefault();
+		closeSpawnMenu();
+	}
+});
+
+// Escape on the properties (Tab) menu tree: go back one level by triggering the
+// menu's own Back/Close button, so all of its side effects are preserved.
+// Menus are ordered child-most first; only one is visible at a time, so the first
+// visible match is the one to close.
+var propertiesEscapeMenus = [
+	{ menu: 'import-export-db', back: 'import-export-db-close' },
+	{ menu: 'save-load-db-menu', back: 'save-load-db-menu-close-btn' },
+	{ menu: 'help-menu', back: 'help-menu-close-btn' },
+	{ menu: 'config-flags-menu', back: 'close-config-flags-menu' },
+	{ menu: 'walk-style-menu', back: 'walk-style-menu-close' },
+	{ menu: 'weapon-menu', back: 'weapon-menu-close' },
+	{ menu: 'scenario-menu', back: 'scenario-menu-close' },
+	{ menu: 'player-model-menu', back: 'player-model-menu-close-btn' },
+	{ menu: 'animation-menu', back: 'animation-menu-close' },
+	{ menu: 'lights-options-menu', back: 'lights-options-menu-close' },
+	{ menu: 'attachment-options-menu', back: 'attachment-options-menu-close' },
+	{ menu: 'ped-options-menu', back: 'ped-options-menu-close' },
+	{ menu: 'vehicle-options-menu', back: 'vehicle-options-menu-close' },
+	{ menu: 'properties-menu', back: 'properties-menu-close-btn' }
+];
+
+document.addEventListener('keydown', function(event) {
+	if (event.key !== 'Escape') {
+		return;
+	}
+
+	// Entity select sub-menu (Look At / Attach / Go To...) -> its dynamic Back button
+	var entitySelect = document.getElementById('entity-select-menu');
+	if (entitySelect && entitySelect.style.display === 'flex') {
+		var backBtn = entitySelect.querySelector('button');
+		if (backBtn) {
+			event.preventDefault();
+			backBtn.click();
+		}
+		return;
+	}
+
+	for (var i = 0; i < propertiesEscapeMenus.length; i++) {
+		var entry = propertiesEscapeMenus[i];
+		var menu = document.getElementById(entry.menu);
+
+		if (menu && menu.style.display === 'flex') {
+			var btn = document.getElementById(entry.back);
+			if (btn) {
+				event.preventDefault();
+				btn.click();
+			}
+			return;
+		}
+	}
+});
+
 function loadDatabase(name) {
 	var relative = document.querySelector('#load-db-relative').checked;
 	var replace = document.querySelector('#replace-db').checked;
@@ -2237,6 +2466,7 @@ function updatePermissions(data) {
 	document.getElementById('spawn-menu-objects').disabled = !permissions.spawn.object;
 	document.getElementById('spawn-menu-propsets').disabled = !permissions.spawn.propset;
 	document.getElementById('spawn-menu-pickups').disabled = !permissions.spawn.pickup;
+	document.getElementById('spawn-menu-saved-peds').disabled = !permissions.spawn.ped;
 	document.querySelectorAll('.spawn-by-name').forEach(e => e.disabled = !permissions.spawn.byName);
 
 	document.getElementById('properties-freeze').disabled = !permissions.properties.freeze;
@@ -2568,6 +2798,29 @@ window.addEventListener('load', function() {
 		});
 	});
 
+	document.querySelector('#properties-save-ped').addEventListener('click', function(event) {
+		var nameInput = document.querySelector('#save-ped-name');
+		var name = nameInput.value.trim();
+
+		if (!name) {
+			nameInput.focus();
+			return;
+		}
+
+		var btn = document.querySelector('#properties-save-ped');
+
+		sendMessage('saveCurrentPed', {
+			handle: currentEntity(),
+			name: name
+		}).then(resp => resp.json()).then(function(resp) {
+			nameInput.value = '';
+
+			var original = btn.innerHTML;
+			btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+			setTimeout(function() { btn.innerHTML = original; }, 1200);
+		});
+	});
+
 	document.querySelector('#properties-freeze').addEventListener('click', function(event) {
 		sendMessage('freezeEntity', {
 			handle: currentEntity()
@@ -2811,6 +3064,14 @@ window.addEventListener('load', function() {
 
 	document.querySelector('#spawn-menu-pickups').addEventListener('click', function(event) {
 		openPickupMenu();
+	});
+
+	document.querySelector('#spawn-menu-saved-peds').addEventListener('click', function(event) {
+		openSavedPedsMenu();
+	});
+
+	document.querySelector('#saved-peds-menu-back').addEventListener('click', function(event) {
+		closeSavedPedsMenu(false);
 	});
 
 	document.querySelector('#spawn-menu-close').addEventListener('click', function(event) {

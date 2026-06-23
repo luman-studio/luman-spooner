@@ -11,3 +11,39 @@
 #properties {
 	scrollbar-gutter: stable;
 }
+
+.saved-ped {
+	display: flex;
+	align-items: center;
+	gap: 0.25vw;
+	padding: 0.25vh 0;
+}
+
+.saved-ped-name {
+	flex: 1;
+	cursor: pointer;
+	padding: 0.25vh 0.25vw;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.saved-ped-name:hover {
+	background-color: white;
+	color: black;
+}
+
+.saved-ped-rename-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.saved-ped-action {
+	flex: 0 0 auto;
+	padding: 0.25vh 0.5vw;
+}
+
+.saved-ped-empty {
+	padding: 0.25vh 0.25vw;
+	opacity: 0.6;
+}

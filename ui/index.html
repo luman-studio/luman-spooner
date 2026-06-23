@@ -177,8 +177,18 @@
 				<div class="spawn-category">
 					<button id="spawn-menu-pickups"><i class="fas fa-hand-holding"></i> Pickups</button>
 				</div>
+				<div class="spawn-category">
+					<button id="spawn-menu-saved-peds"><i class="fas fa-save"></i> Saved Peds</button>
+				</div>
 			</div>
 			<button id="spawn-menu-close"><i class="fas fa-times"></i> Close</button>
+		</div>
+		<div id="saved-peds-menu" class="menu">
+			<div id="saved-peds-list" class="list"></div>
+			<div id="saved-peds-nav-hint" class="nav-hint">
+				<span>Click name to spawn | <i class="fas fa-pen"></i> Rename | <i class="fas fa-trash"></i> Delete</span>
+			</div>
+			<button id="saved-peds-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="ped-menu" class="menu">
 			<div id="ped-search" class="search">
@@ -396,6 +406,10 @@
 				<div class="property multiple ped-property">
 					<button id="properties-copy-scenario"><i class="fas fa-copy"></i> Copy Scenario</button>
 					<button id="properties-paste-scenario"><i class="fas fa-paste"></i> Paste Scenario</button>
+				</div>
+				<div class="property multiple ped-property">
+					<input type="text" id="save-ped-name" placeholder="Saved ped name...">
+					<button id="properties-save-ped"><i class="fas fa-save"></i> Save Ped</button>
 				</div>
 				<div class="property ped-property">
 					<button id="properties-clear-tasks-props"><i class="fas fa-broom"></i> Clear Tasks + Props</button>
