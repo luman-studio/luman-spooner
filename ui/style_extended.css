@@ -47,3 +47,14 @@
 	padding: 0.25vh 0.25vw;
 	opacity: 0.6;
 }
+
+#animation-allow-running-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5vw;
+	padding: 0.5vh 0;
+}
+
+#animation-allow-running-container span {
+	flex: 1;
+}

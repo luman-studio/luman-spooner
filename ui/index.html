@@ -180,6 +180,12 @@
 				<div class="spawn-category">
 					<button id="spawn-menu-saved-peds"><i class="fas fa-save"></i> Saved Peds</button>
 				</div>
+				<div class="spawn-category">
+					<button id="spawn-menu-mp-peds"><i class="fas fa-user-friends"></i> MP Peds</button>
+				</div>
+				<div class="spawn-category">
+					<button id="spawn-menu-particles"><i class="fas fa-fire"></i> Particles</button>
+				</div>
 			</div>
 			<button id="spawn-menu-close"><i class="fas fa-times"></i> Close</button>
 		</div>
@@ -189,6 +195,20 @@
 				<span>Click name to spawn | <i class="fas fa-pen"></i> Rename | <i class="fas fa-trash"></i> Delete</span>
 			</div>
 			<button id="saved-peds-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="mp-peds-menu" class="menu">
+			<div id="mp-peds-list" class="list"></div>
+			<div id="mp-peds-nav-hint" class="nav-hint">
+				<span>Click name to spawn | <i class="fas fa-pen"></i> Rename | <i class="fas fa-trash"></i> Delete</span>
+			</div>
+			<button id="mp-peds-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="animprops-menu" class="menu">
+			<div id="animprops-list" class="list"></div>
+			<div id="animprops-nav-hint" class="nav-hint">
+				<span>Click name to apply | <i class="fas fa-pen"></i> Rename | <i class="fas fa-trash"></i> Delete</span>
+			</div>
+			<button id="animprops-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="ped-menu" class="menu">
 			<div id="ped-search" class="search">
@@ -400,6 +420,10 @@
 				<div class="property object-property">
 					<button id="properties-lights-options"><i class="fas fa-lightbulb"></i> Light Options</button>
 				</div>
+				<div class="property particle-property">
+					<div class="label">Particle Scale</div>
+					<input type="number" id="properties-particle-scale" min="0.01" max="20.0" step="0.1" value="1.0">
+				</div>
 				<div class="property ped-property object-property">
 					<button id="properties-animation"><i class="fas fa-running"></i> Animations</button>
 				</div>
@@ -410,6 +434,13 @@
 				<div class="property multiple ped-property">
 					<input type="text" id="save-ped-name" placeholder="Saved ped name...">
 					<button id="properties-save-ped"><i class="fas fa-save"></i> Save Ped</button>
+				</div>
+				<div class="property ped-property">
+					<button id="properties-save-mp-ped"><i class="fas fa-user-friends"></i> Save MP Ped (+ horse)</button>
+				</div>
+				<div class="property multiple ped-property">
+					<button id="properties-set-patrol-lasso"><i class="fas fa-route"></i> Set Patrol + Lasso</button>
+					<button id="properties-clear-patrol-lasso"><i class="fas fa-stop"></i> Clear Patrol</button>
 				</div>
 				<div class="property ped-property">
 					<button id="properties-clear-tasks-props"><i class="fas fa-broom"></i> Clear Tasks + Props</button>
@@ -628,6 +659,9 @@
 					<button id="properties-give-weapon"><i class="fas fa-gun"></i> Give Weapon</button>
 				</div>
 				<div class="property">
+					<button id="properties-holster-weapon"><i class="fas fa-undo"></i> Holster Weapon</button>
+				</div>
+				<div class="property">
 					<button id="properties-remove-all-weapons"><i class="fas fa-skull-crossbones"></i> Remove All Weapons</button>
 				</div>
 				<div class="property">
@@ -791,6 +825,27 @@
 			<button id="lights-options-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="animation-menu" class="menu">
+			<div class="property">
+				<button id="animation-open-list"><i class="fas fa-list"></i> Animation List</button>
+			</div>
+			<div class="property multiple">
+				<button id="properties-copy-animation"><i class="fas fa-copy"></i> Copy Animation</button>
+				<button id="properties-paste-animation"><i class="fas fa-paste"></i> Paste Animation</button>
+			</div>
+			<div class="property multiple">
+				<button id="properties-copy-animation-prop"><i class="fas fa-copy"></i> Copy Anim + Prop</button>
+			</div>
+			<div class="property multiple">
+				<input type="text" id="save-animprop-name" placeholder="Saved animation+prop name...">
+				<button id="properties-save-animprop" disabled><i class="fas fa-save"></i> Save Anim + Prop</button>
+			</div>
+			<div class="property">
+				<button id="properties-animprops-list"><i class="fas fa-list"></i> Apply Saved Anim + Prop</button>
+			</div>
+			<button id="animation-stop"><i class="fas fa-stop-circle"></i> Stop Animation</button>
+			<button id="animation-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="animation-list-menu" class="menu">
 			<div id="animation-search" class="search">
 				<input type="text" id="animation-search-filter" class="search-filter" value="">
 				<button id="favourite-animations" class="favourites">
@@ -827,6 +882,10 @@
 					<div class="label">Playback Rate</div>
 					<input type="number" id="animation-playback-rate" value="0.0">
 				</div>
+				<div id="animation-allow-running-container">
+					<input id="animation-allow-running" type="checkbox">
+					<span>Allow Running (upper body only, keeps movement working)</span>
+				</div>
 			</div>
 			<div id="animation-timeline" style="display: none;">
 				<div class="property">
@@ -841,13 +900,8 @@
 					</div>
 				</div>
 			</div>
-			<div class="property multiple">
-				<button id="properties-copy-animation"><i class="fas fa-copy"></i> Copy Animation</button>
-				<button id="properties-paste-animation"><i class="fas fa-paste"></i> Paste Animation</button>
-			</div>
 			<button id="copy-animation-settings"><i class="fas fa-clipboard"></i></button>
-			<button id="animation-stop"><i class="fas fa-stop-circle"></i> Stop Animation</button>
-			<button id="animation-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
+			<button id="animation-list-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="propset-menu" class="menu">
 			<div id="propset-search" class="search">
@@ -868,6 +922,34 @@
 			<button id="propset-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="propset-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name/Hash</button>
 			<button id="propset-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="particle-menu" class="menu">
+			<div id="particle-search" class="search">
+				<input type="text" id="particle-search-filter" class="search-filter" value="" placeholder="Search particles...">
+				<button id="favourite-particles" class="favourites">
+					<i class="far fa-star"></i>
+				</button>
+			</div>
+			<div id="particle-pagination-controls" class="pagination-controls">
+				<button id="particle-prev-page" title="Previous page"><i class="fas fa-chevron-left"></i></button>
+				<span id="particle-pagination-info">0-0 of 0</span>
+				<button id="particle-next-page" title="Next page"><i class="fas fa-chevron-right"></i></button>
+			</div>
+			<div id="particle-list" class="list"></div>
+			<div id="particle-nav-hint" class="nav-hint">
+				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | <span class="key">Enter</span> Spawn</span>
+			</div>
+			<button id="particle-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
+			<button id="particle-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name/Hash</button>
+			<button id="particle-menu-view-placed"><i class="fas fa-map-marker-alt"></i> View Placed Particles</button>
+			<button id="particle-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="placed-particles-menu" class="menu">
+			<div id="placed-particles-list" class="list"></div>
+			<div id="placed-particles-nav-hint" class="nav-hint">
+				<span>Click name to select (move/rotate/scale) | <i class="fas fa-trash"></i> Delete</span>
+			</div>
+			<button id="placed-particles-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="pickup-menu" class="menu">
 			<div id="pickup-search" class="search">

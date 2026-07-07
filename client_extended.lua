@@ -244,13 +244,19 @@ AddEventHandler('spooner:onEntitySelected', function(entity)
 	-- an active scenario/animation keeps driving the ped's heading, which is what
 	-- makes the rotation flicker/fight. Clearing the tasks stops that; the stored
 	-- animation/scenario is re-applied on placement.
-	if GetEntityType(entity) == 1 then
+	-- Exception: GrabNoFreeze is set when grabbing a horse that has a rider — freezing
+	-- it would dismount the rider, so we grab it without freezing/clearing.
+	if GetEntityType(entity) == 1 and not GrabNoFreeze then
 		ClearPedTasksImmediately(entity)
 		wasFrozenBeforeSelect = IsEntityFrozen(entity)
 		FreezeEntityPosition(entity, true)
+		HeldWasFrozen = true
 	else
 		wasFrozenBeforeSelect = false
+		HeldWasFrozen = false
 	end
+
+	GrabNoFreeze = false
 end)
 
 AddEventHandler('spooner:onEntityUnselected', function(entity)

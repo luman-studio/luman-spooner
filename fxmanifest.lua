@@ -47,6 +47,7 @@ if gameName == "rdr3" then
 		"data/rdr3/animations.lua",
 		"data/rdr3/bones.lua",
 		"data/rdr3/objects.lua",
+		"data/rdr3/particles.lua",
 		"data/rdr3/pedConfigFlags.lua",
 		"data/rdr3/peds.lua",
 		"data/rdr3/pickups.lua",

@@ -52,6 +52,7 @@ Permissions.spawn.vehicle = false
 Permissions.spawn.object = false
 Permissions.spawn.propset = false
 Permissions.spawn.pickup = false
+Permissions.spawn.particle = false
 
 Permissions.delete = {}
 Permissions.delete.own = {}
@@ -147,6 +148,11 @@ end
 
 function SetPedOnMount(ped, mount, seatIndex, p3)
 	Citizen.InvokeNative(0x028F76B6E78246EB, ped, mount, seatIndex, p3)
+
+	-- Track the mount -> rider relationship so behaviors (e.g. Patrol + Lasso) can
+	-- tell the mount to move while animating/arming the actual rider.
+	MountRider = MountRider or {}
+	MountRider[mount] = ped
 end
 
 function IsUsingKeyboard(padIndex)
@@ -513,6 +519,8 @@ function AddEntityToDatabase(entity, name, attachment)
 
 	local scale = Database[entity] and Database[entity].scale
 
+	local particle = Database[entity] and Database[entity].particle
+
 	if attachment then
 		attachBone        = attachment.bone
 		attachX           = attachment.x
@@ -583,6 +591,8 @@ function AddEntityToDatabase(entity, name, attachment)
 	Database[entity].walkStyle = walkStyle
 
 	Database[entity].scale = scale
+
+	Database[entity].particle = particle
 
 	if not Config.isRDR then
 		Database[entity].isFrozen = isFrozen
@@ -792,7 +802,10 @@ function GetAnimationValues(entity, anim)
 	if GetEntityType(entity) == 3 then -- object
 		return entity, anim.name, anim.dict, anim.blendInSpeed, true, true, false, 0.0, 0
 	else -- ped
-		return entity, anim.dict, anim.name, anim.blendInSpeed, anim.blendOutSpeed, anim.duration, anim.flag, anim.playbackRate, false, false, false, '', false
+		-- filter is a bone-mask (e.g. 'BONEMASK_UPPERONLY') so the clip can be played
+		-- on the upper body only, leaving the legs free for normal locomotion. Empty
+		-- string (default) animates the whole body as before.
+		return entity, anim.dict, anim.name, anim.blendInSpeed, anim.blendOutSpeed, anim.duration, anim.flag, anim.playbackRate, false, false, false, anim.filter or '', false
 	end
 end
 
@@ -845,10 +858,15 @@ function SpawnPed(props)
 		SetEntityVisible(ped, false)
 	end
 
-	if props.outfit == -1 then
-		SetRandomOutfitVariation(ped, true)
-	else
-		SetPedOutfitPreset(ped, props.outfit)
+	-- keepAppearance is set when spawning from a ClonePed template (MP peds); in that
+	-- case the clone already carries the exact look, so don't touch the outfit or it
+	-- would be randomised/overwritten.
+	if not props.keepAppearance then
+		if props.outfit == -1 then
+			SetRandomOutfitVariation(ped, true)
+		else
+			SetPedOutfitPreset(ped, props.outfit)
+		end
 	end
 
 	if props.isInGroup then
@@ -967,6 +985,84 @@ function SpawnPropset(name, model, x, y, z, heading)
 	return nil
 end
 
+ParticleHandles = ParticleHandles or {} -- [anchor entity] = running particle FX handle
+
+-- Load a particle dictionary (async) and start a looped effect on the given
+-- entity. Returns the particle FX handle (needed to stop it later), or nil.
+function PlayParticleEffect(entity, dict, fx, scale)
+	RequestNamedPtfxAsset(dict)
+
+	local tries = 0
+	while not HasNamedPtfxAssetLoaded(dict) and tries < 200 do
+		Wait(10)
+		tries = tries + 1
+	end
+
+	if not HasNamedPtfxAssetLoaded(dict) then
+		return nil
+	end
+
+	UseParticleFxAsset(dict)
+
+	return StartParticleFxLoopedOnEntity(fx, entity, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, scale or 1.0, false, false, false, false)
+end
+
+-- A placed particle is an invisible "anchor" object with the effect attached to it
+-- (StartParticleFxLoopedOnEntity), so it can be grabbed, moved, rotated, deleted
+-- and saved/loaded exactly like any other spooner object.
+function SpawnParticleEffect(name, x, y, z, pitch, roll, yaw, scale)
+	if not Permissions.spawn.particle then
+		return nil
+	end
+
+	if IsDatabaseFull() then
+		return nil
+	end
+
+	-- name is "dict/fx"
+	local dict, fx = string.match(name, '^(.-)/(.+)$')
+
+	if not dict or not fx then
+		return nil
+	end
+
+	local anchorModel = GetHashKey(Config.ParticleAnchorModel)
+
+	if not LoadModel(anchorModel) then
+		return nil
+	end
+
+	local entity = CreateObjectNoOffset(anchorModel, x, y, z, true, false, true)
+
+	SetModelAsNoLongerNeeded(anchorModel)
+
+	if not entity or entity < 1 then
+		return nil
+	end
+
+	SetEntityRotation(entity, pitch, roll, yaw, 2)
+	-- Hide the anchor via alpha, NOT SetEntityVisible(false): the latter appears to
+	-- also cull/stop rendering a particle effect attached to the entity (it would
+	-- flash briefly then vanish). Alpha 0 keeps the entity "visible" to the engine's
+	-- own tracking, just fully transparent, so the attached FX keeps rendering.
+	SetEntityAlpha(entity, 0, false)
+	SetEntityCollision(entity, false, false)
+	FreezeEntityPosition(entity, true)
+
+	AddEntityToDatabase(entity, name)
+
+	Database[entity].isFrozen = true
+	Database[entity].particle = {
+		dict = dict,
+		fx = fx,
+		scale = scale or 1.0
+	}
+
+	ParticleHandles[entity] = PlayParticleEffect(entity, dict, fx, scale or 1.0)
+
+	return entity
+end
+
 function SpawnPickup(name, model, x, y, z)
 	if not Permissions.spawn.pickup then
 		return nil
@@ -1040,6 +1136,15 @@ function RemoveEntity(entity)
 		return
 	end
 
+	-- Stop and forget any particle effect anchored to this entity so its FX handle
+	-- doesn't leak once the (invisible) anchor object is deleted.
+	if ParticleHandles and ParticleHandles[entity] then
+		if DoesParticleFxLoopedExist(ParticleHandles[entity]) then
+			RemoveParticleFx(ParticleHandles[entity], false)
+		end
+		ParticleHandles[entity] = nil
+	end
+
 	local entityType = GetSpoonerEntityType(entity)
 
 	if entityType == 4 then
@@ -1083,6 +1188,12 @@ AddEventHandler('onResourceStop', function(resourceName)
 
 		if Config.CleanUpOnStop then
 			RemoveAllFromDatabase()
+		end
+
+		-- Clean up the hidden MP-ped template clones so they don't leak (the
+		-- persisted KVP entries themselves are left alone and reload on next start)
+		if ClearMpPedTemplates then
+			ClearMpPedTemplates()
 		end
 	end
 end)
@@ -1179,10 +1290,16 @@ end)
 -- Unified Preview System
 -- ============================================================================
 
--- Preview types: 'ped', 'vehicle', 'object', 'propset', 'pickup'
+-- Preview types: 'ped', 'vehicle', 'object', 'propset', 'pickup', 'particle'
 local PreviewType = nil
+local PreviewParticleHandle = nil
 
 function ClearPreview()
+	if PreviewParticleHandle and DoesParticleFxLoopedExist(PreviewParticleHandle) then
+		RemoveParticleFx(PreviewParticleHandle, false)
+	end
+	PreviewParticleHandle = nil
+
 	if PreviewEntity and DoesEntityExist(PreviewEntity) then
 		DeleteEntity(PreviewEntity)
 	end
@@ -1204,6 +1321,61 @@ function SpawnPreview(modelName, entityType)
 
 	-- Clear existing preview first
 	ClearPreview()
+
+	-- Particles use a different loading path entirely: modelName is "dict/fx", not
+	-- a real model, so the generic ResolveModelHash/IsModelInCdimage check below
+	-- doesn't apply. The preview is the same invisible anchor + attached looped FX
+	-- used for the real spawn, just not added to Database.
+	if entityType == 'particle' then
+		local dict, fx = string.match(modelName, '^(.-)/(.+)$')
+
+		if not dict or not fx then
+			return
+		end
+
+		local anchorModel = GetHashKey(Config.ParticleAnchorModel)
+
+		if not LoadModel(anchorModel) then
+			return
+		end
+
+		CreateThread(function()
+			local requestedModel = modelName
+
+			if PreviewModelName ~= nil then
+				SetModelAsNoLongerNeeded(anchorModel)
+				return
+			end
+
+			if not Cam then
+				SetModelAsNoLongerNeeded(anchorModel)
+				return
+			end
+
+			local x, y, z = table.unpack(GetCamCoord(Cam))
+			local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+			local spawnPos, _, _ = GetInView(x, y, z, pitch, roll, yaw)
+
+			PreviewEntity = CreateObjectNoOffset(anchorModel, spawnPos.x, spawnPos.y, spawnPos.z, false, false, false)
+
+			SetModelAsNoLongerNeeded(anchorModel)
+
+			if PreviewEntity and PreviewEntity > 0 then
+				PreviewModelName = requestedModel
+				PreviewType = 'particle'
+
+				-- See SpawnParticleEffect: alpha 0, not SetEntityVisible(false), or the
+				-- attached particle gets culled along with the entity.
+				SetEntityAlpha(PreviewEntity, 0, false)
+				SetEntityCollision(PreviewEntity, false, false)
+				FreezeEntityPosition(PreviewEntity, true)
+
+				PreviewParticleHandle = PlayParticleEffect(PreviewEntity, dict, fx, 1.0)
+			end
+		end)
+
+		return
+	end
 
 	local model = ResolveModelHash(modelName)
 
@@ -1308,6 +1480,13 @@ RegisterNUICallback('previewPickup', function(data, cb)
 	cb({})
 end)
 
+RegisterNUICallback('previewParticle', function(data, cb)
+	if data.modelName then
+		SpawnPreview(data.modelName, 'particle')
+	end
+	cb({})
+end)
+
 -- Clear preview callbacks
 RegisterNUICallback('clearPedPreview', function(data, cb)
 	ClearPreview()
@@ -1330,6 +1509,11 @@ RegisterNUICallback('clearPropsetPreview', function(data, cb)
 end)
 
 RegisterNUICallback('clearPickupPreview', function(data, cb)
+	ClearPreview()
+	cb({})
+end)
+
+RegisterNUICallback('clearParticlePreview', function(data, cb)
 	ClearPreview()
 	cb({})
 end)
@@ -1456,6 +1640,87 @@ RegisterNUICallback('closePropsetMenu', function(data, cb)
 		}
 	end
 	SetNuiFocus(false, false)
+	cb({})
+end)
+
+RegisterNUICallback('spawnAndAttachParticle', function(data, cb)
+	ClearPreview()
+
+	if data.modelName and (Permissions.spawn.byName or Contains(Particles, data.modelName)) then
+		-- Remember selection so it can be re-spawned with the spawn control (E)
+		CurrentSpawn = {
+			modelName = data.modelName,
+			type = 6
+		}
+
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		local yaw2 = yaw
+		if yaw2 < 0.0 then
+			yaw2 = yaw2 + 360.0
+		end
+
+		local entity = SpawnParticleEffect(data.modelName, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, 1.0)
+
+		if entity then
+			PlaceOnGroundProperly(entity)
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
+			AttachedEntity = entity
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
+		end
+	end
+	SetNuiFocus(false, false)
+	cb({})
+end)
+
+RegisterNUICallback('closeParticleMenu', function(data, cb)
+	if data.modelName and (Permissions.spawn.byName or Contains(Particles, data.modelName)) then
+		CurrentSpawn = {
+			modelName = data.modelName,
+			type = 6
+		}
+	end
+	SetNuiFocus(false, false)
+	cb({})
+end)
+
+-- List every particle effect currently placed in the world (an object entity in
+-- Database with a .particle field), so they can be found/selected/deleted without
+-- having to physically locate them.
+RegisterNUICallback('getPlacedParticles', function(data, cb)
+	local list = {}
+
+	for entity, props in pairs(Database) do
+		if props.particle then
+			table.insert(list, {
+				handle = entity,
+				name = props.name,
+				exists = DoesEntityExist(entity)
+			})
+		end
+	end
+
+	table.sort(list, function(a, b) return a.handle < b.handle end)
+
+	cb(json.encode(list))
+end)
+
+RegisterNUICallback('setParticleScale', function(data, cb)
+	if Permissions.properties.position and CanModifyEntity(data.handle) then
+		local scale = data.scale and data.scale * 1.0 or 1.0
+		local fxHandle = ParticleHandles[data.handle]
+
+		if fxHandle and DoesParticleFxLoopedExist(fxHandle) then
+			SetParticleFxLoopedScale(fxHandle, scale)
+		end
+
+		if Database[data.handle] and Database[data.handle].particle then
+			Database[data.handle].particle.scale = scale
+		end
+	end
+
 	cb({})
 end)
 
@@ -1944,6 +2209,17 @@ function LoadDatabase(db, relative, replace)
 			PlaceOnGroundProperly(entity)
 		end
 
+		-- Particle-effect anchors are plain objects to SpawnObject (it doesn't know
+		-- about the .particle field), so the effect has to be restarted by hand here.
+		-- Alpha (not SetEntityVisible) re-applied too: SpawnObject only reset
+		-- visibility from the saved isVisible flag, which alpha-hidden anchors report
+		-- as true, so it wouldn't otherwise be hidden again on reload.
+		if entity and spawn.props.particle then
+			SetEntityAlpha(entity, 0, false)
+			Database[entity].particle = spawn.props.particle
+			ParticleHandles[entity] = PlayParticleEffect(entity, spawn.props.particle.dict, spawn.props.particle.fx, spawn.props.particle.scale)
+		end
+
 		handles[spawn.entity] = entity
 	end
 
@@ -2106,7 +2382,8 @@ function BuildSavedPedProps(handle, savedName)
 		scale = db.scale,
 		pedConfigFlags = db.pedConfigFlags or (GetEntityType(handle) == 1 and GetPedConfigFlags(handle) or nil),
 		blockNonTemporaryEvents = db.blockNonTemporaryEvents or false,
-		attachments = attachments
+		attachments = attachments,
+		behavior = db.behavior
 	}
 end
 
@@ -2180,6 +2457,795 @@ RegisterNUICallback('renameSavedPed', function(data, cb)
 	cb(json.encode(GetSavedPeds()))
 end)
 
+-- ===================== MP Peds =====================
+-- MP (freemode) ped appearance is captured two ways:
+--  - A hidden ClonePed "template" for the CURRENT session — exact, zero-effort,
+--    used whenever it's still alive (fast path, perfect fidelity).
+--  - A component-variation snapshot (drawable/texture/palette per slot), which is
+--    what actually gets written to disk (KVP) and survives a resource/server
+--    restart. It won't capture things a plain component copy can't (e.g. custom
+--    face sliders), but it reproduces clothing/hair/etc. closely for most looks.
+
+SavedMpPeds = SavedMpPeds or {}
+
+local MP_PED_PREFIX = 'MPPED_'
+
+-- Snapshot a ped's component variations (drawable/texture/palette per slot).
+function CaptureComponents(ped)
+	local components = {}
+
+	for i = 0, Config.MpPedComponentSlots do
+		local okD, drawable = pcall(GetPedDrawableVariation, ped, i)
+
+		if okD and drawable and drawable >= 0 then
+			local okT, texture = pcall(GetPedTextureVariation, ped, i)
+			local okP, palette = pcall(GetPedPaletteVariation, ped, i)
+
+			components[tostring(i)] = {
+				drawable = drawable,
+				texture = (okT and texture) or 0,
+				palette = (okP and palette) or 0
+			}
+		end
+	end
+
+	return components
+end
+
+-- Re-apply a captured component snapshot to a freshly spawned ped.
+function ApplyComponents(ped, components)
+	if not components then
+		return
+	end
+
+	for idxStr, comp in pairs(components) do
+		local idx = tonumber(idxStr)
+
+		if idx then
+			pcall(SetPedComponentVariation, ped, idx, comp.drawable, comp.texture or 0, comp.palette or 0)
+		end
+	end
+end
+
+-- Strip the runtime-only template handle before writing to KVP (a ped/entity handle
+-- means nothing after a restart) and persist the rest.
+function SaveMpPedToKvs(entry)
+	local persisted = {
+		name = entry.name,
+		model = entry.model,
+		components = entry.components,
+		weapons = entry.weapons,
+		animation = entry.animation,
+		scenario = entry.scenario,
+		outfit = entry.outfit,
+		behavior = entry.behavior,
+		weaponInHand = entry.weaponInHand
+	}
+
+	if entry.horse then
+		persisted.horse = {
+			model = entry.horse.model,
+			components = entry.horse.components
+		}
+	end
+
+	SetResourceKvp(MP_PED_PREFIX .. entry.name, json.encode(persisted))
+end
+
+function DeleteMpPedFromKvs(name)
+	DeleteResourceKvp(MP_PED_PREFIX .. name)
+end
+
+-- Load every persisted MP ped back into SavedMpPeds at resource start. These
+-- entries have no `template` (clones don't survive a restart), so spawnMpPed
+-- falls back to rebuilding the look from `components`.
+function LoadMpPedsFromKvs()
+	local handle = StartFindKvp(MP_PED_PREFIX)
+
+	while true do
+		local kvp = FindKvp(handle)
+
+		if kvp then
+			local content = GetResourceKvpString(kvp)
+			local ok, data = pcall(json.decode, content or '')
+
+			if ok and data and data.name then
+				SavedMpPeds[data.name] = data
+			end
+		else
+			break
+		end
+	end
+
+	EndFindKvp(handle)
+end
+
+LoadMpPedsFromKvs()
+
+local function CreatePedTemplate(ped)
+	local clone = ClonePed(ped, true, true, true)
+
+	if not clone or clone < 1 then
+		return nil
+	end
+
+	SetEntityAsMissionEntity(clone, true, true)
+	SetEntityVisible(clone, false)
+	SetEntityCollision(clone, false, false)
+	FreezeEntityPosition(clone, true)
+	SetEntityInvincible(clone, true)
+	ClearPedTasksImmediately(clone)
+	SetBlockingOfNonTemporaryEvents(clone, true)
+
+	return clone
+end
+
+-- Reset the flags a fresh clone may inherit from the (hidden) template
+local function PrepareClone(handle)
+	SetEntityVisible(handle, true)
+	FreezeEntityPosition(handle, false)
+	SetEntityCollision(handle, true, true)
+	SetEntityInvincible(handle, false)
+	SetBlockingOfNonTemporaryEvents(handle, false)
+end
+
+-- Give a weapon and put it in the ped's hand (loading the weapon asset first, or the
+-- ped ends up "holding" nothing / the weapon renders in the wrong place).
+function EquipWeaponInHand(ped, hash)
+	if not hash or hash == 0 or hash == GetHashKey('WEAPON_UNARMED') then
+		return
+	end
+
+	RequestWeaponAsset(hash, 31, 0)
+	local tries = 0
+	while not HasWeaponAssetLoaded(hash) and tries < 100 do
+		Wait(0)
+		tries = tries + 1
+	end
+
+	if Config.isRDR then
+		GiveWeaponToPed_2(ped, hash, 500, true, false, 0, false, 0.5, 1.0, 0, false, 0.0, false)
+	else
+		GiveWeaponToPed(ped, hash, 500, false, true)
+	end
+
+	SetCurrentPedWeapon(ped, hash, true)
+	SetPedCurrentWeaponVisible(ped, true, false, false, false)
+end
+
+local function DeleteTemplate(handle)
+	if handle and DoesEntityExist(handle) then
+		SetEntityAsMissionEntity(handle, true, true)
+		DeleteEntity(handle)
+	end
+end
+
+function GetMpPedNames()
+	local names = {}
+	for name in pairs(SavedMpPeds) do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	return names
+end
+
+function DeleteMpPed(name)
+	local entry = SavedMpPeds[name]
+
+	if entry then
+		DeleteTemplate(entry.template)
+		if entry.horse then
+			DeleteTemplate(entry.horse.template)
+		end
+		SavedMpPeds[name] = nil
+	end
+
+	DeleteMpPedFromKvs(name)
+end
+
+-- Resource-stop cleanup only: destroys the hidden same-session clone templates so
+-- they don't leak. Does NOT touch the KVP-persisted entries — those must survive
+-- the restart (unlike DeleteMpPed, which is for an explicit user delete).
+function ClearMpPedTemplates()
+	for _, entry in pairs(SavedMpPeds) do
+		DeleteTemplate(entry.template)
+		if entry.horse then
+			DeleteTemplate(entry.horse.template)
+		end
+		entry.template = nil
+		if entry.horse then
+			entry.horse.template = nil
+		end
+	end
+end
+
+RegisterNUICallback('saveCurrentMpPed', function(data, cb)
+	local handle = data.handle
+	local name = data.name
+
+	if name and name ~= '' and DoesEntityExist(handle) and GetEntityType(handle) == 1 then
+		DeleteMpPed(name) -- replace any existing entry with the same name (memory + disk)
+
+		-- The clone template is a same-session convenience (perfect fidelity, zero
+		-- effort); it may fail to create, but that must not block saving — the
+		-- component snapshot below is what actually gets persisted to disk.
+		local template = CreatePedTemplate(handle)
+		local components = CaptureComponents(handle)
+
+		local db = Database[handle] or {}
+
+		-- Capture the in-hand weapon safely; these natives may be absent on some
+		-- builds and must not abort the whole save if they error.
+		local weaponInHand = nil
+
+		local okC, _, curHash = pcall(GetCurrentPedWeapon, handle, true)
+		if okC and curHash and curHash ~= 0 then
+			weaponInHand = curHash
+		end
+
+		if not weaponInHand then
+			local okS, selHash = pcall(GetSelectedPedWeapon, handle)
+			if okS and selHash and selHash ~= 0 then
+				weaponInHand = selHash
+			end
+		end
+
+		local entry = {
+			name = name,
+			template = template,
+			model = GetEntityModel(handle),
+			components = components,
+			weapons = db.weapons or {},
+			animation = db.animation,
+			scenario = db.scenario,
+			outfit = db.outfit or -1,
+			behavior = db.behavior,
+			weaponInHand = weaponInHand
+		}
+
+		-- Save the horse it is riding, if any
+		local mount = GetMount(handle)
+		if mount and mount ~= 0 and DoesEntityExist(mount) then
+			entry.horse = {
+				template = CreatePedTemplate(mount),
+				model = GetEntityModel(mount),
+				components = CaptureComponents(mount)
+			}
+		end
+
+		SavedMpPeds[name] = entry
+		SaveMpPedToKvs(entry)
+	end
+
+	cb(json.encode(GetMpPedNames()))
+end)
+
+RegisterNUICallback('getMpPeds', function(data, cb)
+	cb(json.encode(GetMpPedNames()))
+end)
+
+RegisterNUICallback('deleteMpPed', function(data, cb)
+	DeleteMpPed(data.name)
+	cb({})
+end)
+
+RegisterNUICallback('renameMpPed', function(data, cb)
+	if data.oldName and data.newName and data.newName ~= '' and data.newName ~= data.oldName then
+		local entry = SavedMpPeds[data.oldName]
+
+		if entry then
+			entry.name = data.newName
+			SavedMpPeds[data.newName] = entry
+			SavedMpPeds[data.oldName] = nil
+
+			DeleteMpPedFromKvs(data.oldName)
+			SaveMpPedToKvs(entry)
+		end
+	end
+
+	cb(json.encode(GetMpPedNames()))
+end)
+
+-- Spawn one MP ped/horse from a saved entry: uses the exact same-session clone
+-- template when it's still alive, otherwise rebuilds the look from the saved
+-- component snapshot (the path used after a resource/server restart).
+local function SpawnMpPedFromEntry(pedEntry, x, y, z, yaw, extraProps)
+	local props = {
+		model = ResolveModelHash(pedEntry.model),
+		name = GetModelName(pedEntry.model),
+		x = x, y = y, z = z,
+		pitch = 0.0, roll = 0.0, yaw = yaw,
+		collisionDisabled = false,
+		isVisible = true,
+		outfit = pedEntry.outfit or -1,
+		keepAppearance = true,
+		isInGroup = false,
+		blockNonTemporaryEvents = false
+	}
+
+	for k, v in pairs(extraProps or {}) do
+		props[k] = v
+	end
+
+	if pedEntry.template and DoesEntityExist(pedEntry.template) then
+		local clone = ClonePed(pedEntry.template, true, true, true)
+
+		if not clone or clone <= 0 then
+			return nil
+		end
+
+		PrepareClone(clone)
+		props.handle = clone
+
+		return SpawnPed(props)
+	end
+
+	-- No live template (e.g. after a restart/rejoin): spawn the base model and
+	-- rebuild the look from the saved component variations.
+	local ped = SpawnPed(props)
+
+	if ped then
+		-- A freshly created freemode/MP ped model is "bare" (no default outfit) and
+		-- renders invisible/transparent until it's given at least a default set of
+		-- component variations — this is what other RedM menus do before applying a
+		-- custom look, and what was missing here. Then layer the saved look on top
+		-- and force visibility, since the engine doesn't reliably turn it back on by
+		-- itself once components are set.
+		pcall(SetPedDefaultComponentVariation, ped)
+		ApplyComponents(ped, pedEntry.components)
+		SetEntityVisible(ped, true)
+	end
+
+	return ped
+end
+
+RegisterNUICallback('spawnMpPed', function(data, cb)
+	ClearPreview()
+
+	local entry = SavedMpPeds[data.name]
+
+	if entry then
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		local yaw2 = yaw
+		if yaw2 < 0.0 then
+			yaw2 = yaw2 + 360.0
+		end
+
+		local ped = SpawnMpPedFromEntry(entry, spawnPos.x, spawnPos.y, spawnPos.z, yaw2, {
+			animation = entry.animation,
+			scenario = entry.scenario,
+			weapons = entry.weapons
+		})
+
+		if ped and entry.behavior and Database[ped] then
+			Database[ped].behavior = entry.behavior
+		end
+
+		-- Put the ped's in-hand weapon (e.g. lasso) back into its hand; cloning keeps
+		-- it holstered, so it looks missing / ends up in the wrong place.
+		if ped and entry.weaponInHand and entry.weaponInHand ~= 0 and entry.weaponInHand ~= GetHashKey('WEAPON_UNARMED') then
+			EquipWeaponInHand(ped, entry.weaponInHand)
+		end
+
+		local grabTarget = ped
+		local grabNoFreeze = false
+
+		-- Re-spawn the horse and put the ped on it
+		if ped and entry.horse then
+			local horse = SpawnMpPedFromEntry(entry.horse, spawnPos.x, spawnPos.y, spawnPos.z, yaw2)
+
+			if horse then
+				PlaceOnGroundProperly(horse)
+
+				-- The lasso in RDR2 lives on the horse (saddle rope). The clone/rebuild
+				-- carries it, so it dangles under the horse. The rider already holds his
+				-- own, so strip the horse's weapons to remove the extra rope.
+				RemoveAllPedWeapons(horse, true)
+
+				-- Let both fully stream in, then seat the rider. Mounting a
+				-- just-created horse in the same frame leaves the rider standing
+				-- in a T-pose at the horse's centre.
+				Wait(300)
+				SetPedOnMount(ped, horse, -1, false)
+
+				-- Grab the HORSE so the pair can still be positioned, but WITHOUT
+				-- freezing it (freezing dismounts the rider into a T-pose).
+				grabTarget = horse
+				grabNoFreeze = true
+			end
+		end
+
+		if ped then
+			CurrentSpawn = nil
+			PlaceOnGroundProperly(grabTarget)
+			GrabNoFreeze = grabNoFreeze
+			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
+			AttachedEntity = grabTarget
+			TriggerEvent('spooner:onEntitySelected', AttachedEntity)
+		end
+	end
+
+	SetNuiFocus(false, false)
+	cb({})
+end)
+
+-- ===================== Saved Animation + Prop presets =====================
+-- Captures a ped's current animation and its first attached prop as one reusable
+-- preset (persisted to disk), so it can be applied later to any other ped: play
+-- the animation and re-spawn+attach the same prop with the same bone/offset.
+
+local ANIMPROP_PREFIX = 'ANIMPROP_'
+
+SavedAnimProps = SavedAnimProps or {}
+
+-- In-session clipboard filled by "Copy Animation + Prop"; "Save" persists whatever
+-- is currently held here under a name.
+local CopiedAnimationProp = nil
+
+function SaveAnimPropToKvs(entry)
+	SetResourceKvp(ANIMPROP_PREFIX .. entry.name, json.encode(entry))
+end
+
+function DeleteAnimPropFromKvs(name)
+	DeleteResourceKvp(ANIMPROP_PREFIX .. name)
+end
+
+function LoadAnimPropsFromKvs()
+	local handle = StartFindKvp(ANIMPROP_PREFIX)
+
+	while true do
+		local kvp = FindKvp(handle)
+
+		if kvp then
+			local content = GetResourceKvpString(kvp)
+			local ok, data = pcall(json.decode, content or '')
+
+			if ok and data and data.name then
+				SavedAnimProps[data.name] = data
+			end
+		else
+			break
+		end
+	end
+
+	EndFindKvp(handle)
+end
+
+LoadAnimPropsFromKvs()
+
+function GetAnimPropNames()
+	local names = {}
+	for name in pairs(SavedAnimProps) do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	return names
+end
+
+function DeleteAnimProp(name)
+	SavedAnimProps[name] = nil
+	DeleteAnimPropFromKvs(name)
+end
+
+RegisterNUICallback('copyAnimationProp', function(data, cb)
+	local entity = data.handle
+
+	local anim = GetAnimationInfo(entity)
+	if not anim and Database[entity] then
+		anim = Database[entity].animation
+	end
+
+	-- Capture every prop currently attached to the ped, not just one.
+	local props = {}
+
+	for _, child in ipairs(GetAttachedChildren(entity)) do
+		local cdb = Database[child]
+
+		if cdb then
+			local a = cdb.attachment
+
+			table.insert(props, {
+				name = cdb.name,
+				model = cdb.model,
+				attachment = {
+					bone = a.bone,
+					x = a.x, y = a.y, z = a.z,
+					pitch = a.pitch, roll = a.roll, yaw = a.yaw,
+					useSoftPinning = a.useSoftPinning,
+					collision = a.collision,
+					vertex = a.vertex,
+					fixedRot = a.fixedRot
+				}
+			})
+		end
+	end
+
+	if anim or #props > 0 then
+		CopiedAnimationProp = {
+			animation = anim,
+			props = props
+		}
+
+		cb({ ok = true, hasAnimation = anim ~= nil, propCount = #props })
+	else
+		CopiedAnimationProp = nil
+		cb({ ok = false })
+	end
+end)
+
+RegisterNUICallback('saveAnimationProp', function(data, cb)
+	if data.name and data.name ~= '' and CopiedAnimationProp then
+		local entry = {
+			name = data.name,
+			animation = CopiedAnimationProp.animation,
+			props = CopiedAnimationProp.props
+		}
+
+		SavedAnimProps[data.name] = entry
+		SaveAnimPropToKvs(entry)
+	end
+
+	cb(json.encode(GetAnimPropNames()))
+end)
+
+RegisterNUICallback('getAnimProps', function(data, cb)
+	cb(json.encode(GetAnimPropNames()))
+end)
+
+RegisterNUICallback('deleteAnimProp', function(data, cb)
+	DeleteAnimProp(data.name)
+	cb({})
+end)
+
+RegisterNUICallback('renameAnimProp', function(data, cb)
+	if data.oldName and data.newName and data.newName ~= '' and data.newName ~= data.oldName then
+		local entry = SavedAnimProps[data.oldName]
+
+		if entry then
+			entry.name = data.newName
+			SavedAnimProps[data.newName] = entry
+			SavedAnimProps[data.oldName] = nil
+
+			DeleteAnimPropFromKvs(data.oldName)
+			SaveAnimPropToKvs(entry)
+		end
+	end
+
+	cb(json.encode(GetAnimPropNames()))
+end)
+
+RegisterNUICallback('applyAnimProp', function(data, cb)
+	local entity = data.handle
+	local entry = SavedAnimProps[data.name]
+
+	if entry and DoesEntityExist(entity) and CanModifyEntity(entity) then
+		RequestControl(entity)
+
+		if entry.animation and Permissions.properties.ped.animation then
+			if PlayAnimation(entity, entry.animation) and Database[entity] then
+				Database[entity].animation = entry.animation
+				Database[entity].scenario = nil
+			end
+			StoreAnimationInfo(entity, entry.animation)
+		end
+
+		-- Support both the new multi-prop format (entry.props, an array) and the
+		-- older single-prop format (entry.prop) from before this saved more than one.
+		local propsList = entry.props
+		if (not propsList or #propsList == 0) and entry.prop then
+			propsList = { entry.prop }
+		end
+
+		if propsList and Permissions.spawn.object and Permissions.properties.attachments then
+			local x, y, z = table.unpack(GetEntityCoords(entity))
+
+			for _, propEntry in ipairs(propsList) do
+				local child = SpawnObject(propEntry.name, ResolveModelHash(propEntry.model), x, y, z, 0.0, 0.0, 0.0, false, true)
+
+				if child then
+					local a = propEntry.attachment
+					AttachEntity(child, entity, a.bone, a.x, a.y, a.z, a.pitch, a.roll, a.yaw, a.useSoftPinning, a.collision, a.vertex, a.fixedRot)
+				end
+			end
+		end
+	end
+
+	cb({})
+end)
+
+-- ===================== Patrol + Lasso behavior =====================
+-- The ped runs from point A to point B while aiming a lasso (the game twirls it
+-- over the head). On reaching B it teleports back to A and runs the leg again.
+-- The behavior is stored on the ped (Database[ped].behavior) so it is saved with
+-- Saved/MP peds and restarted when they are spawned.
+
+BehaviorPeds = BehaviorPeds or {}   -- [rider] = true while its behavior thread runs
+PendingBehavior = nil               -- { entity = ..., a = {x,y,z} } while picking B
+
+local function EquipLasso(ped)
+	EquipWeaponInHand(ped, GetHashKey(Config.PatrolLassoWeapon))
+end
+
+-- A mounted ped can't be given a pedestrian go-to task directly (RDR2 fights it:
+-- the ped tries to dismount, the horse jerks, nobody actually walks/rides anywhere).
+-- Movement must be tasked on the MOVER (the horse, if mounted); the lasso weapon
+-- and twirl animation must be tasked on the RIDER (the ped itself).
+-- `entity` may be either the rider or (if already resolved, e.g. from a grabbed
+-- horse) the mount itself — both directions are handled via the MountRider map.
+function ResolvePatrolActors(entity)
+	local mount = GetMount(entity)
+
+	if mount and mount ~= 0 and DoesEntityExist(mount) then
+		return entity, mount -- entity is the rider; its mount does the moving
+	end
+
+	local riderOf = MountRider and MountRider[entity]
+	if riderOf and DoesEntityExist(riderOf) and GetMount(riderOf) == entity then
+		return riderOf, entity -- entity is itself the mount; riderOf sits on it
+	end
+
+	return entity, entity -- not mounted: same entity walks and twirls
+end
+
+function StopPatrolLasso(entity)
+	local rider = ResolvePatrolActors(entity)
+
+	BehaviorPeds[rider] = nil
+
+	if Database[rider] then
+		Database[rider].behavior = nil
+	end
+
+	if DoesEntityExist(rider) then
+		-- If mounted, only drop the secondary twirl task, not the rider's own
+		-- internal "riding" task — clearing that would dismount it into a T-pose,
+		-- same as the loop bug this is meant to avoid.
+		if GetMount(rider) ~= 0 then
+			ClearPedSecondaryTask(rider)
+		else
+			ClearPedTasks(rider)
+		end
+	end
+end
+
+function StartPatrolLasso(entity, a, b)
+	if not DoesEntityExist(entity) then
+		return
+	end
+
+	local rider, mover = ResolvePatrolActors(entity)
+
+	-- Store the route as an offset (B - A) so it saves with Saved/MP peds and can be
+	-- replayed relative to wherever the ped is later spawned.
+	if Database[rider] then
+		Database[rider].behavior = {
+			type = 'patrolLasso',
+			offset = { x = b.x - a.x, y = b.y - a.y, z = b.z - a.z }
+		}
+	end
+
+	BehaviorPeds[rider] = true
+
+	RequestControl(rider)
+	RequestControl(mover)
+	SetBlockingOfNonTemporaryEvents(rider, true)
+
+	CreateThread(function()
+		while DoesEntityExist(rider) and DoesEntityExist(mover) and BehaviorPeds[rider] do
+			-- (re)start each leg at A. Clear the MOVER's previous leg task first, or the
+			-- new go-to task won't re-trigger movement and it just stands at B.
+			-- Do NOT clear the rider's tasks when mounted: RDR2 keeps the rider seated
+			-- in the saddle via its own internal "riding" task, and clearing it drops
+			-- the rider out of the seat pose (it ends up standing inside the horse).
+			ClearPedTasksImmediately(mover)
+
+			SetEntityCoordsNoOffset(mover, a.x, a.y, a.z)
+			PlaceOnGroundProperly(mover)
+
+			-- Make sure the lasso is out and in the RIDER's hand (not the mover's)
+			EquipLasso(rider)
+
+			-- Stop the previous leg's twirl clip specifically (the SECONDARY task
+			-- slot), without touching the rider's other tasks (e.g. the seated-on-mount
+			-- pose). Without this, the new TaskPlayAnim call below just layers onto
+			-- the still-running previous loop instead of restarting it from frame 0,
+			-- which is why the twirl looked like it "started from the middle".
+			ClearPedSecondaryTask(rider)
+			Wait(50)
+
+			local twirl = Config.LassoTwirlAnim
+
+			if twirl and twirl.dict and twirl.dict ~= '' then
+				-- The mover runs/rides to B (drives the legs/gait), then the twirl clip
+				-- is layered on the RIDER's upper body only via a bone-mask filter.
+				TaskGoStraightToCoord(mover, b.x, b.y, b.z, Config.PatrolMoveSpeed, Config.PatrolTimeout, GetEntityHeading(mover), Config.PatrolReachDist)
+
+				RequestAnimDict(twirl.dict)
+				local t = 0
+				while not HasAnimDictLoaded(twirl.dict) and t < 100 do
+					Wait(0)
+					t = t + 1
+				end
+
+				Wait(50) -- let the go-to task take hold first
+
+				-- Plain TaskPlayAnim, looped by the engine's own REPEAT flag. Direct
+				-- call (not PlayAnimation()) so we can pass the bone-mask filter, which
+				-- PlayAnimation() hardcodes to ''.
+				TaskPlayAnim(rider, twirl.dict, twirl.name, twirl.blendIn or 1.0, twirl.blendOut or 1.0, -1, twirl.flag or 25, 0.0, false, false, false, twirl.filter or '', false)
+			else
+				-- Default: mover runs to B, rider aims the lasso ahead (stays in hand)
+				TaskGoToCoordWhileAimingAtCoord(mover, b.x, b.y, b.z, b.x, b.y, b.z + 1.0, Config.PatrolMoveSpeed, false, 0.5, 0.5, true, 0, false, GetHashKey('FIRING_PATTERN_FULL_AUTO'))
+			end
+
+			local elapsed = 0
+
+			while DoesEntityExist(mover) and BehaviorPeds[rider] do
+				Wait(200)
+				elapsed = elapsed + 200
+
+				-- Watchdog: if the twirl clip isn't playing anymore (the engine may not
+				-- honour REPEAT forever on a secondary task, so it can quietly stop after
+				-- a pass), restart it right away so the twirl never visibly cuts out for
+				-- more than a beat while the ped is still en route.
+				if twirl and twirl.dict and twirl.dict ~= '' and DoesEntityExist(rider) then
+					if not IsEntityPlayingAnim(rider, twirl.dict, twirl.name, 3) then
+						TaskPlayAnim(rider, twirl.dict, twirl.name, twirl.blendIn or 1.0, twirl.blendOut or 1.0, -1, twirl.flag or 25, 0.0, false, false, false, twirl.filter or '', false)
+					end
+				end
+
+				local pos = GetEntityCoords(mover)
+				local dist = #(pos - vector3(b.x, b.y, b.z))
+
+				if dist <= Config.PatrolReachDist or elapsed >= Config.PatrolTimeout then
+					break
+				end
+			end
+		end
+
+		BehaviorPeds[rider] = nil
+	end)
+end
+
+-- Start (or restart) a ped's stored behavior relative to its current position.
+-- Used when a Saved/MP ped that carries a behavior is placed.
+function RestartBehavior(entity)
+	local rider, mover = ResolvePatrolActors(entity)
+	local beh = Database[rider] and Database[rider].behavior
+
+	if beh and beh.type == 'patrolLasso' and beh.offset and not BehaviorPeds[rider] then
+		local x, y, z = table.unpack(GetEntityCoords(mover))
+		local a = { x = x, y = y, z = z }
+		local b = { x = x + beh.offset.x, y = y + beh.offset.y, z = z + beh.offset.z }
+		StartPatrolLasso(rider, a, b)
+	end
+end
+
+RegisterNUICallback('setupPatrolLasso', function(data, cb)
+	local handle = data.handle
+
+	if DoesEntityExist(handle) and GetEntityType(handle) == 1 then
+		local rider, mover = ResolvePatrolActors(handle)
+		local x, y, z = table.unpack(GetEntityCoords(mover))
+		PendingBehavior = { entity = rider, a = { x = x, y = y, z = z } }
+
+		notify('Aim at point B and press ' .. (Config.isRDR and 'Left Mouse' or 'LMB') .. ' — press Right Mouse to cancel')
+	end
+
+	SetNuiFocus(false, false)
+	cb({})
+end)
+
+RegisterNUICallback('clearPatrolLasso', function(data, cb)
+	if DoesEntityExist(data.handle) then
+		StopPatrolLasso(data.handle)
+	end
+	cb({})
+end)
+
 RegisterNUICallback('spawnSavedPed', function(data, cb)
 	ClearPreview()
 
@@ -2224,6 +3290,11 @@ RegisterNUICallback('spawnSavedPed', function(data, cb)
 
 		if entity then
 			PlaceOnGroundProperly(entity)
+
+			-- Carry over a stored behavior; it starts when the ped is placed
+			if saved.behavior and Database[entity] then
+				Database[entity].behavior = saved.behavior
+			end
 
 			-- Re-spawn and re-attach any props that were saved with the ped
 			if saved.attachments then
@@ -2279,6 +3350,7 @@ RegisterNUICallback('init', function(data, cb)
 		animations = json.encode(Animations),
 		propsets = json.encode(Propsets),
 		pickups = json.encode(Pickups),
+		particles = json.encode(Particles),
 		bones = json.encode(bones),
 		walkStyleBases = json.encode(WalkStyleBases),
 		walkStyles = json.encode(WalkStyles),
@@ -2328,12 +3400,47 @@ function CloneEntityBody(entity)
 	local props = GetEntityProperties(entity)
 
 	if props.type == 1 then
+		-- Capture the currently equipped/drawn weapon so the clone holds the same
+		-- one. ClonePed alone doesn't carry this over, and props.weapons is often
+		-- empty for a live ped that was never added to Database (e.g. an actual
+		-- MP/player character), so it wouldn't otherwise be reproduced at all.
+		local weaponInHand = nil
+
+		local okC, _, curHash = pcall(GetCurrentPedWeapon, entity, true)
+		if okC and curHash and curHash ~= 0 then
+			weaponInHand = curHash
+		end
+
+		if not weaponInHand then
+			local okS, selHash = pcall(GetSelectedPedWeapon, entity)
+			if okS and selHash and selHash ~= 0 then
+				weaponInHand = selHash
+			end
+		end
+
 		props.handle = ClonePed(entity, true, true, true)
-		return SpawnPed(props)
+		local clone = SpawnPed(props)
+
+		if clone and weaponInHand and weaponInHand ~= GetHashKey('WEAPON_UNARMED') then
+			EquipWeaponInHand(clone, weaponInHand)
+		end
+
+		return clone
 	elseif props.type == 2 then
 		return SpawnVehicle(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible)
 	elseif props.type == 3 then
-		return SpawnObject(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible, props.lightsIntensity, props.lightsColour, props.lightsType)
+		local clone = SpawnObject(props.name, props.model, props.x, props.y, props.z, props.pitch, props.roll, props.yaw, props.collisionDisabled, props.isVisible, props.lightsIntensity, props.lightsColour, props.lightsType)
+
+		-- A particle-effect anchor is a plain object to SpawnObject (it doesn't know
+		-- about the .particle field), so the effect has to be restarted by hand.
+		-- Alpha re-applied for the same reason as in LoadDatabase (see there).
+		if clone and props.particle then
+			SetEntityAlpha(clone, 0, false)
+			Database[clone].particle = props.particle
+			ParticleHandles[clone] = PlayParticleEffect(clone, props.particle.dict, props.particle.fx, props.particle.scale)
+		end
+
+		return clone
 	elseif props.type == 5 then
 		return SpawnPickup(props.name, props.model, props.x, props.y, props.z)
 	end
@@ -3031,6 +4138,17 @@ RegisterNUICallback('removeAllWeapons', function(data, cb)
 	cb({})
 end)
 
+-- Holster/sheath whatever weapon the ped is currently holding — it goes back to
+-- its holster/back slot on the body instead of being deleted (unlike Remove All
+-- Weapons, the ped keeps the weapon, it's just no longer drawn/in hand).
+RegisterNUICallback('holsterWeapon', function(data, cb)
+	if Permissions.properties.ped.weapon and CanModifyEntity(data.handle) then
+		RequestControl(data.handle)
+		SetCurrentPedWeapon(data.handle, GetHashKey('WEAPON_UNARMED'), true)
+	end
+	cb({})
+end)
+
 RegisterNUICallback('resurrectPed', function(data, cb)
 	if Permissions.properties.ped.resurrect and CanModifyEntity(data.handle) then
 		RequestControl(data.handle)
@@ -3185,7 +4303,8 @@ RegisterNUICallback('playAnimation', function(data, cb)
 			blendOutSpeed = blendOutSpeed,
 			duration = duration,
 			flag = flag,
-			playbackRate = playbackRate
+			playbackRate = playbackRate,
+			filter = data.filter
 		}
 
 		if PlayAnimation(data.handle, animation) and Database[data.handle] then
@@ -3196,6 +4315,21 @@ RegisterNUICallback('playAnimation', function(data, cb)
 		-- Always store animation info
 		-- Later it can be needed for animation stop and copy to clipboard
 		StoreAnimationInfo(data.handle, animation)
+
+		-- Update the "Clear Tasks" prompt right here instead of only relying on the
+		-- periodic Database-driven refresh (UpdateDbEntities): that loop only looks
+		-- at entities actually tracked in Database, and the player's own ped isn't
+		-- always in there (e.g. if "Add to DB" was never used on yourself), so the
+		-- prompt could get stuck on even for an Allow-Running (non-blocking) anim.
+		if Config.isRDR and ClearTasksPrompt and data.handle == PlayerPedId() then
+			if animation.filter == 'BONEMASK_UPPERONLY' then
+				if ClearTasksPrompt:isEnabled() then
+					ClearTasksPrompt:setEnabledAndVisible(false)
+				end
+			elseif Permissions.properties.ped.clearTasks and not ClearTasksPrompt:isEnabled() then
+				ClearTasksPrompt:setEnabledAndVisible(true)
+			end
+		end
 	end
 
 	cb({})
@@ -3221,7 +4355,8 @@ RegisterNUICallback('copyAnimation', function(data, cb)
 			blendOutSpeed = anim.blendOutSpeed,
 			duration     = anim.duration,
 			flag         = anim.flag,
-			playbackRate = anim.playbackRate
+			playbackRate = anim.playbackRate,
+			filter       = anim.filter
 		})
 	else
 		cb({ ok = false })
@@ -3705,7 +4840,27 @@ function MainSpoonerUpdates()
 			y2 = y2 - dy2
 		end
 
-		if IsRawKeyPressed(Config.SpawnControl) and CurrentSpawn then
+		-- Picking point B for the Patrol + Lasso behavior. While active, left click
+		-- sets B at the cursor and starts the behavior; right click cancels. Camera
+		-- movement stays available so you can aim; the spawn/select/delete handlers
+		-- below are disabled while picking (see the `not PendingBehavior` guards).
+		if PendingBehavior then
+			if IsDisabledControlJustPressed(0, Config.SelectControl) then
+				local target = PendingBehavior.entity
+
+				if DoesEntityExist(target) then
+					StartPatrolLasso(target, PendingBehavior.a, { x = spawnPos.x, y = spawnPos.y, z = spawnPos.z })
+					notify('Patrol + Lasso started')
+				end
+
+				PendingBehavior = nil
+			elseif IsDisabledControlJustPressed(0, Config.DeleteControl) then
+				PendingBehavior = nil
+				notify('Patrol setup cancelled')
+			end
+		end
+
+		if not PendingBehavior and IsRawKeyPressed(Config.SpawnControl) and CurrentSpawn then
 			local entity
 
 			if CurrentSpawn.type == 1 then
@@ -3733,6 +4888,8 @@ function MainSpoonerUpdates()
 				entity = SpawnPropset(CurrentSpawn.modelName, ResolveModelHash(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z, yaw2)
 			elseif CurrentSpawn.type == 5 then
 				entity = SpawnPickup(CurrentSpawn.modelName, ResolveModelHash(CurrentSpawn.modelName), spawnPos.x, spawnPos.y, spawnPos.z)
+			elseif CurrentSpawn.type == 6 then
+				entity = SpawnParticleEffect(CurrentSpawn.modelName, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, 0.0, yaw2, 1.0)
 			end
 
 			if entity then
@@ -3740,16 +4897,18 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if IsDisabledControlJustPressed(0, Config.SelectControl) then
+		if not PendingBehavior and IsDisabledControlJustPressed(0, Config.SelectControl) then
 			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
 				if GetEntityType(AttachedEntity) == 1 then
-					-- A ped is shown statically (frozen) while held, but once placed its
-					-- animation/scenario resumes and it visually faces the opposite way.
-					-- Flip 180° on placement so the placed ped matches how it stood while
-					-- being held.
-					local p, r, y = table.unpack(GetEntityRotation(AttachedEntity, 2))
-					SetEntityRotation(AttachedEntity, p, r, y + 180.0, 2)
+					-- A frozen ped is shown statically (T-pose) while held, but once placed
+					-- its animation/scenario resumes and it visually faces the opposite way.
+					-- Flip 180° on placement so it matches how it stood while held. Skip for
+					-- peds grabbed without freezing (e.g. a ridden horse), which don't T-pose.
+					if HeldWasFrozen then
+						local p, r, y = table.unpack(GetEntityRotation(AttachedEntity, 2))
+						SetEntityRotation(AttachedEntity, p, r, y + 180.0, 2)
+					end
 
 					-- Re-apply the stored pose now that the ped is placed and unfrozen,
 					-- so freezing it while held doesn't leave it in a static stance.
@@ -3764,6 +4923,10 @@ function MainSpoonerUpdates()
 					-- Settle the ped on the ground once, now that it's placed (skipped
 					-- every frame while held to avoid the flicker).
 					PlaceOnGroundProperly(AttachedEntity)
+
+					-- If this ped carries a stored behavior (e.g. a Saved/MP ped with a
+					-- patrol route), start it now that it's placed, relative to here.
+					RestartBehavior(AttachedEntity)
 				end
 
 				AttachedEntity = nil
@@ -3777,7 +4940,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if IsDisabledControlJustPressed(0, Config.DeleteControl) and entity then
+		if not PendingBehavior and IsDisabledControlJustPressed(0, Config.DeleteControl) and entity then
 			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
 				RemoveEntity(AttachedEntity)
@@ -4229,7 +5392,7 @@ function UpdateDbEntities()
 		-- Don't re-apply the scenario/animation to a ped that's currently being held
 		-- in the camera. While grabbed its tasks are cleared on purpose; re-applying
 		-- here (once per second) is what made saved peds snap 180° during the grab.
-		if entity ~= AttachedEntity then
+		if entity ~= AttachedEntity and not (BehaviorPeds and BehaviorPeds[entity]) then
 			if properties.scenario then
 				local hash = GetHashKey(properties.scenario)
 
@@ -4246,7 +5409,12 @@ function UpdateDbEntities()
 		-- Show prompts for certain spooner shortcuts on your own ped
 		if Config.isRDR then
 			if entity == playerPed then
-				if properties.scenario or properties.animation then
+				-- Don't show the "Clear Tasks" prompt for an animation played with
+				-- "Allow Running" (upper-body bone-mask): it's not meant to block
+				-- movement, so there should be nothing to manually clear it for.
+				local blockingAnimation = properties.animation and properties.animation.filter ~= 'BONEMASK_UPPERONLY'
+
+				if properties.scenario or blockingAnimation then
 					if Permissions.properties.ped.clearTasks then
 						if not ClearTasksPrompt:isEnabled() then
 							ClearTasksPrompt:setEnabledAndVisible(true)

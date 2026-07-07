@@ -108,3 +108,41 @@ Config.CleanUpOnStop = true
 
 -- Draw distance for entity handles
 Config.EntityHandleDrawDistance = 20.0
+
+-- Highest ped component slot index captured/restored when persisting an MP ped's
+-- look to disk (0..N inclusive). Raise this if some clothing piece isn't being
+-- saved/restored correctly on a saved MP ped.
+Config.MpPedComponentSlots = 20
+
+-- Placed particle effects are attached to a small, forced-invisible "anchor"
+-- object (the particle itself is the only visible thing), so this model choice
+-- doesn't matter beyond needing to exist and stream reliably.
+Config.ParticleAnchorModel = 'dummy_gfx_test'
+
+-- Patrol + Lasso behavior
+Config.PatrolLassoWeapon = 'WEAPON_LASSO'     -- weapon equipped for the twirl
+Config.PatrolMoveSpeed   = 2.0                -- 1.0 walk, 2.0 run, 3.0 sprint
+Config.PatrolReachDist   = 1.5                -- how close to B counts as "arrived"
+Config.PatrolTimeout     = 20000             -- safety timeout per A->B leg (ms)
+
+-- Optional over-head lasso twirl animation. RDR2's own "aim lasso" twirl is a
+-- player mechanic that AI peds don't perform, so aiming alone won't spin the lasso.
+-- When dict/name are set, the behavior switches to "run + twirl animation" mode:
+-- the ped runs (lower body via the go-to task) and this clip plays only on the
+-- upper body via the bone-mask filter. Leave dict empty to fall back to aim mode.
+--   blendIn/blendOut = plain blend speeds (positive), same as a normal TaskPlayAnim call.
+--   flag   = anim flag, using RDR3's real eScriptedAnimFlags bit positions (these are
+--            NOT the commonly-quoted GTA-style values): AF_LOOPING=1, AF_UPPERBODY=8,
+--            AF_SECONDARY=16. 25 = loop + upperbody + secondary, so it layers over the
+--            running task and repeats (a hard loop — may show a small seam).
+--   filter = bone-mask so only the upper body is animated and the legs keep running.
+--            Try 'BONEMASK_UPPERONLY'; if the legs still move, try 'BONEMASK_HEADNECKANDARMS'
+--            or leave '' to animate the whole body.
+Config.LassoTwirlAnim = {
+	dict = 'mech_weapons_special@lasso@base@swing@sweep',
+	name = 'aim_med_0',
+	blendIn = 1.0,
+	blendOut = 1.0,
+	flag = 25,
+	filter = 'BONEMASK_UPPERONLY'
+}

@@ -7,6 +7,7 @@ var weapons = [];
 var animations = {};
 var propsets = [];
 var pickups = [];
+var particles = [];
 var walkStyleBases = [];
 var walkStyles = [];
 
@@ -73,6 +74,17 @@ var SpawnMenuConfig = {
 		clearPreviewMessage: 'clearPickupPreview',
 		supportsPreview: false,  // Pickups use special API
 		supportsAttach: false  // Pickups don't attach
+	},
+	particle: {
+		id: 'particle',
+		dataSource: function() { return particles; },
+		favouriteType: 'particles',
+		closeMessage: 'closeParticleMenu',
+		previewMessage: 'previewParticle',
+		spawnAttachMessage: 'spawnAndAttachParticle',
+		clearPreviewMessage: 'clearParticlePreview',
+		supportsPreview: true,
+		supportsAttach: true
 	}
 };
 
@@ -512,6 +524,7 @@ const favouriteTypes = [
 	'objects',
 	'propsets',
 	'pickups',
+	'particles',
 	'scenarios',
 	'animations',
 	'weapons',
@@ -545,6 +558,7 @@ function sendMessage(name, params) {
 					animations: "[]",
 					propsets: "[]",
 					pickups: "[]",
+					particles: "[]",
 					bones: "[]",
 					walkStyleBases: "[]",
 					walkStyles: "[]",
@@ -749,6 +763,12 @@ function openSpawnMenu() {
 		case 5:
 			openSavedPedsMenu();
 			break;
+		case 6:
+			openMpPedsMenu();
+			break;
+		case 7:
+			document.querySelector('#particle-menu').style.display = 'flex';
+			break;
 		default:
 			document.querySelector('#spawn-menu').style.display = 'flex';
 			break;
@@ -788,6 +808,78 @@ function openPickupMenu() {
 	document.querySelector('#spawn-menu').style.display = 'none';
 	document.querySelector('#pickup-menu').style.display = 'flex';
 	lastSpawnMenu = 4;
+}
+
+function openParticleMenu() {
+	document.querySelector('#spawn-menu').style.display = 'none';
+	document.querySelector('#particle-menu').style.display = 'flex';
+	lastSpawnMenu = 7;
+}
+
+// ----- Placed Particles (view/select/delete particles already placed in the world) -----
+
+function openPlacedParticlesMenu() {
+	document.querySelector('#particle-menu').style.display = 'none';
+	document.querySelector('#placed-particles-menu').style.display = 'flex';
+
+	sendMessage('getPlacedParticles', {}).then(resp => resp.json()).then(resp => updatePlacedParticlesList(resp));
+}
+
+function closePlacedParticlesMenu() {
+	document.querySelector('#placed-particles-menu').style.display = 'none';
+	document.querySelector('#particle-menu').style.display = 'flex';
+}
+
+function updatePlacedParticlesList(data) {
+	var list = JSON.parse(data);
+	var container = document.querySelector('#placed-particles-list');
+
+	container.innerHTML = '';
+
+	if (!list.length) {
+		var empty = document.createElement('div');
+		empty.className = 'saved-ped-empty';
+		empty.innerHTML = 'No particles placed yet';
+		container.appendChild(empty);
+		return;
+	}
+
+	list.forEach(function(entry) {
+		var row = document.createElement('div');
+		row.className = 'saved-ped';
+
+		var label = document.createElement('span');
+		label.className = 'saved-ped-name';
+		label.title = 'Select (move/rotate/scale)';
+		label.innerHTML = entry.handle + ' - ' + entry.name + (entry.exists ? '' : ' (gone)');
+		label.addEventListener('click', function(event) {
+			document.querySelector('#placed-particles-menu').style.display = 'none';
+			sendMessage('openPropertiesMenuForEntity', {
+				entity: entry.handle
+			});
+		});
+
+		var deleteBtn = document.createElement('button');
+		deleteBtn.className = 'saved-ped-action saved-ped-delete';
+		deleteBtn.title = 'Delete';
+		deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+		deleteBtn.addEventListener('click', function(event) {
+			event.stopPropagation();
+
+			sendMessage('deleteEntity', {
+				handle: entry.handle
+			});
+			row.remove();
+
+			if (!document.querySelector('#placed-particles-list .saved-ped')) {
+				updatePlacedParticlesList('[]');
+			}
+		});
+
+		row.appendChild(label);
+		row.appendChild(deleteBtn);
+		container.appendChild(row);
+	});
 }
 
 function openSavedPedsMenu() {
@@ -911,6 +1003,306 @@ function startRenameSavedPed(row) {
 
 	function cancel() {
 		row.replaceWith(createSavedPedRow(oldName));
+	}
+
+	confirmBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		commit();
+	});
+
+	cancelBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		cancel();
+	});
+
+	input.addEventListener('keydown', function(event) {
+		if (event.key === 'Enter') {
+			commit();
+		} else if (event.key === 'Escape') {
+			event.stopPropagation();
+			cancel();
+		}
+	});
+
+	row.appendChild(input);
+	row.appendChild(confirmBtn);
+	row.appendChild(cancelBtn);
+
+	input.focus();
+	input.select();
+}
+
+// ----- MP Peds (session-based clones, optionally with their horse) -----
+
+function openMpPedsMenu() {
+	document.querySelector('#spawn-menu').style.display = 'none';
+	document.querySelector('#mp-peds-menu').style.display = 'flex';
+	lastSpawnMenu = 6;
+
+	sendMessage('getMpPeds', {}).then(resp => resp.json()).then(resp => updateMpPedsList(resp));
+}
+
+function closeMpPedsMenu(spawned) {
+	document.querySelector('#mp-peds-menu').style.display = 'none';
+
+	if (!spawned) {
+		document.querySelector('#spawn-menu').style.display = 'flex';
+		lastSpawnMenu = -1;
+	}
+}
+
+function updateMpPedsList(data) {
+	var names = JSON.parse(data);
+	var list = document.querySelector('#mp-peds-list');
+
+	list.innerHTML = '';
+
+	if (!names.length) {
+		var empty = document.createElement('div');
+		empty.className = 'saved-ped-empty';
+		empty.innerHTML = 'No MP peds yet';
+		list.appendChild(empty);
+		return;
+	}
+
+	names.forEach(function(name) {
+		list.appendChild(createMpPedRow(name));
+	});
+}
+
+function createMpPedRow(name) {
+	var row = document.createElement('div');
+	row.className = 'saved-ped';
+	row.setAttribute('data-name', name);
+
+	var label = document.createElement('span');
+	label.className = 'saved-ped-name';
+	label.title = 'Spawn';
+	label.innerHTML = name;
+	label.addEventListener('click', function(event) {
+		sendMessage('spawnMpPed', {
+			name: row.getAttribute('data-name')
+		});
+		closeMpPedsMenu(true);
+	});
+
+	var renameBtn = document.createElement('button');
+	renameBtn.className = 'saved-ped-action';
+	renameBtn.title = 'Rename';
+	renameBtn.innerHTML = '<i class="fas fa-pen"></i>';
+	renameBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		startRenameMpPed(row);
+	});
+
+	var deleteBtn = document.createElement('button');
+	deleteBtn.className = 'saved-ped-action saved-ped-delete';
+	deleteBtn.title = 'Delete';
+	deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+	deleteBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+
+		sendMessage('deleteMpPed', {
+			name: row.getAttribute('data-name')
+		});
+		row.remove();
+
+		if (!document.querySelector('#mp-peds-list .saved-ped')) {
+			updateMpPedsList('[]');
+		}
+	});
+
+	row.appendChild(label);
+	row.appendChild(renameBtn);
+	row.appendChild(deleteBtn);
+
+	return row;
+}
+
+function startRenameMpPed(row) {
+	var oldName = row.getAttribute('data-name');
+
+	row.innerHTML = '';
+
+	var input = document.createElement('input');
+	input.type = 'text';
+	input.className = 'saved-ped-rename-input';
+	input.value = oldName;
+
+	var confirmBtn = document.createElement('button');
+	confirmBtn.className = 'saved-ped-action';
+	confirmBtn.title = 'Confirm';
+	confirmBtn.innerHTML = '<i class="fas fa-check"></i>';
+
+	var cancelBtn = document.createElement('button');
+	cancelBtn.className = 'saved-ped-action saved-ped-delete';
+	cancelBtn.title = 'Cancel';
+	cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+
+	function commit() {
+		var newName = input.value.trim();
+
+		if (!newName || newName === oldName) {
+			cancel();
+			return;
+		}
+
+		sendMessage('renameMpPed', {
+			oldName: oldName,
+			newName: newName
+		}).then(resp => resp.json()).then(resp => updateMpPedsList(resp));
+	}
+
+	function cancel() {
+		row.replaceWith(createMpPedRow(oldName));
+	}
+
+	confirmBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		commit();
+	});
+
+	cancelBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		cancel();
+	});
+
+	input.addEventListener('keydown', function(event) {
+		if (event.key === 'Enter') {
+			commit();
+		} else if (event.key === 'Escape') {
+			event.stopPropagation();
+			cancel();
+		}
+	});
+
+	row.appendChild(input);
+	row.appendChild(confirmBtn);
+	row.appendChild(cancelBtn);
+
+	input.focus();
+	input.select();
+}
+
+// ----- Saved Animation + Prop presets (apply to any selected ped) -----
+
+function openAnimPropsMenu() {
+	document.querySelector('#animation-menu').style.display = 'none';
+	document.querySelector('#animprops-menu').style.display = 'flex';
+
+	sendMessage('getAnimProps', {}).then(resp => resp.json()).then(resp => updateAnimPropsList(resp));
+}
+
+function closeAnimPropsMenu() {
+	document.querySelector('#animprops-menu').style.display = 'none';
+	document.querySelector('#animation-menu').style.display = 'flex';
+}
+
+function updateAnimPropsList(data) {
+	var names = JSON.parse(data);
+	var list = document.querySelector('#animprops-list');
+
+	list.innerHTML = '';
+
+	if (!names.length) {
+		var empty = document.createElement('div');
+		empty.className = 'saved-ped-empty';
+		empty.innerHTML = 'No saved animations+props yet';
+		list.appendChild(empty);
+		return;
+	}
+
+	names.forEach(function(name) {
+		list.appendChild(createAnimPropRow(name));
+	});
+}
+
+function createAnimPropRow(name) {
+	var row = document.createElement('div');
+	row.className = 'saved-ped';
+	row.setAttribute('data-name', name);
+
+	var label = document.createElement('span');
+	label.className = 'saved-ped-name';
+	label.title = 'Apply to selected ped';
+	label.innerHTML = name;
+	label.addEventListener('click', function(event) {
+		sendMessage('applyAnimProp', {
+			handle: currentEntity(),
+			name: row.getAttribute('data-name')
+		});
+		closeAnimPropsMenu();
+	});
+
+	var renameBtn = document.createElement('button');
+	renameBtn.className = 'saved-ped-action';
+	renameBtn.title = 'Rename';
+	renameBtn.innerHTML = '<i class="fas fa-pen"></i>';
+	renameBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+		startRenameAnimProp(row);
+	});
+
+	var deleteBtn = document.createElement('button');
+	deleteBtn.className = 'saved-ped-action saved-ped-delete';
+	deleteBtn.title = 'Delete';
+	deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+	deleteBtn.addEventListener('click', function(event) {
+		event.stopPropagation();
+
+		sendMessage('deleteAnimProp', {
+			name: row.getAttribute('data-name')
+		});
+		row.remove();
+
+		if (!document.querySelector('#animprops-list .saved-ped')) {
+			updateAnimPropsList('[]');
+		}
+	});
+
+	row.appendChild(label);
+	row.appendChild(renameBtn);
+	row.appendChild(deleteBtn);
+
+	return row;
+}
+
+function startRenameAnimProp(row) {
+	var oldName = row.getAttribute('data-name');
+
+	row.innerHTML = '';
+
+	var input = document.createElement('input');
+	input.type = 'text';
+	input.className = 'saved-ped-rename-input';
+	input.value = oldName;
+
+	var confirmBtn = document.createElement('button');
+	confirmBtn.className = 'saved-ped-action';
+	confirmBtn.title = 'Confirm';
+	confirmBtn.innerHTML = '<i class="fas fa-check"></i>';
+
+	var cancelBtn = document.createElement('button');
+	cancelBtn.className = 'saved-ped-action saved-ped-delete';
+	cancelBtn.title = 'Cancel';
+	cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+
+	function commit() {
+		var newName = input.value.trim();
+
+		if (!newName || newName === oldName) {
+			cancel();
+			return;
+		}
+
+		sendMessage('renameAnimProp', {
+			oldName: oldName,
+			newName: newName
+		}).then(resp => resp.json()).then(resp => updateAnimPropsList(resp));
+	}
+
+	function cancel() {
+		row.replaceWith(createAnimPropRow(oldName));
 	}
 
 	confirmBtn.addEventListener('click', function(event) {
@@ -1109,6 +1501,28 @@ function playAnimation(animation) {
 	document.getElementById('animation-selected-name').innerHTML =
 		animation.getAttribute('data-dict') + ': ' + animation.getAttribute('data-name');
 
+	// RDR3's real eScriptedAnimFlags bits (TASK_PLAY_ANIM, hash 0xEA47FE3719165B94)
+	// are NOT the same as the commonly-quoted GTA-style values (16/32 etc.) that
+	// were used here originally — that mismatch (in particular accidentally including
+	// AF_ABORT_ON_PED_MOVEMENT instead of AF_UPPERBODY/AF_SECONDARY) is why the ped
+	// froze and couldn't move. Confirmed bit positions (Halen84/RDR3-Native-Flags-And-Enums):
+	//   AF_LOOPING = 1, AF_UPPERBODY = 8, AF_SECONDARY = 16,
+	//   AF_DONT_SUPPRESS_LOCO = 65536, AF_UPPERBODY_TAGS = 67108864 (1<<26) — tag-based
+	//   sync for the upper-body portion, added alongside AF_UPPERBODY in case the engine
+	//   needs it to treat the clip as a true partial overlay instead of a full takeover.
+	var AF_UPPERBODY = 8;
+	var AF_SECONDARY = 16;
+	var AF_DONT_SUPPRESS_LOCO = 65536;
+	var AF_UPPERBODY_TAGS = 67108864;
+
+	var flag = parseInt(document.querySelector('#animation-flag').value);
+	var filter;
+
+	if (document.querySelector('#animation-allow-running').checked) {
+		flag = flag | AF_UPPERBODY | AF_SECONDARY | AF_DONT_SUPPRESS_LOCO | AF_UPPERBODY_TAGS;
+		filter = 'BONEMASK_UPPERONLY';
+	}
+
 	sendMessage('playAnimation', {
 		handle: currentEntity(),
 		dict: animation.getAttribute('data-dict'),
@@ -1116,7 +1530,8 @@ function playAnimation(animation) {
 		blendInSpeed: parseFloat(document.querySelector('#animation-blend-in-speed').value),
 		blendOutSpeed: parseFloat(document.querySelector('#animation-blend-out-speed').value),
 		duration: parseInt(document.querySelector('#animation-duration').value),
-		flag: parseInt(document.querySelector('#animation-flag').value),
+		flag: flag,
+		filter: filter,
 		playbackRate: parseFloat(document.querySelector('#animation-playback-rate').value)
 	});
 
@@ -2026,6 +2441,7 @@ function updatePropertiesMenu(data) {
 	document.querySelectorAll('.ped-property').forEach(e => e.style.display = 'none');
 	document.querySelectorAll('.vehicle-property').forEach(e => e.style.display = 'none');
 	document.querySelectorAll('.object-property').forEach(e => e.style.display = 'none');
+	document.querySelectorAll('.particle-property').forEach(e => e.style.display = 'none');
 
 	switch (properties.type) {
 		case 1:
@@ -2053,6 +2469,11 @@ function updatePropertiesMenu(data) {
 
 	if (properties.playerName) {
 		document.querySelectorAll('.player-property').forEach(e => e.style.display = 'block');
+	}
+
+	if (properties.particle) {
+		document.querySelectorAll('.particle-property').forEach(e => e.style.display = 'block');
+		setFieldIfInactive('properties-particle-scale', properties.particle.scale);
 	}
 
 	var entity = document.querySelector('#properties-menu-entity-id');
@@ -2229,6 +2650,21 @@ document.addEventListener('keydown', function(event) {
 		return;
 	}
 
+	if (document.querySelector('#mp-peds-menu').style.display === 'flex') {
+		if (document.activeElement && document.activeElement.classList.contains('saved-ped-rename-input')) {
+			return;
+		}
+		event.preventDefault();
+		closeMpPedsMenu(false);
+		return;
+	}
+
+	if (document.querySelector('#placed-particles-menu').style.display === 'flex') {
+		event.preventDefault();
+		closePlacedParticlesMenu();
+		return;
+	}
+
 	if (document.querySelector('#spawn-menu').style.display === 'flex') {
 		event.preventDefault();
 		closeSpawnMenu();
@@ -2248,11 +2684,13 @@ var propertiesEscapeMenus = [
 	{ menu: 'weapon-menu', back: 'weapon-menu-close' },
 	{ menu: 'scenario-menu', back: 'scenario-menu-close' },
 	{ menu: 'player-model-menu', back: 'player-model-menu-close-btn' },
+	{ menu: 'animation-list-menu', back: 'animation-list-menu-close' },
 	{ menu: 'animation-menu', back: 'animation-menu-close' },
 	{ menu: 'lights-options-menu', back: 'lights-options-menu-close' },
 	{ menu: 'attachment-options-menu', back: 'attachment-options-menu-close' },
 	{ menu: 'ped-options-menu', back: 'ped-options-menu-close' },
 	{ menu: 'vehicle-options-menu', back: 'vehicle-options-menu-close' },
+	{ menu: 'animprops-menu', back: 'animprops-menu-back' },
 	{ menu: 'properties-menu', back: 'properties-menu-close-btn' }
 ];
 
@@ -2467,6 +2905,8 @@ function updatePermissions(data) {
 	document.getElementById('spawn-menu-propsets').disabled = !permissions.spawn.propset;
 	document.getElementById('spawn-menu-pickups').disabled = !permissions.spawn.pickup;
 	document.getElementById('spawn-menu-saved-peds').disabled = !permissions.spawn.ped;
+	document.getElementById('spawn-menu-mp-peds').disabled = !permissions.spawn.ped;
+	document.getElementById('spawn-menu-particles').disabled = !permissions.spawn.particle;
 	document.querySelectorAll('.spawn-by-name').forEach(e => e.disabled = !permissions.spawn.byName);
 
 	document.getElementById('properties-freeze').disabled = !permissions.properties.freeze;
@@ -2500,6 +2940,7 @@ function updatePermissions(data) {
 	document.getElementById('properties-clear-ped-tasks').disabled = !permissions.properties.ped.clearTasks;
 	document.getElementById('properties-clear-ped-tasks-immediately').disabled = !permissions.properties.ped.clearTasks;
 	document.getElementById('properties-give-weapon').disabled = !permissions.properties.ped.weapon;
+	document.getElementById('properties-holster-weapon').disabled = !permissions.properties.ped.weapon;
 	document.getElementById('properties-remove-all-weapons').disabled = !permissions.properties.ped.weapon;
 	document.getElementById('properties-set-on-mount').disabled = !permissions.properties.ped.mount;
 	document.getElementById('properties-resurrect-ped').disabled = !permissions.properties.ped.resurrect;
@@ -2728,6 +3169,9 @@ window.addEventListener('load', function() {
 		pickups = JSON.parse(resp.pickups);
 		populateSpawnMenu('pickup', '', true);
 
+		particles = JSON.parse(resp.particles);
+		populateSpawnMenu('particle', '', true);
+
 		bones = JSON.parse(resp.bones);
 		populateBoneNameList();
 
@@ -2818,6 +3262,92 @@ window.addEventListener('load', function() {
 			var original = btn.innerHTML;
 			btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
 			setTimeout(function() { btn.innerHTML = original; }, 1200);
+		});
+	});
+
+	document.querySelector('#properties-save-mp-ped').addEventListener('click', function(event) {
+		var nameInput = document.querySelector('#save-ped-name');
+		var name = nameInput.value.trim();
+
+		if (!name) {
+			nameInput.focus();
+			return;
+		}
+
+		var btn = document.querySelector('#properties-save-mp-ped');
+
+		sendMessage('saveCurrentMpPed', {
+			handle: currentEntity(),
+			name: name
+		}).then(resp => resp.json()).then(function(resp) {
+			nameInput.value = '';
+
+			var original = btn.innerHTML;
+			btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+			setTimeout(function() { btn.innerHTML = original; }, 1200);
+		});
+	});
+
+	document.querySelector('#properties-copy-animation-prop').addEventListener('click', function(event) {
+		sendMessage('copyAnimationProp', {
+			handle: currentEntity()
+		}).then(resp => resp.json()).then(function(resp) {
+			var saveBtn = document.querySelector('#properties-save-animprop');
+
+			if (resp && resp.ok) {
+				saveBtn.disabled = false;
+				var parts = [];
+				if (resp.hasAnimation) parts.push('animation');
+				if (resp.propCount) parts.push(resp.propCount + ' prop' + (resp.propCount === 1 ? '' : 's'));
+				notify('Copied ' + parts.join(' + '));
+			} else {
+				saveBtn.disabled = true;
+				notify('Nothing to copy: this ped has no animation and no attached props');
+			}
+		});
+	});
+
+	document.querySelector('#properties-save-animprop').addEventListener('click', function(event) {
+		var nameInput = document.querySelector('#save-animprop-name');
+		var name = nameInput.value.trim();
+
+		if (!name) {
+			nameInput.focus();
+			return;
+		}
+
+		var btn = document.querySelector('#properties-save-animprop');
+
+		sendMessage('saveAnimationProp', {
+			name: name
+		}).then(resp => resp.json()).then(function(resp) {
+			nameInput.value = '';
+
+			var original = btn.innerHTML;
+			btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+			setTimeout(function() { btn.innerHTML = original; }, 1200);
+		});
+	});
+
+	document.querySelector('#properties-animprops-list').addEventListener('click', function(event) {
+		openAnimPropsMenu();
+	});
+
+	document.querySelector('#animprops-menu-back').addEventListener('click', function(event) {
+		closeAnimPropsMenu();
+	});
+
+	document.querySelector('#properties-set-patrol-lasso').addEventListener('click', function(event) {
+		var handle = currentEntity();
+		closePropertiesMenu(true);
+		sendMessage('setupPatrolLasso', {
+			handle: handle
+		});
+	});
+
+	document.querySelector('#properties-clear-patrol-lasso').addEventListener('click', function(event) {
+		sendMessage('clearPatrolLasso', {
+			handle: currentEntity()
 		});
 	});
 
@@ -2912,7 +3442,8 @@ window.addEventListener('load', function() {
 					blendOutSpeed: resp.blendOutSpeed,
 					duration: resp.duration,
 					flag: resp.flag,
-					playbackRate: resp.playbackRate
+					playbackRate: resp.playbackRate,
+					filter: resp.filter
 				};
 			} else {
 				copiedAnimation = null;
@@ -2934,6 +3465,7 @@ window.addEventListener('load', function() {
 			blendOutSpeed: copiedAnimation.blendOutSpeed,
 			duration: copiedAnimation.duration,
 			flag: copiedAnimation.flag,
+			filter: copiedAnimation.filter,
 			playbackRate: copiedAnimation.playbackRate
 		});
 	});
@@ -3072,6 +3604,26 @@ window.addEventListener('load', function() {
 
 	document.querySelector('#saved-peds-menu-back').addEventListener('click', function(event) {
 		closeSavedPedsMenu(false);
+	});
+
+	document.querySelector('#spawn-menu-mp-peds').addEventListener('click', function(event) {
+		openMpPedsMenu();
+	});
+
+	document.querySelector('#spawn-menu-particles').addEventListener('click', function(event) {
+		openParticleMenu();
+	});
+
+	document.querySelector('#particle-menu-view-placed').addEventListener('click', function(event) {
+		openPlacedParticlesMenu();
+	});
+
+	document.querySelector('#placed-particles-menu-back').addEventListener('click', function(event) {
+		closePlacedParticlesMenu();
+	});
+
+	document.querySelector('#mp-peds-menu-back').addEventListener('click', function(event) {
+		closeMpPedsMenu(false);
 	});
 
 	document.querySelector('#spawn-menu-close').addEventListener('click', function(event) {
@@ -3262,6 +3814,12 @@ window.addEventListener('load', function() {
 		populateWeaponList(this.value);
 	});
 
+	document.querySelector('#properties-holster-weapon').addEventListener('click', function(event) {
+		sendMessage('holsterWeapon', {
+			handle: currentEntity()
+		});
+	});
+
 	document.querySelector('#properties-remove-all-weapons').addEventListener('click', function(event) {
 		sendMessage('removeAllWeapons', {
 			handle: currentEntity()
@@ -3356,6 +3914,16 @@ window.addEventListener('load', function() {
 	document.querySelector('#animation-menu-close').addEventListener('click', function(event) {
 		document.querySelector('#animation-menu').style.display = 'none';
 		document.querySelector('#properties-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#animation-open-list').addEventListener('click', function(event) {
+		document.querySelector('#animation-menu').style.display = 'none';
+		document.querySelector('#animation-list-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#animation-list-menu-close').addEventListener('click', function(event) {
+		document.querySelector('#animation-list-menu').style.display = 'none';
+		document.querySelector('#animation-menu').style.display = 'flex';
 		stopAnimTimeline();
 	});
 
@@ -3528,6 +4096,13 @@ window.addEventListener('load', function() {
 
 	document.getElementById('properties-scale').addEventListener('input', function(event) {
 		sendMessage('setScale', {
+			handle: currentEntity(),
+			scale: parseFloat(this.value)
+		});
+	});
+
+	document.getElementById('properties-particle-scale').addEventListener('input', function(event) {
+		sendMessage('setParticleScale', {
 			handle: currentEntity(),
 			scale: parseFloat(this.value)
 		});
