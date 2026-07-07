@@ -740,9 +740,11 @@
 					<option value="spooner-db-json">Spooner DB JSON</option>
 					<option value="map-editor-xml">Map Editor XML</option>
 					<option value="ymap">Ymap</option>
+					<option value="ytyp">Ytyp (interior)</option>
 					<option value="propplacer">propplacer JSON</option>
 					<option value="backup">Spooner Backup</option>
 				</select>
+				<input type="number" id="ytyp-heading" step="0.001" value="0" placeholder="Heading °" title="Interior (MLO instance) heading in degrees. Used to convert between world and interior-relative coordinates." style="display: none; width: 7em;">
 				<input type="text" id="import-url" placeholder="Import from URL">
 				<button id="import-db"><i class="fas fa-file-import"></i> Import</button>
 				<button id="export-db"><i class="fas fa-file-export"></i> Export</button>
@@ -1064,6 +1066,12 @@
 					<tr>
 						<td>Ymap</th>
 						<td>Native map format used by GTA V/RDR2</td>
+						<td>Yes</td>
+						<td>Yes</td>
+					</tr>
+					<tr>
+						<td>Ytyp (interior)</td>
+						<td>Interior (MLO) prop placement for RDR2. Objects are exported as <strong>CMloArchetypeDef</strong> entities with positions relative to the interior origin, ready to merge into the interior's ytyp. The interior is detected from the objects' location. Set <strong>Heading</strong> if the MLO instance is rotated in the world.</td>
 						<td>Yes</td>
 						<td>Yes</td>
 					</tr>

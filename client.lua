@@ -2288,6 +2288,149 @@ function ConvertDatabaseToYmap(database)
 	return xml
 end
 
+local function quatMul(a, b)
+	return {
+		x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+		y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+		z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+		w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
+	}
+end
+
+local function GetInteriorForDatabase(database)
+	for entity, properties in pairs(database.spawn) do
+		if properties.type == 3 then
+			local interiorId = GetInteriorAtCoords(properties.x + 0.0, properties.y + 0.0, properties.z + 0.0)
+			if interiorId ~= 0 then
+				return interiorId
+			end
+		end
+	end
+
+	return GetInteriorFromPrimaryView()
+end
+
+-- Room names harvested from imported ytyps (room hash -> name), since RDR3 has
+-- no native to resolve interior room names at runtime
+local YtypRoomNames = {}
+
+local function GetEntityRoomComment(handle)
+	if not handle or not DoesEntityExist(handle) then
+		return ''
+	end
+
+	local roomHash = GetRoomKeyFromEntity(handle)
+
+	if not roomHash or roomHash == 0 then
+		roomHash = GetKeyForEntityInRoom(handle)
+	end
+
+	if not roomHash or roomHash == 0 then
+		return ''
+	end
+
+	local rh = roomHash & 0xFFFFFFFF
+	local roomName = YtypRoomNames[rh] or YtypRoomNames[roomHash]
+
+	return string.format('     <!-- room: %s -->\n', roomName or string.format('0x%08X', rh))
+end
+
+function ConvertDatabaseToYtyp(database, interiorHeading)
+	local heading = math.rad(tonumber(interiorHeading) or 0.0)
+
+	local interiorId = GetInteriorForDatabase(database)
+	local origin = vector3(0.0, 0.0, 0.0)
+	local interiorName = 'unknown_interior'
+
+	if interiorId and interiorId ~= 0 then
+		local location, nameHash = GetInteriorLocationAndNamehash(interiorId)
+		origin = location
+		interiorName = InteriorsHash[nameHash] or string.format('hash_0x%08X', nameHash & 0xFFFFFFFF)
+	end
+
+	local cosH = math.cos(heading)
+	local sinH = math.sin(heading)
+	-- Interior rotation quaternion (yaw-only MLO instance rotation)
+	local qInt = {x = 0.0, y = 0.0, z = math.sin(heading / 2), w = math.cos(heading / 2)}
+
+	local entitiesXml = '   <entities>\n'
+
+	for entity, properties in pairs(database.spawn) do
+		if properties.type == 3 then
+			-- World -> interior-local: rotate the offset by -heading about Z
+			local dx = properties.x - origin.x
+			local dy = properties.y - origin.y
+			local dz = properties.z - origin.z
+			local lx = dx * cosH + dy * sinH
+			local ly = -dx * sinH + dy * cosH
+
+			-- CEntityDef stores the inverse of the entity's rotation; toQuaternion
+			-- already returns the inverse, so compose it with the interior rotation
+			local q = quatMul(toQuaternion(properties.pitch, properties.roll, properties.yaw), qInt)
+
+			entitiesXml = entitiesXml .. '    <Item type="CEntityDef">\n'
+			entitiesXml = entitiesXml .. GetEntityRoomComment(tonumber(entity))
+			entitiesXml = entitiesXml .. '     <archetypeName>' .. properties.name .. '</archetypeName>\n'
+			entitiesXml = entitiesXml .. '     <flags value="4194560" />\n'
+			entitiesXml = entitiesXml .. string.format('     <id value="0x%08X%08X" />\n', math.random(0, 0xFFFFFFFF), math.random(0, 0xFFFFFFFF))
+			entitiesXml = entitiesXml .. string.format('     <position x="%f" y="%f" z="%f" />\n', lx, ly, dz)
+			entitiesXml = entitiesXml .. string.format('     <rotation x="%f" y="%f" z="%f" w="%f" />\n', q.x, q.y, q.z, q.w)
+			entitiesXml = entitiesXml .. '     <scaleXY value="1" />\n'
+			entitiesXml = entitiesXml .. '     <scaleZ value="1" />\n'
+			entitiesXml = entitiesXml .. '     <parentIndex value="-1" />\n'
+			entitiesXml = entitiesXml .. '     <lodDist value="19" />\n'
+			entitiesXml = entitiesXml .. '     <childLodDist value="0" />\n'
+			entitiesXml = entitiesXml .. '     <lodLevel>LODTYPES_DEPTH_ORPHANHD</lodLevel>\n'
+			entitiesXml = entitiesXml .. '     <numChildren value="0" />\n'
+			entitiesXml = entitiesXml .. '     <priorityLevel>PRI_REQUIRED</priorityLevel>\n'
+			entitiesXml = entitiesXml .. '     <extensions />\n'
+			entitiesXml = entitiesXml .. '     <powerGridId value="0" />\n'
+			entitiesXml = entitiesXml .. '     <tintValue value="0" />\n'
+			entitiesXml = entitiesXml .. '     <blendAgeLayer value="255" />\n'
+			entitiesXml = entitiesXml .. '     <blendAgeDirt value="255" />\n'
+			entitiesXml = entitiesXml .. '    </Item>\n'
+		end
+	end
+
+	entitiesXml = entitiesXml .. '   </entities>\n'
+
+	local xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+	xml = xml .. string.format('<!-- spooner ytyp export: interior=%s origin=%f,%f,%f heading=%f -->\n', interiorName, origin.x, origin.y, origin.z, math.deg(heading))
+	xml = xml .. '<CMapTypes>\n'
+	xml = xml .. ' <extensions />\n'
+	xml = xml .. ' <archetypes>\n'
+	xml = xml .. '  <Item type="CMloArchetypeDef">\n'
+	xml = xml .. '   <loadFlags value="0x0000000000000000" />\n'
+	xml = xml .. '   <lodDist value="25" />\n'
+	xml = xml .. '   <flags value="0" />\n'
+	xml = xml .. '   <avoidanceflags value="0" />\n'
+	xml = xml .. '   <specialAttribute value="0" />\n'
+	xml = xml .. '   <bbMin x="0" y="0" z="0" />\n'
+	xml = xml .. '   <bbMax x="0" y="0" z="0" />\n'
+	xml = xml .. '   <bsCentre x="0" y="0" z="0" />\n'
+	xml = xml .. '   <bsRadius value="0" />\n'
+	xml = xml .. '   <hdTextureDist value="5" />\n'
+	xml = xml .. '   <name>' .. interiorName .. '</name>\n'
+	xml = xml .. '   <textureDictionary />\n'
+	xml = xml .. '   <clipDictionary />\n'
+	xml = xml .. '   <drawableDictionary />\n'
+	xml = xml .. '   <physicsDictionary>' .. interiorName .. '</physicsDictionary>\n'
+	xml = xml .. '   <assetType>-1</assetType>\n'
+	xml = xml .. '   <assetName />\n'
+	xml = xml .. '   <extensions />\n'
+	xml = xml .. '   <guid value="0x0000000000000000" />\n'
+	xml = xml .. '   <mloFlags value="0" />\n'
+	xml = xml .. entitiesXml
+	xml = xml .. '  </Item>\n'
+	xml = xml .. ' </archetypes>\n'
+	xml = xml .. ' <name>' .. interiorName .. '</name>\n'
+	xml = xml .. ' <dependencies />\n'
+	xml = xml .. ' <compositeEntityTypes />\n'
+	xml = xml .. '</CMapTypes>'
+
+	return xml
+end
+
 function ConvertDatabaseToPropPlacerJson(database)
 	local props = {}
 
@@ -2384,7 +2527,135 @@ local function loadYmap(xml)
 	LoadDatabase(db, false, false)
 end
 
-function ExportDatabase(format)
+local function loadYtyp(xml, interiorHeading)
+	local heading = math.rad(tonumber(interiorHeading) or 0.0)
+
+	local curElem, isEntity, inMlo, inRoom, interiorName
+
+	local db = {}
+	local i = 0
+	local key = "0"
+
+	local parser = SLAXML:parser {
+		startElement = function(name, nsURI, nsPrefix)
+			curElem = name
+		end,
+		attribute = function(name, value, nsURI, nsPrefix)
+			if name == "type" and value == "CMloArchetypeDef" then
+				inMlo = true
+			elseif name == "type" and value == "CMloRoomDef" then
+				inRoom = true
+			elseif name == "type" and value == "CEntityDef" then
+				isEntity = true
+				db[key] = {
+					quaternion = {x = 0.0, y = 0.0, z = 0.0, w = 1.0},
+					x = 0.0,
+					y = 0.0,
+					z = 0.0,
+					pitch = 0.0,
+					roll = 0.0,
+					yaw = 0.0,
+					isFrozen = true
+				}
+			elseif isEntity and curElem == "position" then
+				value = (tonumber(value) or 0) + 0.0
+				if name == "x" then
+					db[key].x = value
+				elseif name == "y" then
+					db[key].y = value
+				elseif name == "z" then
+					db[key].z = value
+				end
+			elseif isEntity and curElem == "rotation" then
+				db[key].quaternion[name] = (tonumber(value) or 0) + 0.0
+			end
+		end,
+		closeElement = function(name, nsURI)
+			if name == "Item" then
+				if isEntity then
+					isEntity = false
+					i = i + 1
+					key = tostring(i)
+				end
+				inRoom = false
+			end
+			curElem = nil
+		end,
+		text = function(text, cdata)
+			if isEntity then
+				if curElem == "archetypeName" then
+					db[key].name = text
+					db[key].model = GetHashKey(text)
+				end
+			elseif inRoom and curElem == "name" then
+				YtypRoomNames[GetHashKey(text)] = text
+				YtypRoomNames[GetHashKey(text) & 0xFFFFFFFF] = text
+			elseif inMlo and curElem == "name" and not interiorName then
+				interiorName = text
+			end
+		end
+	}
+
+	parser:parse(xml, {stripWhitespace=true})
+
+	-- Drop incomplete records (e.g. produced by extension <Item>s inside entities)
+	for k, props in pairs(db) do
+		if not props.name then
+			db[k] = nil
+		end
+	end
+
+	-- Find the interior origin: prefer the precise runtime location, fall back
+	-- to the catalog position from data/rdr3/interiors.lua
+	local origin
+
+	if interiorName and InteriorsByName and InteriorsByName[interiorName] then
+		local info = InteriorsByName[interiorName]
+		local catalogPos = vector3(info.position.x, info.position.y, info.position.z)
+
+		local interiorId = GetInteriorAtCoordsWithTypehash(catalogPos.x, catalogPos.y, catalogPos.z, GetHashKey(interiorName))
+
+		if interiorId ~= 0 then
+			origin = GetInteriorLocationAndNamehash(interiorId)
+		else
+			origin = catalogPos
+		end
+	end
+
+	if not origin then
+		local interiorId = GetInteriorFromPrimaryView()
+
+		if interiorId ~= 0 then
+			origin = GetInteriorLocationAndNamehash(interiorId)
+		end
+	end
+
+	if not origin then
+		notify('~e~Ytyp import: could not determine the interior origin. Stand inside the interior and try again.')
+		return
+	end
+
+	local cosH = math.cos(heading)
+	local sinH = math.sin(heading)
+	-- Inverse interior rotation, for converting stored rotations back to world
+	local qIntInv = {x = 0.0, y = 0.0, z = -math.sin(heading / 2), w = math.cos(heading / 2)}
+
+	for _, props in pairs(db) do
+		-- Interior-local -> world: rotate by heading about Z, then translate
+		local wx = origin.x + props.x * cosH - props.y * sinH
+		local wy = origin.y + props.x * sinH + props.y * cosH
+
+		props.x = wx
+		props.y = wy
+		props.z = origin.z + props.z
+
+		props.quaternion = quatMul(props.quaternion, qIntInv)
+	end
+
+	LoadDatabase(db, false, false)
+end
+
+function ExportDatabase(format, options)
 	UpdateDatabase()
 
 	local db = PrepareDatabaseForSave()
@@ -2395,6 +2666,8 @@ function ExportDatabase(format)
 		return ConvertDatabaseToMapEditorXml(GetPlayerName(), db)
 	elseif format == 'ymap' then
 		return ConvertDatabaseToYmap(db)
+	elseif format == 'ytyp' then
+		return ConvertDatabaseToYtyp(db, options and options.heading)
 	elseif format == 'propplacer' then
 		return ConvertDatabaseToPropPlacerJson(db)
 	elseif format == 'backup' then
@@ -2402,7 +2675,7 @@ function ExportDatabase(format)
 	end
 end
 
-function ImportDatabase(format, content)
+function ImportDatabase(format, content, options)
 	if format == 'spooner-db-json' then
 		local db = json.decode(content)
 
@@ -2413,15 +2686,17 @@ function ImportDatabase(format, content)
 		RestoreDbs(content)
 	elseif format == 'ymap' then
 		loadYmap(content)
+	elseif format == 'ytyp' then
+		loadYtyp(content, options and options.heading)
 	end
 end
 
 RegisterNUICallback('exportDb', function(data, cb)
-	cb(ExportDatabase(data.format))
+	cb(ExportDatabase(data.format, data))
 end)
 
 RegisterNUICallback('importDb', function(data, cb)
-	ImportDatabase(data.format, data.content)
+	ImportDatabase(data.format, data.content, data)
 	cb({})
 end)
 

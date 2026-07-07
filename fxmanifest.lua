@@ -54,7 +54,8 @@ if gameName == "rdr3" then
 		"data/rdr3/scenarios.lua",
 		"data/rdr3/vehicles.lua",
 		"data/rdr3/walkstyles.lua",
-		"data/rdr3/weapons.lua"
+		"data/rdr3/weapons.lua",
+		"data/rdr3/interiors.lua"
 	}
 elseif gameName == "gta5" then
 	files {

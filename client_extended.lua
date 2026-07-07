@@ -250,9 +250,13 @@ end)
 -- Interiors --
 ---------------
 InteriorsHash = {}
+InteriorsByName = {}
 if Interiors ~= nil then
 	for k,v in ipairs(Interiors) do
-		InteriorsHash[GetHashKey(v.name)] = v.name 
+		InteriorsHash[GetHashKey(v.name)] = v.name
+		-- Natives may return the name hash as unsigned, GetHashKey returns signed
+		InteriorsHash[GetHashKey(v.name) & 0xFFFFFFFF] = v.name
+		InteriorsByName[v.name] = v
 	end
 end
 

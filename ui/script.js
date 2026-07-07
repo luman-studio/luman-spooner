@@ -2641,6 +2641,7 @@ window.addEventListener('load', function() {
 
 	document.querySelector('#import-db').addEventListener('click', function(event) {
 		var url = document.querySelector('#import-url').value;
+		var heading = parseFloat(document.querySelector('#ytyp-heading').value) || 0;
 
 		if (url) {
 			fetch(url).then(resp => resp.text()).then(function(text) {
@@ -2648,20 +2649,23 @@ window.addEventListener('load', function() {
 
 				sendMessage('importDb', {
 					format: document.querySelector('#import-export-format').value,
-					content: text
+					content: text,
+					heading: heading
 				});
 			});
 		} else {
 			sendMessage('importDb', {
 				format: document.querySelector('#import-export-format').value,
-				content: document.querySelector('#import-export-content').value
+				content: document.querySelector('#import-export-content').value,
+				heading: heading
 			});
 		}
 	});
 
 	document.querySelector('#export-db').addEventListener('click', function(event) {
 		sendMessage('exportDb', {
-			format: document.querySelector('#import-export-format').value
+			format: document.querySelector('#import-export-format').value,
+			heading: parseFloat(document.querySelector('#ytyp-heading').value) || 0
 		}).then(resp => resp.json()).then(function(resp) {
 			document.querySelector('#import-export-content').value = resp;
 		});
@@ -3148,12 +3152,17 @@ window.addEventListener('load', function() {
 	document.getElementById('import-export-format').addEventListener('input', function(event) {
 		var importButton = document.getElementById('import-db');
 
+		document.getElementById('ytyp-heading').style.display = this.value == 'ytyp' ? '' : 'none';
+
 		switch (this.value) {
 			case 'spooner-db-json':
 				importButton.disabled = false;
 				break;
 			case 'map-editor-xml':
 				importButton.disabled = true;
+				break;
+			case 'ytyp':
+				importButton.disabled = false;
 				break;
 			case 'propplacer':
 				importButton.disabled = true;
