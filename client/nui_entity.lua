@@ -936,18 +936,37 @@ function ClearPausedAnimation(entity)
 	PausedAnimations[entity] = nil
 end
 
+-- Ensures the clip is an active anim task on the entity so its playback speed and
+-- current time can be manipulated. Returns false if it couldn't be (re)applied.
+local function EnsureAnimPlaying(entity, anim)
+	if IsEntityPlayingAnim(entity, anim.dict, anim.name, 3) then
+		return true
+	end
+	PlayAnimation(entity, anim)
+	Wait(0)
+	return IsEntityPlayingAnim(entity, anim.dict, anim.name, 3)
+end
+
+-- Freeze the currently-playing clip in place at the given phase [0..1]. Setting the
+-- playback speed to 0 holds the pose (instead of clearing the task, which removed
+-- the animation entirely and left the ped/object with no pose to scrub).
+local function FreezeAnimAt(entity, anim, time)
+	SetEntityAnimSpeed(entity, anim.dict, anim.name, 0.0)
+	SetEntityAnimCurrentTime(entity, anim.dict, anim.name, time)
+end
+
 RegisterNUICallback('pauseAnimation', function(data, cb)
 	local entity = data.handle
 	local anim = GetAnimationInfo(entity)
 	if anim and DoesEntityExist(entity) then
-		local time = GetEntityAnimCurrentTime(entity, anim.dict, anim.name)
-		PausedAnimations[entity] = { dict = anim.dict, name = anim.name, time = time }
 		RequestControl(entity)
-		if GetEntityType(entity) == 3 then
-			StopEntityAnim(entity, anim.name, anim.dict, 0.0)
-		else
-			ClearPedTasksImmediately(entity)
+		-- Capture the frame the user currently sees (only replay if the clip fell off).
+		local time = 0.0
+		if EnsureAnimPlaying(entity, anim) then
+			time = GetEntityAnimCurrentTime(entity, anim.dict, anim.name)
+			FreezeAnimAt(entity, anim, time)
 		end
+		PausedAnimations[entity] = { dict = anim.dict, name = anim.name, time = time }
 	end
 	cb({})
 end)
@@ -959,9 +978,13 @@ RegisterNUICallback('resumeAnimation', function(data, cb)
 		local anim = GetAnimationInfo(entity)
 		if anim then
 			RequestControl(entity)
-			PlayAnimation(entity, anim)
-			Wait(0)
-			SetEntityAnimCurrentTime(entity, anim.dict, anim.name, paused.time)
+			-- Restore playback from the paused frame at the clip's normal speed.
+			local rate = anim.playbackRate
+			if not rate or rate == 0.0 then rate = 1.0 end
+			if EnsureAnimPlaying(entity, anim) then
+				SetEntityAnimCurrentTime(entity, anim.dict, anim.name, paused.time)
+				SetEntityAnimSpeed(entity, anim.dict, anim.name, rate)
+			end
 		end
 		PausedAnimations[entity] = nil
 	end
@@ -976,14 +999,9 @@ RegisterNUICallback('setAnimationTime', function(data, cb)
 		RequestControl(entity)
 		if PausedAnimations[entity] then
 			PausedAnimations[entity].time = time
-			PlayAnimation(entity, anim)
-			Wait(0)
-			SetEntityAnimCurrentTime(entity, anim.dict, anim.name, time)
-			Wait(0)
-			if GetEntityType(entity) == 3 then
-				StopEntityAnim(entity, anim.name, anim.dict, 0.0)
-			else
-				ClearPedTasksImmediately(entity)
+			-- Keep the clip frozen while scrubbing to the requested frame.
+			if EnsureAnimPlaying(entity, anim) then
+				FreezeAnimAt(entity, anim, time)
 			end
 		else
 			SetEntityAnimCurrentTime(entity, anim.dict, anim.name, time)
