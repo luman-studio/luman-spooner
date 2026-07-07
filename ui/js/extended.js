@@ -1,3 +1,5 @@
+// spooner :: ui/js/extended.js (moved from ui/script_extended.js)
+
 /**
  * Splits into groups of 3 characters
  */

@@ -16,10 +16,16 @@ files {
 	"ui/index.html",
 	"ui/font-awesome.min.css",
 	"ui/style.css",
-	"ui/script.js",
 	"ui/keyboard.ttf",
 	"ui/style_extended.css",
-	"ui/script_extended.js",
+	"ui/js/extended.js",
+	"ui/js/spawn_menu.js",
+	"ui/js/hud.js",
+	"ui/js/saved_entities.js",
+	"ui/js/spawn_lists.js",
+	"ui/js/properties.js",
+	"ui/js/database_ui.js",
+	"ui/js/main.js",
 }
 
 ui_page "ui/index.html"
@@ -29,8 +35,9 @@ shared_scripts {
 }
 
 server_scripts {
-	"server.lua",
-	"server_extended.lua",
+	"server/permissions.lua",
+	"server/events.lua",
+	"server/extended.lua",
 }
 
 if gameName == "rdr3" then
@@ -82,5 +89,20 @@ else
 end
 
 client_script "slaxml.lua"
-client_script "client.lua"
-client_script "client_extended.lua"
+
+-- client.lua was split into the client/ modules below. They all share one Lua
+-- state and _G, so order only matters for load-time side effects: core.lua sets
+-- up shared state/prompts first and main.lua starts the update loop last.
+client_scripts {
+	"client/core.lua",
+	"client/entities.lua",
+	"client/spawn.lua",
+	"client/nui_preview.lua",
+	"client/nui_spawn.lua",
+	"client/database.lua",
+	"client/peds.lua",
+	"client/behavior.lua",
+	"client/export.lua",
+	"client/nui_entity.lua",
+	"client/main.lua",
+}

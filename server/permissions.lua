@@ -1,7 +1,10 @@
+-- ============================================================================
+-- spooner :: server/permissions.lua
+-- Builds the per-player permission table from ACE permissions and sends it to
+-- the client on init; also exposes the refresh-permissions command.
+-- ============================================================================
+
 RegisterNetEvent('spooner:init')
-RegisterNetEvent('spooner:toggle')
-RegisterNetEvent('spooner:openDatabaseMenu')
-RegisterNetEvent('spooner:openSaveDbMenu')
 
 AddEventHandler('spooner:init', function()
 	local permissions = {}
@@ -84,24 +87,6 @@ AddEventHandler('spooner:init', function()
 	permissions.properties.vehicle.lights = IsPlayerAceAllowed(source, 'spooner.properties.vehicle.lights')
 
 	TriggerClientEvent('spooner:init', source, permissions)
-end)
-
-AddEventHandler('spooner:toggle', function()
-	if IsPlayerAceAllowed(source, 'spooner.view') then
-		TriggerClientEvent('spooner:toggle', source)
-	end
-end)
-
-AddEventHandler('spooner:openDatabaseMenu', function()
-	if IsPlayerAceAllowed(source, 'spooner.view') then
-		TriggerClientEvent('spooner:openDatabaseMenu', source)
-	end
-end)
-
-AddEventHandler('spooner:openSaveDbMenu', function()
-	if IsPlayerAceAllowed(source, 'spooner.view') then
-		TriggerClientEvent('spooner:openSaveDbMenu', source)
-	end
 end)
 
 RegisterCommand('spooner_refresh_perms', function(source, args, raw)
