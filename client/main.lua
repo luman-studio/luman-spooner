@@ -6,6 +6,20 @@
 -- and _G, so globals defined in any module are visible to the others.
 -- ============================================================================
 
+
+local function EndCameraLook()
+	CameraLookActive = false
+	SetNuiFocus(true, true)
+end
+
+RegisterNUICallback('cameraLookStart', function(data, cb)
+	if Cam and not CameraLookActive then
+		CameraLookActive = true
+		SetNuiFocus(false, false)
+	end
+	cb({})
+end)
+
 function MainSpoonerUpdates()
 	if IsUsingKeyboard(0) and IsRawKeyPressed(Config.ToggleControl) then
 		TriggerServerEvent('spooner:toggle')
@@ -21,6 +35,12 @@ function MainSpoonerUpdates()
 		-- focused the key is handled in the UI instead, so this won't fire.
 		if IsDisabledControlJustPressed(0, `INPUT_FRONTEND_PAUSE_ALTERNATE`) or IsDisabledControlJustPressed(0, `INPUT_FRONTEND_PAUSE`) then
 			TriggerServerEvent('spooner:toggle')
+		end
+
+		if CameraLookActive then
+			if IsDisabledControlJustReleased(0, Config.DeleteControl) then
+				EndCameraLook()
+			end
 		end
 
 		local x1, y1, z1 = table.unpack(GetCamCoord(Cam))
@@ -190,7 +210,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if not PendingBehavior and IsRawKeyPressed(Config.SpawnControl) and CurrentSpawn then
+		if not PendingBehavior and not CameraLookActive and IsRawKeyPressed(Config.SpawnControl) and CurrentSpawn then
 			local entity
 
 			if CurrentSpawn.type == 1 then
@@ -227,7 +247,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if not PendingBehavior and IsDisabledControlJustPressed(0, Config.SelectControl) then
+		if not PendingBehavior and not CameraLookActive and IsDisabledControlJustPressed(0, Config.SelectControl) then
 			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
 				if GetEntityType(AttachedEntity) == 1 then
@@ -270,7 +290,7 @@ function MainSpoonerUpdates()
 			end
 		end
 
-		if not PendingBehavior and IsDisabledControlJustPressed(0, Config.DeleteControl) and entity then
+		if not PendingBehavior and not CameraLookActive and IsDisabledControlJustPressed(0, Config.DeleteControl) and entity then
 			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
 				RemoveEntity(AttachedEntity)

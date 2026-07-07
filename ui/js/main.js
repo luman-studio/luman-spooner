@@ -58,6 +58,22 @@ window.addEventListener('load', function() {
 	// Initialize unified spawn menu system
 	initAllSpawnMenus();
 
+	// Hold-to-look: while a menu is open (NUI focused), holding the right mouse
+	// button lets the player move the camera. The game can't see the mouse while
+	// NUI is focused, so we detect the press here and tell the client, which drops
+	// NUI focus / hides the cursor; the client restores it on release. These only
+	// fire while a menu is focused (the browser gets no mouse events otherwise).
+	document.addEventListener('contextmenu', function(event) {
+		event.preventDefault();
+	});
+
+	document.addEventListener('mousedown', function(event) {
+		if (event.button === 2) {
+			event.preventDefault();
+			sendMessage('cameraLookStart', {});
+		}
+	});
+
 	sendMessage('init', {}).then(resp => resp.json()).then(function(resp) {
 		if (resp.favourites) {
 			favourites = resp.favourites;

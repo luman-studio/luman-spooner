@@ -32,6 +32,7 @@ FocusTarget = nil
 FocusTargetPos = nil
 FreeFocus = false
 showEntityHandles = false
+CameraLookActive = false
 
 -- Preview entity for prop browser
 PreviewEntity = nil
@@ -265,6 +266,7 @@ function DisableSpoonerMode()
 		type = 'hideSpoonerHud'
 	})
 
+	CameraLookActive = false
 	SetNuiFocus(false, false)
 end
 
