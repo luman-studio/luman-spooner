@@ -200,6 +200,11 @@ function SpawnPed(props)
 		else
 			SetPedOutfitPreset(ped, props.outfit)
 		end
+
+		-- Without this, RDR3 silently applies the outfit change internally but never
+		-- pushes it to the renderer on a freshly spawned ped ("needed after first
+		-- creation" per the native's own comment).
+		UpdatePedVariation(ped)
 	end
 
 	if props.isInGroup then

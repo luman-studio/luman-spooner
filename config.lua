@@ -110,9 +110,34 @@ Config.CleanUpOnStop = true
 Config.EntityHandleDrawDistance = 20.0
 
 -- Highest ped component slot index captured/restored when persisting an MP ped's
--- look to disk (0..N inclusive). Raise this if some clothing piece isn't being
--- saved/restored correctly on a saved MP ped.
+-- look to disk (0..N inclusive). RDR3 has no GTA-style integer component/drawable/
+-- texture variation natives, so this only matters as a best-effort fallback for a
+-- captured *live* MP ped (see CaptureComponents in client/peds.lua) — it is not
+-- used by "Randomize All", which builds an explicit per-slot config instead (see
+-- Config.RandomOutfitChance below).
 Config.MpPedComponentSlots = 20
+
+-- "Randomize All" (MP Peds -> Create Custom) builds its outfit from data/rdr3/
+-- outfits.lua (real RDR3 clothing shop-item hashes, one entry per category/slot).
+-- Deliberately narrow by design — only Pant/Skirt (or Dress), Shirt and Boots are
+-- always applied (plus body/head/hair/beard — see RandomizeCustomBodyAppearance in
+-- client/peds.lua), and ONLY the categories listed below are ever added on top,
+-- each independently at this chance (0..1). Everything else (belts, gunbelts,
+-- rings, masks, satchels, holsters, badges, armor...) is left for the player to add
+-- by hand — a random ped shouldn't come pre-loaded with accessories nobody asked
+-- for. Coat/CoatClosed/Vest are mutually exclusive layers on top of Shirt — only
+-- one survives regardless of how many happened to roll true (see RandomizeCustomList).
+Config.RandomOutfitChance = {
+	Hat = 0.5,
+	Coat = 0.2,
+	CoatClosed = 0.15,
+	Vest = 0.2,
+	Glove = 0.3
+}
+
+-- Facial hair (male only — see PedBeardData in data/rdr3/bodies.lua) chance for
+-- "Randomize All".
+Config.RandomBeardChance = 0.35
 
 -- Placed particle effects are attached to a small, forced-invisible "anchor"
 -- object (the particle itself is the only visible thing), so this model choice

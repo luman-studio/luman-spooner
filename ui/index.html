@@ -172,6 +172,12 @@
 					<button id="spawn-menu-peds"><i class="fas fa-user"></i> Peds</button>
 				</div>
 				<div class="spawn-category">
+					<button id="spawn-menu-mp-peds"><i class="fas fa-user-friends"></i> MP Peds</button>
+				</div>
+				<div class="spawn-category">
+					<button id="spawn-menu-saved-peds"><i class="fas fa-save"></i> Saved Peds</button>
+				</div>
+				<div class="spawn-category">
 					<button id="spawn-menu-vehicles"><i class="fas fa-car"></i> Vehicles</button>
 				</div>
 				<div class="spawn-category">
@@ -182,12 +188,6 @@
 				</div>
 				<div class="spawn-category">
 					<button id="spawn-menu-pickups"><i class="fas fa-hand-holding"></i> Pickups</button>
-				</div>
-				<div class="spawn-category">
-					<button id="spawn-menu-saved-peds"><i class="fas fa-save"></i> Saved Peds</button>
-				</div>
-				<div class="spawn-category">
-					<button id="spawn-menu-mp-peds"><i class="fas fa-user-friends"></i> MP Peds</button>
 				</div>
 				<div class="spawn-category">
 					<button id="spawn-menu-particles"><i class="fas fa-fire"></i> Particles</button>
@@ -203,11 +203,30 @@
 			<button id="saved-peds-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="mp-peds-menu" class="menu">
+			<div class="property">
+				<button id="mp-peds-create-custom"><i class="fas fa-sliders-h"></i> Create Custom</button>
+			</div>
 			<div id="mp-peds-list" class="list"></div>
 			<div id="mp-peds-nav-hint" class="nav-hint">
 				<span>Click name to spawn | <i class="fas fa-pen"></i> Rename | <i class="fas fa-trash"></i> Delete</span>
 			</div>
 			<button id="mp-peds-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="mp-custom-menu" class="menu">
+			<div class="property multiple" id="mp-custom-gender-row">
+				<button id="mp-custom-gender-male"><i class="fas fa-mars"></i> Male</button>
+				<button id="mp-custom-gender-female"><i class="fas fa-venus"></i> Female</button>
+			</div>
+			<div id="mp-custom-list" class="list"></div>
+			<div id="mp-custom-nav-hint" class="nav-hint">
+				<span>Use the arrows to cycle each slot's options | Selecting "None" removes it</span>
+			</div>
+			<button id="mp-custom-randomize"><i class="fas fa-dice"></i> Randomize All</button>
+			<div class="property multiple">
+				<input type="text" id="mp-custom-save-name" placeholder="Saved MP ped name...">
+				<button id="mp-custom-save"><i class="fas fa-save"></i> Save</button>
+			</div>
+			<button id="mp-custom-menu-back"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="animprops-menu" class="menu">
 			<div id="animprops-list" class="list"></div>
@@ -643,6 +662,9 @@
 			<div id="ped-options" class="list">
 				<div class="property player-property">
 					<button id="properties-player-model"><i class="fas fa-user-edit"></i> Change Model</button>
+				</div>
+				<div class="property">
+					<button id="properties-customize-ped"><i class="fas fa-tshirt"></i> Customize</button>
 				</div>
 				<div class="property">
 					<div class="label">Outfit</div>

@@ -159,6 +159,58 @@ function SetRandomOutfitVariation(ped, p1)
 	Citizen.InvokeNative(0x283978A15512B2FE, ped, p1)
 end
 
+function IsPedReadyToRender(ped)
+	return Citizen.InvokeNative(0xA0BC8FAED8CFEB3C, ped)
+end
+
+function WaitForPedReadyToRender(ped, timeoutTicks)
+	local waited = 0
+	while not IsPedReadyToRender(ped) and waited < (timeoutTicks or 200) do
+		Wait(0)
+		waited = waited + 1
+	end
+end
+
+-- Forces the ped's meta-ped outfit/component state to actually render. RDR3's own
+-- native comment: "needed after first creation, or when component or texture/overlay
+-- is changed" — without this, SetPedOutfitPreset/SetRandomOutfitVariation silently
+-- have no visible effect on a freshly spawned ped.
+function UpdatePedVariation(ped)
+	Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false)
+	Citizen.InvokeNative(0xAAB86462966168CE, ped, true)
+end
+
+-- Applies a single clothing "shop item" (a specific drawable+texture, identified by
+-- its joaat hash) to one component slot on a ped. This is the actual native RDR3's
+-- own clothing store/character creator uses to dress a ped piece by piece — unlike
+-- SetRandomOutfitVariation/SetPedOutfitPreset (whole-outfit black boxes), this lets
+-- us build and remember an explicit per-slot config. Called twice (isMp false/true)
+-- since it's ambiguous up front which mode a given ped model expects.
+function ApplyShopItemToPed(ped, componentHash)
+	Citizen.InvokeNative(0xD3A7B003ED343FD9, ped, componentHash, false, false, false)
+	Citizen.InvokeNative(0xD3A7B003ED343FD9, ped, componentHash, false, true, false)
+end
+
+function RemoveShopItemFromPed(ped, componentHash)
+	Citizen.InvokeNative(0x0D7FFA1B2F69ED82, ped, componentHash, 0, false)
+end
+
+-- "Wearable states" are how RDR3 handles a single item having more than one worn
+-- position — e.g. a bandana/neckerchief pulled down around the neck vs pulled up
+-- over the face, a hat on the head vs held/hanging. Same shop item hash throughout;
+-- only its state changes.
+function GetShopItemNumWearableStates(componentHash, isMpFemale)
+	return Citizen.InvokeNative(0xFFCC2DB2D9953401, componentHash, isMpFemale, true)
+end
+
+function GetShopItemWearableStateByIndex(componentHash, stateIndex, isMpFemale)
+	return Citizen.InvokeNative(0x6243635AF2F1B826, componentHash, stateIndex, isMpFemale, true)
+end
+
+function UpdateShopItemWearableState(ped, componentHash, wearableState, isMp)
+	Citizen.InvokeNative(0x66B957AAC2EAAEAB, ped, componentHash, wearableState, 0, isMp, 1)
+end
+
 function BlipAddForEntity(blipHash, entity)
 	return Citizen.InvokeNative(0x23F74C2FDA6E7C61, blipHash, entity)
 end

@@ -567,6 +567,49 @@ window.addEventListener('load', function() {
 		closeMpPedsMenu(false);
 	});
 
+	document.querySelector('#mp-peds-create-custom').addEventListener('click', function(event) {
+		openCustomMpPedMenu('male');
+	});
+
+	document.querySelector('#mp-custom-gender-male').addEventListener('click', function(event) {
+		sendMessage('customPedSetGender', { gender: 'male' }).then(resp => resp.json()).then(resp => renderCustomMpPed(resp));
+	});
+
+	document.querySelector('#mp-custom-gender-female').addEventListener('click', function(event) {
+		sendMessage('customPedSetGender', { gender: 'female' }).then(resp => resp.json()).then(resp => renderCustomMpPed(resp));
+	});
+
+	document.querySelector('#mp-custom-randomize').addEventListener('click', function(event) {
+		sendMessage('customPedRandomizeAll', {}).then(resp => resp.json()).then(resp => renderCustomMpPed(resp));
+	});
+
+	document.querySelector('#mp-custom-save').addEventListener('click', function(event) {
+		var nameInput = document.querySelector('#mp-custom-save-name');
+		var name = nameInput.value.trim();
+
+		if (!name || customPedEditingHandle === null) {
+			nameInput.focus();
+			return;
+		}
+
+		var btn = document.querySelector('#mp-custom-save');
+
+		sendMessage('saveCurrentMpPed', {
+			handle: customPedEditingHandle,
+			name: name
+		}).then(resp => resp.json()).then(function(resp) {
+			nameInput.value = '';
+
+			var original = btn.innerHTML;
+			btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+			setTimeout(function() { btn.innerHTML = original; }, 1200);
+		});
+	});
+
+	document.querySelector('#mp-custom-menu-back').addEventListener('click', function(event) {
+		closeCustomMpPedMenu();
+	});
+
 	document.querySelector('#spawn-menu-close').addEventListener('click', function(event) {
 		closeSpawnMenu();
 	});
@@ -883,6 +926,10 @@ window.addEventListener('load', function() {
 	document.getElementById('properties-player-model').addEventListener('click', function(event) {
 		document.querySelector('#ped-options-menu').style.display = 'none';
 		document.querySelector('#player-model-menu').style.display = 'flex';
+	});
+
+	document.getElementById('properties-customize-ped').addEventListener('click', function(event) {
+		openCustomizePedMenu(currentEntity());
 	});
 
 	document.getElementById('properties-knock-off-props').addEventListener('click', function(event) {

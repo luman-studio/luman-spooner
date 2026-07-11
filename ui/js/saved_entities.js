@@ -374,6 +374,183 @@ function startRenameMpPed(row) {
 	input.select();
 }
 
+// ----- Create Custom / Customize (manual per-slot ped editor) -----
+
+// Handle of the ped currently open in the editor, so the Save button knows what
+// to save regardless of whether it's a fresh temp ped or an existing selected one.
+var customPedEditingHandle = null;
+
+function openCustomMpPedMenu(gender) {
+	document.querySelector('#mp-peds-menu').style.display = 'none';
+	document.querySelector('#mp-custom-menu').style.display = 'flex';
+
+	sendMessage('openCustomMpPed', { gender: gender || 'male' }).then(resp => resp.json()).then(resp => renderCustomMpPed(resp));
+}
+
+// Ped Options -> Customize: edit the currently selected ped in place instead of
+// spawning a new one.
+function openCustomizePedMenu(handle) {
+	document.querySelector('#properties-menu').style.display = 'none';
+	document.querySelector('#ped-options-menu').style.display = 'none';
+	document.querySelector('#mp-custom-menu').style.display = 'flex';
+
+	sendMessage('openCustomizePed', { handle: handle }).then(resp => resp.json()).then(resp => renderCustomMpPed(resp));
+}
+
+// The ped is already spawned/selected by the time this menu opens, so closing it
+// (like Create Random) exits the whole spawn menu rather than going back a level.
+function closeCustomMpPedMenu() {
+	document.querySelector('#mp-custom-menu').style.display = 'none';
+	customPedEditingHandle = null;
+	sendMessage('closeCustomMpPed', {});
+}
+
+function formatCustomCategoryLabel(category) {
+	return category
+		.replace(/_/g, ' ')
+		.replace(/([a-z])([A-Z])/g, '$1 $2')
+		.replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+
+function renderCustomMpPed(data) {
+	if (typeof data === 'string') {
+		data = JSON.parse(data);
+	}
+
+	if (!data || !data.categories) {
+		return;
+	}
+
+	if (typeof data.handle !== 'undefined') {
+		customPedEditingHandle = data.handle;
+	}
+
+	// Gender is locked (hidden) when editing an already-existing ped — switching it
+	// would mean deleting that ped and spawning a different model in its place.
+	document.querySelector('#mp-custom-gender-row').style.display = data.genderLocked ? 'none' : 'flex';
+	document.querySelector('#mp-custom-gender-male').classList.toggle('selected', data.gender === 'male');
+	document.querySelector('#mp-custom-gender-female').classList.toggle('selected', data.gender === 'female');
+
+	var list = document.querySelector('#mp-custom-list');
+	list.innerHTML = '';
+
+	data.categories.forEach(function(entry) {
+		list.appendChild(createCustomPedRow(entry));
+	});
+}
+
+function updateCustomPedRowDisplay(row, index, count) {
+	var input = row.querySelector('.custom-ped-row-input');
+
+	input.value = index;
+	input.max = count;
+	row.classList.toggle('is-none', index === 0);
+}
+
+function createCustomPedRow(entry) {
+	var row = document.createElement('div');
+	row.className = 'custom-ped-row' + (entry.required ? ' required' : '') + (entry.index === 0 ? ' is-none' : '');
+	row.setAttribute('data-category', entry.category);
+
+	var label = document.createElement('span');
+	label.className = 'custom-ped-row-label';
+	label.title = formatCustomCategoryLabel(entry.category);
+	label.innerHTML = formatCustomCategoryLabel(entry.category);
+
+	var prevBtn = document.createElement('button');
+	prevBtn.className = 'custom-ped-row-btn';
+	prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+	prevBtn.addEventListener('click', function(event) {
+		cycleCustomPedCategory(entry.category, -1, row);
+	});
+
+	// Just the editable index — no "/ total" (only shown once, in the tooltip),
+	// so every row lines up the same regardless of how many options a slot has.
+	var input = document.createElement('input');
+	input.type = 'number';
+	input.className = 'custom-ped-row-input';
+	input.title = '1-' + entry.count;
+	input.min = entry.required ? 1 : 0;
+	input.max = entry.count;
+	input.step = 1;
+	input.value = entry.index;
+	input.addEventListener('keydown', function(event) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			input.blur();
+		}
+		event.stopPropagation();
+	});
+	input.addEventListener('change', function(event) {
+		setCustomPedIndex(entry.category, parseInt(input.value, 10) || 0, row);
+	});
+
+	var nextBtn = document.createElement('button');
+	nextBtn.className = 'custom-ped-row-btn';
+	nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+	nextBtn.addEventListener('click', function(event) {
+		cycleCustomPedCategory(entry.category, 1, row);
+	});
+
+	// Always add the None button, even on required rows (disabled + hidden there),
+	// so every row has the same number of columns and nothing shifts left/right.
+	var noneBtn = document.createElement('button');
+	noneBtn.className = 'custom-ped-row-btn custom-ped-row-none';
+	noneBtn.title = 'Set to None';
+	noneBtn.innerHTML = '<i class="fas fa-ban"></i>';
+
+	if (entry.required) {
+		noneBtn.disabled = true;
+		noneBtn.classList.add('hidden-btn');
+	} else {
+		noneBtn.addEventListener('click', function(event) {
+			setCustomPedIndex(entry.category, 0, row);
+		});
+	}
+
+	row.appendChild(label);
+	row.appendChild(prevBtn);
+	row.appendChild(input);
+	row.appendChild(nextBtn);
+	row.appendChild(noneBtn);
+
+	// Some items (bandanas, hats...) have more than one worn position (down vs
+	// pulled up over the face, etc) — this toggles between them without changing
+	// which item is equipped.
+	if (entry.hasState) {
+		var stateBtn = document.createElement('button');
+		stateBtn.className = 'custom-ped-row-btn custom-ped-row-state';
+		stateBtn.title = 'Toggle worn position (e.g. bandana up/down)';
+		stateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+		stateBtn.addEventListener('click', function(event) {
+			sendMessage('customPedToggleWearableState', { category: entry.category });
+		});
+		row.appendChild(stateBtn);
+	}
+
+	return row;
+}
+
+function cycleCustomPedCategory(category, direction, row) {
+	sendMessage('customPedCycle', { category: category, direction: direction }).then(resp => resp.json()).then(function(raw) {
+		var entry = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+		if (entry && typeof entry.index !== 'undefined') {
+			updateCustomPedRowDisplay(row, entry.index, entry.count);
+		}
+	});
+}
+
+function setCustomPedIndex(category, index, row) {
+	sendMessage('customPedSetIndex', { category: category, index: index }).then(resp => resp.json()).then(function(raw) {
+		var entry = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+		if (entry && typeof entry.index !== 'undefined') {
+			updateCustomPedRowDisplay(row, entry.index, entry.count);
+		}
+	});
+}
+
 // ----- Saved Animation + Prop presets (apply to any selected ped) -----
 
 function openAnimPropsMenu() {

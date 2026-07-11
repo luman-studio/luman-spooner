@@ -196,6 +196,8 @@ function AddEntityToDatabase(entity, name, attachment)
 
 	local particle = Database[entity] and Database[entity].particle
 
+	local outfitComponents = Database[entity] and Database[entity].outfitComponents
+
 	if attachment then
 		attachBone        = attachment.bone
 		attachX           = attachment.x
@@ -268,6 +270,8 @@ function AddEntityToDatabase(entity, name, attachment)
 	Database[entity].scale = scale
 
 	Database[entity].particle = particle
+
+	Database[entity].outfitComponents = outfitComponents
 
 	if not Config.isRDR then
 		Database[entity].isFrozen = isFrozen

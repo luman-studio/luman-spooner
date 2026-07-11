@@ -344,6 +344,12 @@ document.addEventListener('keydown', function(event) {
 		return;
 	}
 
+	if (document.querySelector('#mp-custom-menu').style.display === 'flex') {
+		event.preventDefault();
+		closeCustomMpPedMenu();
+		return;
+	}
+
 	if (document.querySelector('#placed-particles-menu').style.display === 'flex') {
 		event.preventDefault();
 		closePlacedParticlesMenu();

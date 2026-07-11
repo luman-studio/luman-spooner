@@ -58,3 +58,56 @@
 #animation-allow-running-container span {
 	flex: 1;
 }
+
+#mp-custom-gender-male.selected, #mp-custom-gender-female.selected {
+	background-color: white;
+	color: black;
+}
+
+.custom-ped-row {
+	display: flex;
+	align-items: center;
+	gap: 0.25vw;
+	padding: 0.25vh 0;
+}
+
+.custom-ped-row-label {
+	flex: 0 0 8.5vw;
+	width: 8.5vw;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.custom-ped-row-btn {
+	flex: 0 0 1.8vw;
+	width: 1.8vw;
+	padding: 0.25vh 0;
+	text-align: center;
+}
+
+.custom-ped-row-input {
+	flex: 0 0 3vw;
+	width: 3vw;
+	text-align: center;
+}
+
+.custom-ped-row.is-none .custom-ped-row-input {
+	opacity: 0.5;
+}
+
+.custom-ped-row-none {
+	color: #ff8080;
+}
+
+.custom-ped-row-none.hidden-btn {
+	visibility: hidden;
+}
+
+.custom-ped-row-state {
+	color: #80c0ff;
+}
+
+.custom-ped-row.required .custom-ped-row-label {
+	font-weight: bold;
+}

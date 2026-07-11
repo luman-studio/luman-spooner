@@ -187,6 +187,7 @@ function updatePermissions(data) {
 	document.getElementById('spawn-menu-pickups').disabled = !permissions.spawn.pickup;
 	document.getElementById('spawn-menu-saved-peds').disabled = !permissions.spawn.ped;
 	document.getElementById('spawn-menu-mp-peds').disabled = !permissions.spawn.ped;
+	document.getElementById('mp-peds-create-custom').disabled = !permissions.spawn.ped;
 	document.getElementById('spawn-menu-particles').disabled = !permissions.spawn.particle;
 	document.querySelectorAll('.spawn-by-name').forEach(e => e.disabled = !permissions.spawn.byName);
 
@@ -214,6 +215,7 @@ function updatePermissions(data) {
 	document.getElementById('properties-attach').disabled = !permissions.properties.attachments;
 	document.getElementById('properties-player-model').disabled = !permissions.properties.ped.changeModel;
 	document.getElementById('properties-outfit').disabled = !permissions.properties.ped.outfit;
+	document.getElementById('properties-customize-ped').disabled = !permissions.properties.ped.outfit;
 	document.getElementById('properties-add-to-group').disabled = !permissions.properties.ped.group;
 	document.getElementById('properties-remove-from-group').disabled = !permissions.properties.ped.group;
 	document.getElementById('properties-scenario').disabled = !permissions.properties.ped.scenario;

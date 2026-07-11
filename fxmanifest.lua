@@ -52,8 +52,10 @@ if gameName == "rdr3" then
 
 	client_scripts {
 		"data/rdr3/animations.lua",
+		"data/rdr3/bodies.lua",
 		"data/rdr3/bones.lua",
 		"data/rdr3/objects.lua",
+		"data/rdr3/outfits.lua",
 		"data/rdr3/particles.lua",
 		"data/rdr3/pedConfigFlags.lua",
 		"data/rdr3/peds.lua",
