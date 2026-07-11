@@ -6,7 +6,10 @@
 -- and _G, so globals defined in any module are visible to the others.
 -- ============================================================================
 
-function SpawnObject(name, model, x, y, z, pitch, roll, yaw, collisionDisabled, isVisible, lightsIntensity, lightsColour, lightsType)
+-- isFrozen defaults to true (the normal spawn-menu behaviour: a placed prop stays
+-- put) — pass false explicitly (e.g. restoring a saved DB entry that was
+-- deliberately unfrozen) to skip freezing it.
+function SpawnObject(name, model, x, y, z, pitch, roll, yaw, collisionDisabled, isVisible, lightsIntensity, lightsColour, lightsType, isFrozen)
 	if not Permissions.spawn.object then
 		return nil
 	end
@@ -29,7 +32,9 @@ function SpawnObject(name, model, x, y, z, pitch, roll, yaw, collisionDisabled, 
 
 	SetEntityRotation(object, pitch, roll, yaw, 2)
 
-	FreezeEntityPosition(object, true)
+	if isFrozen == nil or isFrozen then
+		FreezeEntityPosition(object, true)
+	end
 
 	if collisionDisabled then
 		SetEntityCollision(object, false, false)
@@ -182,9 +187,26 @@ function SpawnPed(props)
 
 	SetEntityRotation(ped, props.pitch, props.roll, props.yaw, 2)
 
+	if props.collisionDisabled or props.isFrozen then
+		-- Snap to the surface directly below the saved X/Y (whatever that is — bare
+		-- ground, a wagon bed, a balcony floor — this doesn't move X/Y, only fixes
+		-- Z) *before* freezing. Freezing an entity used to only ever happen for
+		-- collisionDisabled peds, so any tiny Z rounding from the save/load round
+		-- trip was invisible — gravity quietly corrected it. Now that isFrozen alone
+		-- also freezes (see below), that safety net is gone, so it has to be done
+		-- explicitly or a slightly-off saved Z leaves the ped hanging in the air.
+		if Config.isRDR then
+			PlaceEntityOnGroundProperly(ped, false)
+		end
+	end
+
 	if props.collisionDisabled then
 		FreezeEntityPosition(ped, true)
 		SetEntityCollision(ped, false, false)
+	elseif props.isFrozen then
+		-- A ped can be frozen (Properties -> Freeze Pos) without collision being
+		-- disabled too — collisionDisabled alone doesn't cover that case.
+		FreezeEntityPosition(ped, true)
 	end
 
 	if props.isVisible == false then
@@ -195,16 +217,25 @@ function SpawnPed(props)
 	-- case the clone already carries the exact look, so don't touch the outfit or it
 	-- would be randomised/overwritten.
 	if not props.keepAppearance then
-		if props.outfit == -1 then
-			SetRandomOutfitVariation(ped, true)
+		-- outfitComponents (per-slot shop-item hashes) is the accurate look for an MP
+		-- ped saved via the J menu / any other path through SpawnPed — it takes
+		-- priority over the old outfit-preset system, which doesn't know about it and
+		-- would otherwise leave the ped as a bare, unclothed freemode model.
+		if props.outfitComponents and next(props.outfitComponents) then
+			WaitForPedReadyToRender(ped)
+			ApplyOutfitComponents(ped, props.outfitComponents)
 		else
-			SetPedOutfitPreset(ped, props.outfit)
-		end
+			if props.outfit == -1 then
+				SetRandomOutfitVariation(ped, true)
+			else
+				SetPedOutfitPreset(ped, props.outfit)
+			end
 
-		-- Without this, RDR3 silently applies the outfit change internally but never
-		-- pushes it to the renderer on a freshly spawned ped ("needed after first
-		-- creation" per the native's own comment).
-		UpdatePedVariation(ped)
+			-- Without this, RDR3 silently applies the outfit change internally but
+			-- never pushes it to the renderer on a freshly spawned ped ("needed after
+			-- first creation" per the native's own comment).
+			UpdatePedVariation(ped)
+		end
 	end
 
 	if props.isInGroup then
@@ -250,6 +281,7 @@ function SpawnPed(props)
 
 	AddEntityToDatabase(ped, props.name)
 	Database[ped].outfit = props.outfit
+	Database[ped].outfitComponents = props.outfitComponents
 	Database[ped].animation = props.animation
 	Database[ped].scenario = props.scenario
 	Database[ped].blockNonTemporaryEvents = props.blockNonTemporaryEvents

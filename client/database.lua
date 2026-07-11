@@ -350,7 +350,7 @@ function LoadDatabase(db, relative, replace)
 		elseif spawn.props.type == 5 then
 			entity = SpawnPickup(spawn.props.name, spawn.props.model, x, y, z)
 		else
-			entity = SpawnObject(spawn.props.name, spawn.props.model, x, y, z, pitch, roll, yaw, spawn.props.collisionDisabled, spawn.props.isVisible, spawn.props.lightsIntensity, spawn.props.lightsColour, spawn.props.lightsType)
+			entity = SpawnObject(spawn.props.name, spawn.props.model, x, y, z, pitch, roll, yaw, spawn.props.collisionDisabled, spawn.props.isVisible, spawn.props.lightsIntensity, spawn.props.lightsColour, spawn.props.lightsType, spawn.props.isFrozen)
 		end
 
 		if entity and relative then
