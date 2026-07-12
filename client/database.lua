@@ -154,6 +154,28 @@ function PlaceOnGroundProperly(entity)
 		end
 	end
 
+	-- PlaceEntityOnGroundProperly/PlaceObjectOnGroundProperly only account for
+	-- static world collision, not other placed props — a box dropped onto another
+	-- box falls straight through to the ground below it. Raycast straight down
+	-- (ignoring this entity itself) and, if something is hit higher than where the
+	-- native already placed it, rest on top of that instead.
+	if GetEntityType(entity) == 3 then
+		local coords = GetEntityCoords(entity)
+		local minDim = GetModelDimensions(GetEntityModel(entity))
+		local rayTop = coords.z + 3.0
+		local rayBottom = coords.z - 10.0
+
+		local _, hit, endCoords = GetShapeTestResult(StartShapeTestRay(coords.x, coords.y, rayTop, coords.x, coords.y, rayBottom, -1, entity, 1))
+
+		if hit == 1 then
+			local restingZ = endCoords.z - minDim.z
+
+			if restingZ > coords.z then
+				SetEntityCoordsNoOffset(entity, coords.x, coords.y, restingZ, false, false, false)
+			end
+		end
+	end
+
 	-- Only adjust the ground height: restore the entity's full original rotation
 	-- (pitch, roll and yaw) so grabbing/holding never tilts it to the terrain and
 	-- the rotation the user set while holding is kept exactly on placement.

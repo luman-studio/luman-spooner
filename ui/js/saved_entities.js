@@ -434,7 +434,19 @@ function renderCustomMpPed(data) {
 	var list = document.querySelector('#mp-custom-list');
 	list.innerHTML = '';
 
+	// Rows arrive already grouped (Body, Hair, Clothing) by the Lua side — insert a
+	// header whenever the group changes instead of every row carrying its own.
+	var lastGroup = null;
+
 	data.categories.forEach(function(entry) {
+		if (entry.group && entry.group !== lastGroup) {
+			var header = document.createElement('div');
+			header.className = 'custom-ped-section-header';
+			header.textContent = entry.group;
+			list.appendChild(header);
+			lastGroup = entry.group;
+		}
+
 		list.appendChild(createCustomPedRow(entry));
 	});
 }

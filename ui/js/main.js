@@ -726,6 +726,31 @@ window.addEventListener('load', function() {
 		populateScenarioList(this.value);
 	});
 
+	document.querySelector('#properties-emotions').addEventListener('click', function(event) {
+		document.querySelector('#ped-options-menu').style.display = 'none';
+		document.querySelector('#emotion-menu').style.display = 'flex';
+
+		if (pedMoods.length === 0) {
+			sendMessage('getPedMoods', {}).then(resp => resp.json()).then(function(raw) {
+				pedMoods = typeof raw === 'string' ? JSON.parse(raw) : raw;
+				populateEmotionList();
+			});
+		} else {
+			populateEmotionList();
+		}
+	});
+
+	document.querySelector('#emotion-menu-close').addEventListener('click', function(event) {
+		document.querySelector('#emotion-menu').style.display = 'none';
+		document.querySelector('#ped-options-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#emotion-stop').addEventListener('click', function(event) {
+		sendMessage('clearPedMood', {
+			handle: currentEntity()
+		});
+	});
+
 	document.querySelector('#properties-clear-ped-tasks').addEventListener('click', function(event) {
 		sendMessage('clearPedTasks', {
 			handle: currentEntity()

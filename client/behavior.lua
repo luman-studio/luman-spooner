@@ -211,9 +211,15 @@ RegisterNUICallback('spawnSavedPed', function(data, cb)
 		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
 
-		local yaw2 = yaw
+		-- Face the camera, not away from it — this ped immediately becomes
+		-- AttachedEntity/selected below, which applies the frozen/T-pose +180
+		-- pre-offset (see spooner:onEntitySelected) on top of whatever's stored
+		-- here, so start from camera yaw + 180 to land on "facing the camera".
+		local yaw2 = yaw + 180.0
 		if yaw2 < 0.0 then
 			yaw2 = yaw2 + 360.0
+		elseif yaw2 >= 360.0 then
+			yaw2 = yaw2 - 360.0
 		end
 
 		local entity = SpawnPed({

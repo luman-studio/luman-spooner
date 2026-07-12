@@ -211,6 +211,93 @@ function UpdateShopItemWearableState(ped, componentHash, wearableState, isMp)
 	Citizen.InvokeNative(0x66B957AAC2EAAEAB, ped, componentHash, wearableState, 0, isMp, 1)
 end
 
+-- Body/face build presets — a completely different system from the shop-item
+-- component slots above: `component` is a plain fixed index (not a hash) into a
+-- small internal table. Per RDR3's own native comment: body build is component
+-- 124-128 for mp_male / 110-115 for mp_female; face build is a separate 110-123 /
+-- 96-109 range. Multiple ranges stack independently. In practice (confirmed by
+-- testing) this only ever visibly affects the head/face — see EquipMetaPedOutfit
+-- below for what actually reshapes the body.
+function EquipMetaPedOutfitExtra(ped, component)
+	Citizen.InvokeNative(0xA5BAE410B03E7371, ped, component, 0, 1)
+end
+
+-- The native RDR3's own MP character creator actually uses for body build/weight:
+-- unlike EquipMetaPedOutfitExtra above (a raw preset index, face-only in practice),
+-- this takes a real shop-item hash — the "build" and "waist" options are just
+-- ordinary component hashes (see CUSTOM_BODY_BUILD_HASHES/CUSTOM_WAIST_HASHES in
+-- peds.lua) equipped through the "meta ped outfit" system rather than
+-- ApplyShopItemToPed's plain component slot.
+function EquipMetaPedOutfit(ped, componentHash)
+	Citizen.InvokeNative(0x1902C4CFCC5BE57C, ped, componentHash)
+end
+
+-- RDR3's "head overlay" (makeup) texture system — how eyebrows, blush, lipstick,
+-- freckles, ageing etc. actually get drawn. Unlike the shop-item components above,
+-- these aren't baked into a head template's texture; a head with no overlay applied
+-- can render with no eyebrows at all. The natives build a standalone composited
+-- texture (base head albedo/normal/material + N overlay layers), then hand it to a
+-- ped's "heads" component to display. Wrapped for ApplyEyebrows in peds.lua.
+
+-- Creates a new texture override (base head albedo/normal/material) and returns its
+-- handle. Up to 32 can exist at once across all peds — release ones no longer needed.
+function RequestPedHeadTexture(albedoHash, normalHash, materialHash)
+	return Citizen.InvokeNative(0xC5E7204F322E49EB, albedoHash, normalHash, materialHash)
+end
+
+-- Removes every overlay layer from a texture override (does not free the handle).
+function ClearPedHeadTexture(textureId)
+	Citizen.InvokeNative(0xB63B9178D0F58D82, textureId)
+end
+
+-- Frees a texture override created by RequestPedHeadTexture.
+function ReleasePedHeadTexture(textureId)
+	Citizen.InvokeNative(0x6BEFAA907B076859, textureId)
+end
+
+-- Adds one overlay layer (e.g. one eyebrow style) to a texture override and returns
+-- its layer index, used by the Set*Layer* calls below.
+function AddPedHeadTextureLayer(textureId, albedoHash, normalHash, materialHash, blendType, texAlpha, sheetGridIndex)
+	return Citizen.InvokeNative(0x86BB5FF45F193A02, textureId, albedoHash, normalHash, materialHash, blendType, texAlpha, sheetGridIndex)
+end
+
+function SetPedHeadTextureLayerPalette(textureId, layerId, paletteHash)
+	Citizen.InvokeNative(0x1ED8588524AC9BE1, textureId, layerId, paletteHash)
+end
+
+function SetPedHeadTextureLayerTint(textureId, layerId, primary, secondary, tertiary)
+	Citizen.InvokeNative(0x2DF59FFE6FFD6044, textureId, layerId, primary, secondary, tertiary)
+end
+
+function SetPedHeadTextureLayerSheetGridIndex(textureId, layerId, index)
+	Citizen.InvokeNative(0x3329AAE2882FC8E4, textureId, layerId, index)
+end
+
+function SetPedHeadTextureLayerAlpha(textureId, layerId, alpha)
+	Citizen.InvokeNative(0x6C76BC24F8BB709A, textureId, layerId, alpha)
+end
+
+function IsPedHeadTextureValid(textureId)
+	return Citizen.InvokeNative(0x31DC8D3F216D8509, textureId)
+end
+
+-- Must be called once after building/editing a texture override, or its component
+-- renders solid black — also what actually pushes overlay edits to the GPU texture.
+function UpdatePedHeadTexture(textureId)
+	Citizen.InvokeNative(0x92DAABA2C1C10B0E, textureId)
+end
+
+function ApplyPedHeadTexture(ped, componentHash, textureId)
+	Citizen.InvokeNative(0x0B46E25761519058, ped, componentHash, textureId)
+end
+
+-- Sets a facial "mood" (happy, angry, scared...) for THIS FRAME ONLY — like most
+-- "this frame" RDR3/GTA natives it has to be called every tick to stay applied,
+-- it isn't a persistent state change.
+function RequestPedFacialMoodThisFrame(ped, moodHash, p2)
+	Citizen.InvokeNative(0x8B3B71C80A29A4BB, ped, moodHash, p2 or 6)
+end
+
 function BlipAddForEntity(blipHash, entity)
 	return Citizen.InvokeNative(0x23F74C2FDA6E7C61, blipHash, entity)
 end

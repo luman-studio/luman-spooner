@@ -1077,3 +1077,85 @@ RegisterNUICallback('physicsPush', function(data, cb)
 	end
 	cb({})
 end)
+
+-- ===================== Ped Emotions (facial mood) =====================
+-- RDR3's facial mood system is a "this frame" native — it has to be refreshed
+-- every tick to stick, unlike a one-shot animation. ActivePedMoods tracks which
+-- peds currently have a mood active; a background thread keeps refreshing them.
+-- Hashes are the real fwFacialAnimRequest__Mood enum values (see
+-- Halen84/RDR3-Native-Flags-And-Enums) — a curated, recognisable subset of the
+-- ~100 that exist (many are combat/horse/weather states, not expressions).
+local PedMoods = {
+	{ label = 'Normal', hash = 3569615413 },
+	{ label = 'Happy', hash = 746733444 },
+	{ label = 'Talking Happy', hash = 1697543443 },
+	{ label = 'Angry', hash = 137506481 },
+	{ label = 'Sad', hash = 1164001287 },
+	{ label = 'Scared', hash = 3716590166 },
+	{ label = 'Nervous', hash = 3652126712 },
+	{ label = 'Confused', hash = 2595289108 },
+	{ label = 'Disgust', hash = 1116928067 },
+	{ label = 'Shocked', hash = 2583247227 },
+	{ label = 'Smug', hash = 3347446607 },
+	{ label = 'Cocky', hash = 3070686211 },
+	{ label = 'Cautious', hash = 3104036806 },
+	{ label = 'Curious', hash = 3537998118 },
+	{ label = 'Intimidated', hash = 816500609 },
+	{ label = 'Intimidating', hash = 3132314318 },
+	{ label = 'Seductive', hash = 456668268 },
+	{ label = 'Bitchy', hash = 1201781013 },
+	{ label = 'Drunk', hash = 3032813660 },
+	{ label = 'Tired', hash = 2403592533 },
+	{ label = 'Injured', hash = 3014186447 },
+	{ label = 'Cower', hash = 970990189 },
+	{ label = 'Panic', hash = 3729996742 },
+	{ label = 'Sleeping', hash = 188835728 }
+}
+
+local PedMoodsByLabel = {}
+for _, mood in ipairs(PedMoods) do
+	PedMoodsByLabel[mood.label] = mood.hash
+end
+
+ActivePedMoods = ActivePedMoods or {}
+
+CreateThread(function()
+	while true do
+		for ped, moodHash in pairs(ActivePedMoods) do
+			if DoesEntityExist(ped) then
+				pcall(RequestPedFacialMoodThisFrame, ped, moodHash)
+			else
+				ActivePedMoods[ped] = nil
+			end
+		end
+
+		Wait(0)
+	end
+end)
+
+RegisterNUICallback('getPedMoods', function(data, cb)
+	local labels = {}
+
+	for _, mood in ipairs(PedMoods) do
+		table.insert(labels, mood.label)
+	end
+
+	cb(json.encode(labels))
+end)
+
+RegisterNUICallback('setPedMood', function(data, cb)
+	if CanModifyEntity(data.handle) then
+		local moodHash = PedMoodsByLabel[data.mood]
+
+		if moodHash then
+			ActivePedMoods[data.handle] = moodHash
+		end
+	end
+
+	cb({})
+end)
+
+RegisterNUICallback('clearPedMood', function(data, cb)
+	ActivePedMoods[data.handle] = nil
+	cb({})
+end)

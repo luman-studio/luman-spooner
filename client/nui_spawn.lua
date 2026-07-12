@@ -24,11 +24,6 @@ RegisterNUICallback('spawnAndAttachPed', function(data, cb)
 		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
 
-		local yaw2 = yaw
-		if yaw2 < 0.0 then
-			yaw2 = yaw2 + 360.0
-		end
-
 		local entity = SpawnPed({
 			name = data.modelName,
 			model = ResolveModelHash(data.modelName),
@@ -37,7 +32,11 @@ RegisterNUICallback('spawnAndAttachPed', function(data, cb)
 			z = spawnPos.z,
 			pitch = 0.0,
 			roll = 0.0,
-			yaw = yaw2,
+			-- Matches the preview, which always sits at heading 0. spooner:onEntitySelected
+			-- (triggered right below) applies the frozen/T-pose +180 pre-offset generically
+			-- for any ped that gets frozen+held, whether freshly spawned or grabbed — so
+			-- this doesn't need its own special-cased offset.
+			yaw = 0.0,
 			collisionDisabled = false,
 			isVisible = true,
 			outfit = -1,

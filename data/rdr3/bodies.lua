@@ -49,6 +49,7 @@ PedBodyData = {
 			"CLOTHING_ITEM_%s_BODIES_LOWER_004_V_001",
 			"CLOTHING_ITEM_%s_BODIES_LOWER_005_V_001",
 		},
+		albedo = "MP_HEAD_%sR1_SC08_C0_000_AB",
 	},
 	{
 		heads = {
@@ -87,6 +88,7 @@ PedBodyData = {
 			"CLOTHING_ITEM_%s_BODIES_LOWER_004_V_002",
 			"CLOTHING_ITEM_%s_BODIES_LOWER_005_V_002",
 		},
+		albedo = "MP_HEAD_%sR1_SC01_C0_000_AB",
 	},
 	{
 		heads = {
@@ -125,6 +127,7 @@ PedBodyData = {
 			"CLOTHING_ITEM_%s_BODIES_LOWER_004_V_003",
 			"CLOTHING_ITEM_%s_BODIES_LOWER_005_V_003",
 		},
+		albedo = "MP_HEAD_%sR1_SC02_C0_000_AB",
 	},
 	{
 		heads = {
@@ -163,6 +166,7 @@ PedBodyData = {
 			"CLOTHING_ITEM_%s_BODIES_LOWER_004_V_004",
 			"CLOTHING_ITEM_%s_BODIES_LOWER_005_V_004",
 		},
+		albedo = "MP_HEAD_%sR1_SC03_C0_000_AB",
 	},
 	{
 		heads = {
@@ -201,6 +205,7 @@ PedBodyData = {
 			"CLOTHING_ITEM_%s_BODIES_LOWER_004_V_005",
 			"CLOTHING_ITEM_%s_BODIES_LOWER_005_V_005",
 		},
+		albedo = "MP_HEAD_%sR1_SC04_C0_000_AB",
 	},
 	{
 		heads = {
@@ -239,6 +244,7 @@ PedBodyData = {
 			"CLOTHING_ITEM_%s_BODIES_LOWER_004_V_006",
 			"CLOTHING_ITEM_%s_BODIES_LOWER_005_V_006",
 		},
+		albedo = "MP_HEAD_%sR1_SC05_C0_000_AB",
 	},
 }
 
@@ -267,6 +273,92 @@ PedTeethData = {
 	"CLOTHING_ITEM_%s_TEETH_004",
 	"CLOTHING_ITEM_%s_TEETH_005",
 	"CLOTHING_ITEM_%s_TEETH_006",
+}
+
+-- Eyebrows are NOT a shop-item component like Heads/Eyes/Teeth above — RDR3 keeps
+-- them in a separate "head overlay" (makeup) system, composited onto the head's
+-- texture at runtime rather than baked into it. That's why some head templates show
+-- no eyebrows at all: nothing applies this layer unless asked to. Sourced from
+-- VORPCORE/vorp_character (config.lua Config.overlays_info.eyebrows) — each entry is
+-- one eyebrow style's overlay texture set (id = the overlay itself, albedo/normal/ma
+-- = its supporting textures). Applied via ApplyEyebrows in peds.lua.
+PedEyebrowData = {
+	{ id = 0x07844317, albedo = 0xF81B2E66, normal = 0x7BC4288B, ma = 0x202674A1 },
+	{ id = 0x0A83CA6E, albedo = 0x8FA4286B, normal = 0xBD811948, ma = 0xB82C8FBB },
+	{ id = 0x139A5CA3, albedo = 0x487ABE5A, normal = 0x22A9DDF9, ma = 0x78AA9401 },
+	{ id = 0x1832E474, albedo = 0x96FBB931, normal = 0x32FA2683, ma = 0xA1775B18 },
+	{ id = 0x216EF84C, albedo = 0x269CD8F8, normal = 0x2F54C727, ma = 0xCCBD1939 },
+	{ id = 0x2594304D, albedo = 0xA5A23CD1, normal = 0x8611B42C, ma = 0x0238302B },
+	{ id = 0x33C39BC5, albedo = 0xF928E29B, normal = 0x46C268BD, ma = 0x4B92F13E },
+	{ id = 0x443E3CBA, albedo = 0x6C83B571, normal = 0x2B191070, ma = 0xD551E623 },
+	{ id = 0x4F5052DE, albedo = 0x827EEF46, normal = 0x70E8C702, ma = 0xD97518F9 },
+	{ id = 0x5C049D35, albedo = 0x41E90506, normal = 0x7E47D163, ma = 0x54100288 },
+	{ id = 0x77A1546E, albedo = 0x43C4AE44, normal = 0x290FC7F7, ma = 0xD8FC26A9 },
+	{ id = 0x8A4B79C2, albedo = 0xAE6ED4E6, normal = 0x89B29E5A, ma = 0xFA0476E4 },
+	{ id = 0x9728137B, albedo = 0x23E65D35, normal = 0xEE39073F, ma = 0x218DD4C8 },
+	{ id = 0xA6DE8325, albedo = 0x7A93F649, normal = 0x22B33B65, ma = 0xEE6CCF11 },
+	{ id = 0xA8CCB6C4, albedo = 0x29AD8BF9, normal = 0x34ABB09D, ma = 0xCF206860 },
+	{ id = 0xB3F74D19, albedo = 0x3E2F71B1, normal = 0xD4809D11, ma = 0x9ABFA640 },
+	{ id = 0xBD38AFD9, albedo = 0x058A698E, normal = 0x9A732F86, ma = 0x2EF1D769 },
+	{ id = 0xCD0A4F7C, albedo = 0xED46998E, normal = 0xB5B73A38, ma = 0x15C5FB78 },
+	{ id = 0xD0EC86FF, albedo = 0x81B462A2, normal = 0x894F8744, ma = 0x51551810 },
+	{ id = 0xEB088A20, albedo = 0x0C6CDBDC, normal = 0x91A2496E, ma = 0xE639F138 },
+	{ id = 0xF0CA96FC, albedo = 0xAC3BCA3F, normal = 0x667FEFF8, ma = 0xDD8E5EFF },
+	{ id = 0xF3351BD9, albedo = 0xC3286EA4, normal = 0x8BB9158A, ma = 0xFBBAE4D8 },
+	{ id = 0xF9052779, albedo = 0x8AEADE78, normal = 0x21BB2D97, ma = 0x75A0B928 },
+	{ id = 0xFE183197, albedo = 0x92B508CD, normal = 0x6AA92A3E, ma = 0xB4A436DB },
+}
+
+-- Base head texture (albedo/normal/material) the eyebrow overlay is composited onto,
+-- per gender — sourced from VORPCORE/vorp_character (config.lua Config.texture_types).
+-- The albedo half comes from the ped's current skin tone instead (PedBodyData[tone].albedo)
+-- so the overlay matches whatever tone is actually applied.
+PedHeadBaseTexture = {
+	male = { normal = "mp_head_mr1_008_nm", material = "mp_head_mr1_000_m" },
+	female = { normal = "mp_head_fr1_008_nm", material = "mp_head_fr1_000_m" }
+}
+
+-- Canonical color-variant names, in the fixed order every Hair/Beard style group
+-- below uses (confirmed across all style groups). This is what lets Hair Style,
+-- Beard Style, and Hair Color be three independent controls instead of one giant
+-- flattened style+color list — Style picks the group, Color picks by NAME within
+-- whichever group is currently selected (one beard style is missing a JET_BLACK
+-- variant, so matching by name rather than position matters).
+PedHairColorNames = {
+	"BLONDE", "BROWN", "DARKEST_BROWN", "DARK_BLONDE", "DARK_GINGER", "DARK_GREY",
+	"GINGER", "GREY", "JET_BLACK", "LIGHT_BLONDE", "LIGHT_BROWN", "LIGHT_GINGER",
+	"LIGHT_GREY", "MEDIUM_BROWN", "SALT_PEPPER", "STRAWBERRY_BLONDE", "UNCLE_GREY"
+}
+
+-- Eyebrow overlay tint options. RDR3's "tint" parameters for this overlay system
+-- (SET_TEXTURE_LAYER_TINT) turned out NOT to be literal RGB colors — they're each
+-- the joaat hash of a METAPED_TINT_* palette name (confirmed: VORPCORE's own default
+-- eyebrow color, the literal 0x3F6E70FF, is exactly joaat("METAPED_TINT_MAKEUP")).
+-- An earlier version of this list borrowed 4 values from VORPCORE's "grime" (dirt
+-- overlay) palette on the assumption they were literal black/brown/light-brown
+-- colors reusable here — they aren't reliably reusable for eyebrows specifically,
+-- which is why the color wasn't visibly changing. This is a curated subset of the
+-- full ~40-name METAPED_TINT_* palette (VORPCORE's config.lua Config.color_palettes,
+-- which shares one big list across eyebrows/hair/beard-stubble/blush/etc.) — the
+-- other ~26 are for clearly unrelated things (hats, horse leather, weapon wood,
+-- colorblind-mode variants...). Index 1 (METAPED_TINT_MAKEUP) is the confirmed-good
+-- default; the rest are untested guesses by name — meant to be browsed in-game
+-- rather than trusted sight unseen.
+PedEyebrowColorPalette = {
+	"METAPED_TINT_MAKEUP",
+	"METAPED_TINT_HAIR",
+	"METAPED_TINT_HAIR1",
+	"METAPED_TINT_HAIR2",
+	"METAPED_TINT_HAIR_BED",
+	"METAPED_TINT_HAIR_UI",
+	"METAPED_TINT_GENERIC_CLEAN",
+	"METAPED_TINT_GENERIC_WORN",
+	"METAPED_TINT_GENERIC_WEATHERED",
+	"METAPED_TINT_SWATCH_000",
+	"METAPED_TINT_SWATCH_001",
+	"METAPED_TINT_SWATCH_002",
+	"METAPED_TINT_SWATCH_003",
+	"METAPED_TINT_COMBINED",
 }
 
 -- Hairstyle shop-item hashes (style group -> color variant), sourced from

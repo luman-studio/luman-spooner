@@ -519,9 +519,12 @@ RegisterNUICallback('spawnMpPed', function(data, cb)
 		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
 
-		local yaw2 = yaw
+		-- Face the camera, not away from it — see SpawnBareMpPed for why +180.
+		local yaw2 = yaw + 180.0
 		if yaw2 < 0.0 then
 			yaw2 = yaw2 + 360.0
+		elseif yaw2 >= 360.0 then
+			yaw2 = yaw2 - 360.0
 		end
 
 		local ped = SpawnMpPedFromEntry(entry, spawnPos.x, spawnPos.y, spawnPos.z, yaw2, {
@@ -597,9 +600,15 @@ local function SpawnBareMpPed(gender)
 	local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
 	local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
 
-	local yaw2 = yaw
+	-- Face the camera (i.e. the player), not away from it — this ped immediately
+	-- becomes AttachedEntity/selected below, which applies the usual frozen/T-pose
+	-- +180 pre-offset (see spooner:onEntitySelected) on top of whatever's stored
+	-- here, so start from camera yaw + 180 to land on "facing the camera" after that.
+	local yaw2 = yaw + 180.0
 	if yaw2 < 0.0 then
 		yaw2 = yaw2 + 360.0
+	elseif yaw2 >= 360.0 then
+		yaw2 = yaw2 - 360.0
 	end
 
 	local ped = SpawnPed({
@@ -646,13 +655,64 @@ local CUSTOM_BODY_ROW_FIELD = {
 	SkinTone = 'tone',
 	HeadShape = 'headShape',
 	BodyShape = 'bodyShape',
-	LegsShape = 'legsShape'
+	LegsShape = 'legsShape',
+	BodyBuild = 'bodyBuild',
+	Waist = 'waist',
+	HairStyle = 'hairGroup',
+	HairColor = 'hairColor',
+	BeardStyle = 'beardGroup',
+	Eyebrows = 'eyebrowStyle',
+	EyebrowColor = 'eyebrowColor'
 }
 
-local CUSTOM_BODY_ROW_ORDER = { 'SkinTone', 'HeadShape', 'BodyShape', 'LegsShape' }
+local CUSTOM_BODY_ROW_ORDER = {
+	'SkinTone', 'HeadShape', 'BodyShape', 'LegsShape', 'BodyBuild', 'Waist',
+	'HairStyle', 'HairColor', 'BeardStyle', 'Eyebrows', 'EyebrowColor'
+}
 
+-- Which section each row is grouped under in the editor UI (see
+-- renderCustomMpPed/createCustomPedRow in saved_entities.js, which insert a header
+-- whenever a row's group differs from the previous one). Generic session.list
+-- categories (Shirt, Pant, Hat, ...) aren't listed here — they default to 'Clothing'
+-- in SerializeCustomCategories.
+local CUSTOM_BODY_ROW_GROUP = {
+	SkinTone = 'Body', HeadShape = 'Body', BodyShape = 'Body', LegsShape = 'Body',
+	BodyBuild = 'Body', Waist = 'Body',
+	HairStyle = 'Hair', HairColor = 'Hair', BeardStyle = 'Hair', Eyebrows = 'Hair', EyebrowColor = 'Hair'
+}
+
+-- Rows that allow "None" (0) — everything else in CUSTOM_BODY_ROW_ORDER always has
+-- some value selected (there's no meaningful "no skin tone"). Hair and Beard can
+-- both legitimately be bald/clean-shaven; Hair Color has nothing to be "none" of.
+local CUSTOM_BODY_ROW_OPTIONAL = {
+	HairStyle = true, BeardStyle = true
+}
+
+-- Real body-build/weight component hashes, equipped via EquipMetaPedOutfit (the
+-- "meta ped outfit" native, not the plain shop-item slot system) — same mechanism
+-- and same hashes RDR3's own MP character creator uses. EquipMetaPedOutfitExtra
+-- (raw preset index, tried first) turned out to only ever affect the head/face,
+-- never the actual body — these two component sets are what really reshapes it:
+-- Build swaps the torso/limb mesh (athletic/heavy/etc.), Waist layers a separate
+-- belly/girth component that still shows through worn clothing. Not known to be
+-- gender-specific (no separate list exists for mp_female either upstream), so the
+-- same hashes are used for both.
+local CUSTOM_BODY_BUILD_HASHES = {
+	61606861, -1241887289, -369348190, 32611963, -20262001, -369348190
+}
+
+local CUSTOM_WAIST_HASHES = {
+	-2045421226, -1745814259, -325933489, -1065791927, -844699484, -1273449080,
+	927185840, 149872391, 399015098, -644349862, 1745919061, 1004225511,
+	1278600348, 502499352, -2093198664, -1837436619, 1736416063, 2040610690,
+	-1173634986, -867801909, 1960266524
+}
+
+-- Hair and Beard used to live here (flattened style+color option lists) but moved
+-- to the dedicated HairStyle/BeardStyle/HairColor rows above — see the "Hair /
+-- Beard / Hair Color" section below for why.
 local CUSTOM_CATEGORY_ORDER = {
-	'Hair', 'Beard', 'Eyes', 'Teeth',
+	'Eyes', 'Teeth',
 	'Shirt', 'Pant', 'Skirt', 'Dress', 'Boots', 'Belt', 'Suspender', 'Vest',
 	'Coat', 'CoatClosed', 'Poncho', 'Cloak', 'Hat', 'Glove', 'Gauntlets',
 	'EyeWear', 'Mask', 'NeckTies', 'NeckWear', 'Bracelet', 'RingLh', 'RingRh',
@@ -684,7 +744,7 @@ local CUSTOM_REQUIRED_CATEGORIES = {
 -- Optional categories that still start with something equipped (rather than "None")
 -- so the ped isn't naked the moment the editor opens.
 local CUSTOM_DEFAULT_DRESSED = {
-	Shirt = true, Pant = true, Boots = true, Hair = true
+	Shirt = true, Pant = true, Boots = true
 }
 
 local function GetBodyRowCount(session, row)
@@ -698,9 +758,45 @@ local function GetBodyRowCount(session, row)
 		return tone and #tone.bodies or 0
 	elseif row == 'LegsShape' then
 		return tone and #tone.legs or 0
+	elseif row == 'BodyBuild' then
+		return #CUSTOM_BODY_BUILD_HASHES
+	elseif row == 'Waist' then
+		return #CUSTOM_WAIST_HASHES
+	elseif row == 'Eyebrows' then
+		return PedEyebrowData and #PedEyebrowData or 0
+	elseif row == 'HairStyle' then
+		local groups = PedHairData and PedHairData[session.gender]
+		return groups and #groups or 0
+	elseif row == 'HairColor' then
+		return PedHairColorNames and #PedHairColorNames or 0
+	elseif row == 'BeardStyle' then
+		-- Male only — no female beard data exists. Returning 0 here makes
+		-- SerializeCustomCategories skip the row entirely for a female session.
+		return (session.gender == 'male' and PedBeardData) and #PedBeardData or 0
+	elseif row == 'EyebrowColor' then
+		return PedEyebrowColorPalette and #PedEyebrowColorPalette or 0
 	end
 
 	return 0
+end
+
+-- Body build (fat/thin/muscular) and waist/belly girth — equipped via
+-- EquipMetaPedOutfit (see its comment in core.lua for why, not
+-- EquipMetaPedOutfitExtra), so applied separately from ApplyBodyAppearance.
+local function ApplyBodyBuild(session)
+	local hash = session.bodyBuild and session.bodyBuild >= 1 and CUSTOM_BODY_BUILD_HASHES[session.bodyBuild]
+
+	if hash then
+		pcall(EquipMetaPedOutfit, session.ped, hash)
+	end
+end
+
+local function ApplyWaist(session)
+	local hash = session.waist and session.waist >= 1 and CUSTOM_WAIST_HASHES[session.waist]
+
+	if hash then
+		pcall(EquipMetaPedOutfit, session.ped, hash)
+	end
 end
 
 -- Re-applies Heads/BodiesUpper/BodiesLower from the session's current tone + shape
@@ -732,6 +828,167 @@ local function ApplyBodyAppearance(session)
 	end
 end
 
+-- Eyebrows aren't a shop-item component (see PedEyebrowData in data/rdr3/bodies.lua)
+-- — RDR3 draws them as a "head overlay" composited into a standalone texture, which
+-- is then handed to the ped's "heads" component. That composite has to be rebuilt
+-- from scratch every time (there's no "just add one layer to what's already there"),
+-- and it has to be rebuilt any time the base head texture changes too — which is
+-- exactly what happens whenever ApplyBodyAppearance re-equips Heads for a tone/shape
+-- change, so every caller of ApplyBodyAppearance calls this right after.
+local function ApplyEyebrows(session)
+	if session.eyebrowTextureId then
+		pcall(ClearPedHeadTexture, session.eyebrowTextureId)
+		pcall(ReleasePedHeadTexture, session.eyebrowTextureId)
+		session.eyebrowTextureId = nil
+	end
+
+	local tone = PedBodyData and PedBodyData[session.tone]
+	local base = PedHeadBaseTexture and PedHeadBaseTexture[session.gender]
+
+	if not tone or not tone.albedo or not base then
+		return
+	end
+
+	local genderLetter = session.gender == 'female' and 'F' or 'M'
+
+	local okReq, textureId = pcall(RequestPedHeadTexture,
+		GetHashKey(string.format(tone.albedo, genderLetter)),
+		GetHashKey(base.normal),
+		GetHashKey(base.material))
+
+	if not okReq or not textureId or textureId < 0 then
+		return
+	end
+
+	local style = session.eyebrowStyle and session.eyebrowStyle >= 1 and PedEyebrowData[session.eyebrowStyle]
+
+	if style then
+		-- normalHash/materialHash are always 1/0 here, not the style's own normal/ma
+		-- fields — matches VORPCORE's own overlay calls exactly; those two fields go
+		-- unused there too. The palette+tint below is what actually colors the brows.
+		local okLayer, layerId = pcall(AddPedHeadTextureLayer, textureId, style.id, 1, 0, 0, 1.0, 0)
+
+		if okLayer and layerId and layerId >= 0 then
+			-- The overlay's own LUT selection — VORPCORE always uses METAPED_TINT_MAKEUP
+			-- here for eyebrows specifically, regardless of which color is picked; only
+			-- the tint primary color below actually changes with the Eyebrow Color row.
+			local colorName = PedEyebrowColorPalette and session.eyebrowColor and PedEyebrowColorPalette[session.eyebrowColor]
+			local tint = GetHashKey(colorName or 'METAPED_TINT_MAKEUP')
+
+			pcall(SetPedHeadTextureLayerPalette, textureId, layerId, GetHashKey('METAPED_TINT_MAKEUP'))
+			pcall(SetPedHeadTextureLayerTint, textureId, layerId, tint, 0, 0)
+			pcall(SetPedHeadTextureLayerSheetGridIndex, textureId, layerId, 1)
+			pcall(SetPedHeadTextureLayerAlpha, textureId, layerId, 1.0)
+		end
+	end
+
+	local waited = 0
+	while not IsPedHeadTextureValid(textureId) and waited < 200 do
+		Wait(0)
+		waited = waited + 1
+	end
+
+	pcall(UpdatePedHeadTexture, textureId)
+	pcall(ApplyPedHeadTexture, session.ped, GetHashKey('heads'), textureId)
+
+	session.eyebrowTextureId = textureId
+end
+
+-- ===================== Hair / Beard / Hair Color =====================
+-- Hair and Beard are style-group -> color-variant shop items (PedHairData/
+-- PedBeardData in data/rdr3/bodies.lua), not a flat option list like the generic
+-- clothing categories below — Style picks the group (haircut/beard shape), and
+-- Color is ONE shared control that recolors Hair, Beard, and (as a best-effort
+-- tint) Eyebrows together, instead of hunting down the same shade three times.
+-- That shared-color coupling is exactly why these live here as dedicated rows
+-- instead of in session.list (the generic system re-applies one fixed hash per
+-- row, with no notion of "recompute using some other row's current state").
+
+local function GetHairGroups(session)
+	return PedHairData and PedHairData[session.gender]
+end
+
+local function GetBeardGroups(session)
+	-- Male only — no female beard data exists.
+	return session.gender == 'male' and PedBeardData or nil
+end
+
+-- Finds the variant in `group` whose hashname matches this exact style group +
+-- color name (style group numbers are 1-based and zero-padded to 3 digits in the
+-- hashname, matching the group's position in the data table). Exact match, not a
+-- suffix search — "BLONDE" is itself a suffix of "DARK_BLONDE"/"LIGHT_BLONDE", so
+-- anything looser would pick the wrong variant.
+local function FindColorVariant(group, genderLetter, itemType, groupIndex, colorName)
+	if not group then
+		return nil
+	end
+
+	local expected = ('CLOTHING_ITEM_%s_%s_%03d_%s'):format(genderLetter, itemType, groupIndex, colorName)
+
+	for _, variant in ipairs(group) do
+		if variant.hashname == expected then
+			return variant
+		end
+	end
+
+	return nil
+end
+
+local function ApplyHair(session)
+	if session.hairAppliedHash then
+		pcall(RemoveShopItemFromPed, session.ped, session.hairAppliedHash)
+		session.hairAppliedHash = nil
+	end
+
+	local groups = GetHairGroups(session)
+	local group = groups and session.hairGroup and session.hairGroup >= 1 and groups[session.hairGroup]
+
+	if not group then
+		return
+	end
+
+	local genderLetter = session.gender == 'female' and 'F' or 'M'
+	local colorName = PedHairColorNames and session.hairColor and PedHairColorNames[session.hairColor]
+	local variant = (colorName and FindColorVariant(group, genderLetter, 'HAIR', session.hairGroup, colorName)) or group[1]
+
+	if variant then
+		pcall(ApplyShopItemToPed, session.ped, variant.hash)
+		session.hairAppliedHash = variant.hash
+	end
+end
+
+local function ApplyBeard(session)
+	if session.beardAppliedHash then
+		pcall(RemoveShopItemFromPed, session.ped, session.beardAppliedHash)
+		session.beardAppliedHash = nil
+	end
+
+	local groups = GetBeardGroups(session)
+	local group = groups and session.beardGroup and session.beardGroup >= 1 and groups[session.beardGroup]
+
+	if not group then
+		return
+	end
+
+	local colorName = PedHairColorNames and session.hairColor and PedHairColorNames[session.hairColor]
+	local variant = (colorName and FindColorVariant(group, 'M', 'BEARD', session.beardGroup, colorName)) or group[1]
+
+	if variant then
+		pcall(ApplyShopItemToPed, session.ped, variant.hash)
+		session.beardAppliedHash = variant.hash
+	end
+end
+
+-- The shared Hair/Beard color control — re-applies whatever styles are currently
+-- selected, picking the new color's variant within each. Eyebrows have their own
+-- separate Eyebrow Color row (see ApplyEyebrows) — RDR3's eyebrow overlay tint
+-- isn't drawn from the same 17 named Hair/Beard color variants, so there's no
+-- reliable way to keep it in sync with this one automatically.
+local function ApplyHairColor(session)
+	ApplyHair(session)
+	ApplyBeard(session)
+end
+
 local function FlattenCustomCategoryOptions(category, gender, genderLetter)
 	local options = {}
 
@@ -742,22 +999,6 @@ local function FlattenCustomCategoryOptions(category, gender, genderLetter)
 	elseif category == 'Teeth' then
 		for _, template in ipairs(PedTeethData or {}) do
 			table.insert(options, GetHashKey(string.format(template, genderLetter)))
-		end
-	elseif category == 'Hair' then
-		for _, group in ipairs((PedHairData and PedHairData[gender]) or {}) do
-			for _, variant in ipairs(group) do
-				table.insert(options, variant.hash)
-			end
-		end
-	elseif category == 'Beard' then
-		-- Male only; PedBeardData is a flat group list (no gender wrapper) since
-		-- there's no female equivalent in this dataset.
-		if gender == 'male' then
-			for _, group in ipairs(PedBeardData or {}) do
-				for _, variant in ipairs(group) do
-					table.insert(options, variant.hash)
-				end
-			end
 		end
 	else
 		local groups = PedOutfitData and PedOutfitData[gender] and PedOutfitData[gender][category]
@@ -884,12 +1125,19 @@ local function SerializeCustomCategories(session)
 	local rows = {}
 
 	for _, row in ipairs(CUSTOM_BODY_ROW_ORDER) do
-		table.insert(rows, {
-			category = row,
-			index = session[CUSTOM_BODY_ROW_FIELD[row]],
-			count = GetBodyRowCount(session, row),
-			required = true
-		})
+		local count = GetBodyRowCount(session, row)
+
+		-- 0 only happens for BeardStyle on a female session (no data exists) — skip
+		-- the row entirely rather than showing a useless empty 0/0 control.
+		if count > 0 then
+			table.insert(rows, {
+				category = row,
+				index = session[CUSTOM_BODY_ROW_FIELD[row]],
+				count = count,
+				required = not CUSTOM_BODY_ROW_OPTIONAL[row],
+				group = CUSTOM_BODY_ROW_GROUP[row]
+			})
+		end
 	end
 
 	for _, entry in ipairs(session.list) do
@@ -898,7 +1146,8 @@ local function SerializeCustomCategories(session)
 			index = entry.index,
 			count = #entry.options,
 			required = entry.required,
-			hasState = CUSTOM_WEARABLE_STATE_CATEGORIES[entry.category] or false
+			hasState = CUSTOM_WEARABLE_STATE_CATEGORIES[entry.category] or false,
+			group = 'Clothing'
 		})
 	end
 
@@ -994,6 +1243,39 @@ local function RandomizeCustomBodyAppearance(session)
 	session.headShape = math.random(#tone.heads)
 	session.bodyShape = math.random(#tone.bodies)
 	session.legsShape = math.random(#tone.legs)
+	session.bodyBuild = math.random(#CUSTOM_BODY_BUILD_HASHES)
+	session.waist = math.random(#CUSTOM_WAIST_HASHES)
+
+	-- Never randomize down to "None" (0) — that's the exact "face with no eyebrows"
+	-- problem this row exists to fix, so a randomize pass should always leave some
+	-- style equipped, just not always the same one.
+	if PedEyebrowData and #PedEyebrowData > 0 then
+		session.eyebrowStyle = math.random(#PedEyebrowData)
+	end
+
+	if PedEyebrowColorPalette and #PedEyebrowColorPalette > 0 then
+		session.eyebrowColor = math.random(#PedEyebrowColorPalette)
+	end
+
+	if PedHairColorNames and #PedHairColorNames > 0 then
+		session.hairColor = math.random(#PedHairColorNames)
+	end
+
+	-- Hair, unlike Eyebrows/Beard, is always given a style (a bald randomized ped
+	-- looks like a mistake, not a choice).
+	local hairGroups = GetHairGroups(session)
+	if hairGroups and #hairGroups > 0 then
+		session.hairGroup = math.random(#hairGroups)
+	end
+
+	-- Beard stays a chance roll, same as "Create Random" (Config.RandomBeardChance) —
+	-- most male peds shouldn't come out with a beard by default.
+	local beardGroups = GetBeardGroups(session)
+	if beardGroups and #beardGroups > 0 and math.random() <= (Config.RandomBeardChance or 0) then
+		session.beardGroup = math.random(#beardGroups)
+	else
+		session.beardGroup = 0
+	end
 end
 
 -- Randomizes session.list the same way "Create Random" does (Config.RandomOutfitChance
@@ -1027,14 +1309,10 @@ local function RandomizeCustomList(session)
 	pick('Skirt', true)
 	pick('Shirt', true)
 	pick('Boots', true)
-	pick('Hair', true)
 	pick('Eyes', true)
 	pick('Teeth', true)
 
-	local beardEntry = byName.Beard
-	if beardEntry and math.random() <= (Config.RandomBeardChance or 0) then
-		pick('Beard', true)
-	end
+	-- Hair/Beard are randomized separately now — see RandomizeCustomBodyAppearance.
 
 	for category in pairs(Config.RandomOutfitChance) do
 		pick(category, false)
@@ -1078,16 +1356,30 @@ local function StartCustomPedSession(gender)
 
 	CustomPedSession = {
 		ped = ped, gender = gender, list = list, byName = byName,
-		tone = 1, headShape = 1, bodyShape = 1, legsShape = 1,
+		tone = 1, headShape = 1, bodyShape = 1, legsShape = 1, bodyBuild = 1, waist = 1,
+		eyebrowStyle = 1, eyebrowColor = 1,
+		hairGroup = 1, hairColor = 1, beardGroup = 0,
 		isTemp = true
 	}
 
 	RandomizeCustomBodyAppearance(CustomPedSession)
 	ApplyBodyAppearance(CustomPedSession)
+	ApplyHair(CustomPedSession)
+	ApplyBeard(CustomPedSession)
+	ApplyEyebrows(CustomPedSession)
+	ApplyBodyBuild(CustomPedSession)
+	ApplyWaist(CustomPedSession)
 	ApplyCustomPedComponents(CustomPedSession)
 	SetEntityVisible(ped, true)
 
 	Database[ped].outfitComponents = GetCustomPedComponents(CustomPedSession)
+	Database[ped].bodyBuild = CustomPedSession.bodyBuild
+	Database[ped].eyebrowStyle = CustomPedSession.eyebrowStyle
+	Database[ped].eyebrowColor = CustomPedSession.eyebrowColor
+	Database[ped].waist = CustomPedSession.waist
+	Database[ped].hairGroup = CustomPedSession.hairGroup
+	Database[ped].hairColor = CustomPedSession.hairColor
+	Database[ped].beardGroup = CustomPedSession.beardGroup
 
 	SelectSpawnedMpPed(ped)
 
@@ -1186,6 +1478,13 @@ local function StartCustomizeSession(ped, gender)
 	local session = {
 		ped = ped, gender = gender, list = list, byName = byName,
 		tone = 1, headShape = 1, bodyShape = 1, legsShape = 1,
+		bodyBuild = (Database[ped] and Database[ped].bodyBuild) or 1,
+		waist = (Database[ped] and Database[ped].waist) or 1,
+		eyebrowStyle = (Database[ped] and Database[ped].eyebrowStyle) or 1,
+		eyebrowColor = (Database[ped] and Database[ped].eyebrowColor) or 1,
+		hairGroup = (Database[ped] and Database[ped].hairGroup) or 1,
+		hairColor = (Database[ped] and Database[ped].hairColor) or 1,
+		beardGroup = (Database[ped] and Database[ped].beardGroup) or 0,
 		isTemp = false
 	}
 
@@ -1258,10 +1557,37 @@ end)
 local function SetCustomRowIndex(session, category, newIndex)
 	if CUSTOM_BODY_ROW_FIELD[category] then
 		session[CUSTOM_BODY_ROW_FIELD[category]] = newIndex
-		ApplyBodyAppearance(session)
+
+		if category == 'BodyBuild' then
+			ApplyBodyBuild(session)
+		elseif category == 'Waist' then
+			ApplyWaist(session)
+		elseif category == 'Eyebrows' or category == 'EyebrowColor' then
+			ApplyEyebrows(session)
+		elseif category == 'HairStyle' then
+			ApplyHair(session)
+		elseif category == 'BeardStyle' then
+			ApplyBeard(session)
+		elseif category == 'HairColor' then
+			ApplyHairColor(session)
+		else
+			-- Tone/head/body/legs shape all re-equip Heads, which rebuilds the head's
+			-- base texture — the eyebrow overlay (composited on top of it) has to be
+			-- rebuilt right along with it or it reverts to the bare head underneath.
+			ApplyBodyAppearance(session)
+			ApplyEyebrows(session)
+		end
+
 		UpdatePedVariation(session.ped)
 
 		Database[session.ped].outfitComponents = GetCustomPedComponents(session)
+		Database[session.ped].bodyBuild = session.bodyBuild
+		Database[session.ped].waist = session.waist
+		Database[session.ped].eyebrowStyle = session.eyebrowStyle
+		Database[session.ped].eyebrowColor = session.eyebrowColor
+		Database[session.ped].hairGroup = session.hairGroup
+		Database[session.ped].hairColor = session.hairColor
+		Database[session.ped].beardGroup = session.beardGroup
 
 		return newIndex, GetBodyRowCount(session, category)
 	end
@@ -1272,13 +1598,19 @@ local function SetCustomRowIndex(session, category, newIndex)
 		return nil
 	end
 
+	-- Unlike Heads/BodiesUpper/BodiesLower (handled entirely separately via
+	-- ApplyBodyAppearance), a general clothing category doesn't reliably swap to a
+	-- different item in the same slot just by applying the new one on top — the old
+	-- item has to actually be removed first, or cycling through options can look
+	-- like nothing is happening.
+	if entry.appliedHash then
+		pcall(RemoveShopItemFromPed, session.ped, entry.appliedHash)
+		entry.appliedHash = nil
+	end
+
 	entry.index = newIndex
 
 	if newIndex == 0 then
-		if entry.appliedHash then
-			pcall(RemoveShopItemFromPed, session.ped, entry.appliedHash)
-			entry.appliedHash = nil
-		end
 		entry.wearableStateIndex = nil
 	else
 		local hash = entry.options[newIndex]
@@ -1296,7 +1628,7 @@ end
 
 local function GetCustomRowState(session, category)
 	if CUSTOM_BODY_ROW_FIELD[category] then
-		return session[CUSTOM_BODY_ROW_FIELD[category]] or 1, GetBodyRowCount(session, category), true
+		return session[CUSTOM_BODY_ROW_FIELD[category]] or 1, GetBodyRowCount(session, category), not CUSTOM_BODY_ROW_OPTIONAL[category]
 	end
 
 	local entry = session.byName[category]
@@ -1366,10 +1698,22 @@ RegisterNUICallback('customPedRandomizeAll', function(data, cb)
 		RandomizeCustomList(session)
 
 		ApplyBodyAppearance(session)
+		ApplyHair(session)
+		ApplyBeard(session)
+		ApplyEyebrows(session)
+		ApplyBodyBuild(session)
+		ApplyWaist(session)
 		ApplyCustomPedComponents(session)
 		SetEntityVisible(session.ped, true)
 
 		Database[session.ped].outfitComponents = GetCustomPedComponents(session)
+		Database[session.ped].bodyBuild = session.bodyBuild
+		Database[session.ped].waist = session.waist
+		Database[session.ped].eyebrowStyle = session.eyebrowStyle
+		Database[session.ped].eyebrowColor = session.eyebrowColor
+		Database[session.ped].hairGroup = session.hairGroup
+		Database[session.ped].hairColor = session.hairColor
+		Database[session.ped].beardGroup = session.beardGroup
 
 		cb(json.encode({ gender = session.gender, genderLocked = not session.isTemp, handle = session.ped, categories = SerializeCustomCategories(session) }))
 		return

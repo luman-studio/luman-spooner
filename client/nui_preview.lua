@@ -220,10 +220,14 @@ function SpawnPreview(modelName, entityType)
 
 			-- Create preview entity based on type
 			if requestedType == 'ped' then
+				-- Frozen peds (no active task) consistently render 180° from whatever
+				-- heading is stored (see spooner:onEntitySelected in main.lua) — offset it
+				-- here too so the preview visually faces the same way the ped actually
+				-- ends up facing once spawned (heading 0).
 				if Config.isRDR then
-					PreviewEntity = CreatePed_2(model, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, false, false)
+					PreviewEntity = CreatePed_2(model, spawnPos.x, spawnPos.y, spawnPos.z, 180.0, false, false)
 				else
-					PreviewEntity = CreatePed(0, model, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, false, false)
+					PreviewEntity = CreatePed(0, model, spawnPos.x, spawnPos.y, spawnPos.z, 180.0, false, false)
 				end
 			elseif requestedType == 'vehicle' then
 				PreviewEntity = CreateVehicle(model, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, false, false)

@@ -219,6 +219,7 @@ function updatePermissions(data) {
 	document.getElementById('properties-add-to-group').disabled = !permissions.properties.ped.group;
 	document.getElementById('properties-remove-from-group').disabled = !permissions.properties.ped.group;
 	document.getElementById('properties-scenario').disabled = !permissions.properties.ped.scenario;
+	document.getElementById('properties-emotions').disabled = !permissions.properties.ped.scenario;
 	document.getElementById('properties-animation').disabled = !permissions.properties.ped.animation;
 	document.getElementById('properties-clear-ped-tasks').disabled = !permissions.properties.ped.clearTasks;
 	document.getElementById('properties-clear-ped-tasks-immediately').disabled = !permissions.properties.ped.clearTasks;

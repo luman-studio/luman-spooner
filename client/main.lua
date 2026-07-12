@@ -222,7 +222,10 @@ function MainSpoonerUpdates()
 					z = spawnPos.z,
 					pitch = 0.0,
 					roll = 0.0,
-					yaw = yaw2,
+					-- Matches the preview, which always sits at heading 0 regardless of
+					-- camera direction (see spawnAndAttachPed) — using camera yaw here
+					-- made the ped's rotation jump the instant it was actually spawned.
+					yaw = 0.0,
 					collisionDisabled = false,
 					isVisible = true,
 					outfit = -1,
@@ -251,17 +254,15 @@ function MainSpoonerUpdates()
 			TriggerEvent('spooner:onEntityUnselected', AttachedEntity)
 			if AttachedEntity then
 				if GetEntityType(AttachedEntity) == 1 then
-					-- A frozen ped is shown statically (T-pose) while held, but once placed
-					-- its animation/scenario resumes and it visually faces the opposite way.
-					-- Flip 180° on placement so it matches how it stood while held. Skip for
-					-- peds grabbed without freezing (e.g. a ridden horse), which don't T-pose.
-					if HeldWasFrozen then
-						local p, r, y = table.unpack(GetEntityRotation(AttachedEntity, 2))
-						SetEntityRotation(AttachedEntity, p, r, y + 180.0, 2)
-					end
+					-- Default AI can re-assign the ped a task (wander/idle/turn-to-face...)
+					-- the instant it's placed, and since it stays frozen that task can never
+					-- actually complete — it just twitches in place fighting the freeze.
+					-- Clear it before re-applying whatever pose is actually wanted, so
+					-- there's no leftover task to fight with.
+					ClearPedTasksImmediately(AttachedEntity)
 
-					-- Re-apply the stored pose now that the ped is placed and unfrozen,
-					-- so freezing it while held doesn't leave it in a static stance.
+					-- Re-apply the stored pose now that the ped is placed, so freezing it
+					-- while held doesn't leave it in a static stance.
 					if Database[AttachedEntity] then
 						if Database[AttachedEntity].animation then
 							PlayAnimation(AttachedEntity, Database[AttachedEntity].animation)
@@ -270,9 +271,22 @@ function MainSpoonerUpdates()
 						end
 					end
 
+					local wasFrozen = IsEntityFrozen(AttachedEntity)
+
 					-- Settle the ped on the ground once, now that it's placed (skipped
 					-- every frame while held to avoid the flicker).
 					PlaceOnGroundProperly(AttachedEntity)
+
+					-- PlaceEntityOnGroundProperly has a known quirk on peds: it visually
+					-- snaps them 180° regardless of the pitch/roll/yaw PlaceOnGroundProperly
+					-- restores right after the native call — counteract it here so the
+					-- final placed look matches what was shown while held. Only for peds
+					-- that were actually frozen+held (e.g. not a GrabNoFreeze ridden horse,
+					-- which never goes through the frozen/T-pose state to begin with).
+					if wasFrozen then
+						local p, r, y = table.unpack(GetEntityRotation(AttachedEntity, 2))
+						SetEntityRotation(AttachedEntity, p, r, y + 180.0, 2)
+					end
 
 					-- If this ped carries a stored behavior (e.g. a Saved/MP ped with a
 					-- patrol route), start it now that it's placed, relative to here.
@@ -546,7 +560,17 @@ function MainSpoonerUpdates()
 								fyaw = eyaw2 - axisX * Config.SpeedLr
 							end
 						end
-					elseif AdjustMode == 4 then
+					elseif AdjustMode == 4 and not posChanged then
+						-- Only follow the cursor when the arrow keys aren't actively
+						-- nudging the position. Line 534 already moved the entity to
+						-- the arrow-key-adjusted coords this frame (via the generic
+						-- `entity` var, which is AttachedEntity here) — snapping it to
+						-- spawnPos right after that, every frame, is what fought with
+						-- the arrow-key movement: the entity jumped to the nudged spot
+						-- then straight back to the cursor's raycast point 60x/sec,
+						-- which is the "constant flicker while moving" the arrow keys
+						-- caused. Skipping the cursor snap while posChanged is true lets
+						-- the arrow-key position from line 534 stand for that frame.
 						local fz = spawnPos.z
 
 						-- A ped's coords are its centre, so dropping it straight onto the
@@ -822,7 +846,6 @@ end)
 -- Disable collision for entity white it is selected --
 -------------------------------------------------------
 local hadCollisionDisabled = false
-local wasFrozenBeforeSelect = false
 AddEventHandler('spooner:onEntitySelected', function(entity)
 	if not entity or not DoesEntityExist(entity) then
 		return
@@ -835,23 +858,36 @@ AddEventHandler('spooner:onEntitySelected', function(entity)
 	-- Remember the rotation the entity had when grabbed so the grab loop can hold it
 	-- steady each frame.
 	local pitch, roll, yaw = table.unpack(GetEntityRotation(entity, 2))
-	AttachedEntityRotation = { pitch = pitch, roll = roll, yaw = yaw }
 
 	-- Freeze peds while held AND clear their tasks. Freezing alone is not enough:
 	-- an active scenario/animation keeps driving the ped's heading, which is what
 	-- makes the rotation flicker/fight. Clearing the tasks stops that; the stored
-	-- animation/scenario is re-applied on placement.
+	-- animation/scenario is re-applied on placement. It stays frozen after
+	-- placement too (see spooner:onEntityUnselected).
 	-- Exception: GrabNoFreeze is set when grabbing a horse that has a rider — freezing
 	-- it would dismount the rider, so we grab it without freezing/clearing.
 	if GetEntityType(entity) == 1 and not GrabNoFreeze then
 		ClearPedTasksImmediately(entity)
-		wasFrozenBeforeSelect = IsEntityFrozen(entity)
+
+		-- The frozen/T-posed display consistently renders 180° from whatever yaw is
+		-- stored. Pre-offset the stored yaw by 180 right now, once, so the pose is
+		-- visually correct for the whole hold (matching how the ped looked the instant
+		-- before it was grabbed) instead of only being corrected — with a visible
+		-- snap — at some later point.
+		yaw = yaw + 180.0
+		SetEntityRotation(entity, pitch, roll, yaw, 2)
+
 		FreezeEntityPosition(entity, true)
-		HeldWasFrozen = true
-	else
-		wasFrozenBeforeSelect = false
-		HeldWasFrozen = false
+
+		-- An explicit "stand still" task, rather than just leaving it task-less,
+		-- actively occupies the ped's task slot so ambient/default AI has nothing to
+		-- override it with — that ambient AI trying (and failing, since it's frozen)
+		-- to reorient the ped toward wherever it wants to wander/move is what shows
+		-- up as a 180° flip/fight, most noticeably while actively repositioning it.
+		TaskStandStill(entity, -1)
 	end
+
+	AttachedEntityRotation = { pitch = pitch, roll = roll, yaw = yaw }
 
 	GrabNoFreeze = false
 end)
@@ -868,8 +904,10 @@ AddEventHandler('spooner:onEntityUnselected', function(entity)
 		SetEntityCollision(entity, true)
 	end
 
-	-- Restore the ped's freeze state from before it was grabbed
-	if GetEntityType(entity) == 1 and not wasFrozenBeforeSelect then
-		FreezeEntityPosition(entity, false)
-	end
+	-- Peds are left frozen after being placed, rather than restored to their
+	-- pre-grab (usually unfrozen) state. Unfreezing is what let whatever AI/
+	-- locomotion system drives idle peds re-engage and snap the heading back
+	-- towards its own idea of "forward" — a stored rotation only reliably stays
+	-- where it's set while the entity stays frozen. Anything that actually needs
+	-- the ped to move (Patrol + Lasso, etc.) explicitly unfreezes it itself.
 end)

@@ -730,6 +730,27 @@ function populateScenarioList(filter) {
 	});
 }
 
+var pedMoods = [];
+
+function populateEmotionList() {
+	var list = document.getElementById('emotion-list');
+
+	list.innerHTML = '';
+
+	pedMoods.forEach(function(mood) {
+		var div = document.createElement('div');
+		div.className = 'object';
+		div.innerHTML = mood;
+		div.addEventListener('click', function(event) {
+			sendMessage('setPedMood', {
+				handle: currentEntity(),
+				mood: mood
+			});
+		});
+		list.appendChild(div);
+	});
+}
+
 function populateWeaponList(filter) {
 	var weaponList = document.getElementById('weapon-list');
 	var favsOnly = document.getElementById('favourite-weapons').hasAttribute('data-active');

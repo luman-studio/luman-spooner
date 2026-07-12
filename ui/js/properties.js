@@ -374,6 +374,7 @@ var propertiesEscapeMenus = [
 	{ menu: 'walk-style-menu', back: 'walk-style-menu-close' },
 	{ menu: 'weapon-menu', back: 'weapon-menu-close' },
 	{ menu: 'scenario-menu', back: 'scenario-menu-close' },
+	{ menu: 'emotion-menu', back: 'emotion-menu-close' },
 	{ menu: 'player-model-menu', back: 'player-model-menu-close-btn' },
 	{ menu: 'animation-list-menu', back: 'animation-list-menu-close' },
 	{ menu: 'animation-menu', back: 'animation-menu-close' },
