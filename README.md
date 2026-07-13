@@ -5,14 +5,18 @@ Tool for spawning, placing, and removing entities, inspired by Menyoo's Object S
 # Features
 
 - Freecam mode with a variety of options for placing and adjusting entities
-- Searchable lists of peds, vehicles and objects
-- View and set properties of an entity, including attaching entities to one another
+- Searchable, optimized lists of peds, vehicles and objects with in-game preview before spawning
+- View and set properties of an entity, including attaching entities to one another (with bone search)
+- Create and customize MP peds with outfit randomization, and save them for reuse (RedM)
 - Save and load sets of entities
 - Saved databases are stored client-side, so you can load them on any server with this resource
 - Import and export sets of entities to share with others or to convert to a permanent map
 - Permissions system for controlling access to individual features
 - Copy entity details such as **Id**, **NetId**, **Model**, **Coords**, **Rotation**
-- Preview object animations, and copy an animation to the clipboard to generate the corresponding code (e.g. `PlayEntityAnim` or `TaskPlayAnim`)
+- Copy camera coords/rotation, attachment settings and animations as ready-to-use native code (e.g. `AttachEntity`, `TaskPlayAnim`)
+- Preview object animations with a timeline calculator and entity offset calculator
+- Display of the current interior (name, room) and player routing bucket
+- Physics push (entity slap) for nudging entities
 
 <p align="center">
   <img src="showcase/entity-properties-menu1.png" alt="Entity properties menu" width=100% height=50%>
@@ -142,6 +146,8 @@ After changing any spooner aces while the server is running, run `spooner_refres
 All keys can be rebound in `config.lua`.
 
 ## Menus
+
+While a menu is open, hold the right mouse button to hide the cursor and look around; release it to return to the menu.
 
 ### Spawn menu - F
 

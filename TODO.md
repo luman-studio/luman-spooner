@@ -17,13 +17,13 @@
 [x] Improve ped cloning. Clone completely with all clothes components.
 [x] Fix ped cloning issue in interiors. Seds should align with the ground instead of causing cursor/camera flickering.
 
-[] Preview spawn object https://github.com/keeganwut/spooner and https://github.com/kibook/spooner/pull/19/files
+[x] Preview spawn object https://github.com/keeganwut/spooner and https://github.com/kibook/spooner/pull/19/files
 https://gyazo.com/2dc97757d4bd16b871ef651e84421013
 [] Switch UI selection with arrow buttons (faster entity preview)
 
 [] Plants (rdr2) https://github.com/zetafe1/spooner_plants
 
-[] Optimize data in props list for faster display and search 
+[x] Optimize data in props list for faster display and search 
 [] Option to display bone names and if possible draw skeleton lines on entity
 [] Add Gizmo for advanced object placement https://github.com/GlitchOo/gs_gizmo
 
@@ -48,7 +48,7 @@ ApplyForceToEntityCenterOfMass(1918467, 1, 0, 0.0, 5.0, false, false, true, fals
 [] фикс поворот клонированных педов на C/V(они возвращаются на место автомато почему-то)
 - Не удаётся пофиксить
 
-[] регулирование скорости не только на кнопки но и на колесо мышки как раньше
+[x] регулирование скорости не только на кнопки но и на колесо мышки как раньше
 [] копирование координат как vec4 вместе с heading
 
 [x] клонирование машин (отключение коллизии на время выделения объекта / при выделении чтобы не сталкивались)
