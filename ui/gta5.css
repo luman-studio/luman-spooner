@@ -1,34 +1,14 @@
+/* GTA5 platform overrides. Loaded after style.css. Kept minimal now that the
+   base theme is the shared luman-camera palette — the old blue/Pricedown game
+   theming was dropped in favour of the clean look. The @font-face is retained
+   in case any bespoke element opts into it. */
+
 @font-face {
 	font-family: "Pricedown";
 	src: url("pricedown.otf");
 }
 
-::selection {
-	background-color: #00d;
-}
-
-button:hover:enabled, button:focus:enabled {
-	background-color: rgba(0, 0, 255, 0.5);
-}
-
-button:active:enabled {
-	background-color: white;
-	color: black;
-}
-
-h1 {
-	font-family: "Pricedown";
-}
-
-h2 {
-	font-family: "Pricedown";
-}
-
-h3 {
-	font-family: "Pricedown";
-}
-
 .object.selected {
-	background-color: blue;
-	color: white;
+	background-color: var(--accent);
+	color: #1B1B21;
 }

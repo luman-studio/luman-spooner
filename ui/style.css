@@ -1,3 +1,68 @@
+/* ============================================================================
+   spooner :: ui/style.css
+   Base theme, ported from the luman-camera design language:
+   dark slate surfaces + soft orange accent, rounded corners, layered shadows,
+   subtly translucent "glass" panels. Palette lives in :root — recolour there
+   to reskin the whole tool. All original selectors/IDs/classes are preserved;
+   only the visual styling changed.
+   ============================================================================ */
+
+:root {
+	/* Palette — 5 stops: bg -> deep -> mid -> accent -> highlight (text).
+	   NOTE: surfaces are LITERAL hex, not color-mix() — this CEF build doesn't
+	   reliably paint color-mix(), which left buttons transparent/near-black.
+	   These literals mirror the color-mix results luman-camera derives. */
+	--p-1: #1B1B21;   /* deepest   — panel backdrop           */
+	--p-2: #2A2A33;   /* deep      — borders / card surfaces  */
+	--p-3: #4A4A55;   /* mid       — inactive neutral         */
+	--p-4: #E0832F;   /* bright    — soft saturated orange    */
+	--p-5: #ECECEF;   /* highlight — body text                */
+	--p-4-rgb: 224, 131, 47;
+
+	/* Surfaces — p-1 lifted toward p-5. */
+	--bg-primary:   #23232A;
+	--bg-secondary: #2A2A33;
+	--bg-tertiary:  #3A3A45;   /* button base — clearly visible vs panel */
+	--bg-hover:     #47474F;
+	--bg-active:    #54545E;
+
+	/* Translucent panel surfaces (no backdrop-filter — CEF paints it black).
+	   Buttons/inputs are solid literal hex, so they stay readable even with a
+	   fairly see-through panel behind them. */
+	--bg-panel-glass:      rgba(24, 24, 30, 0.70);
+	--bg-panel-glass-lite: rgba(24, 24, 30, 0.58);
+
+	/* Borders */
+	--border-subtle: #33333D;
+	--border-color:  #3A3A45;
+	--border-active: #55555F;
+
+	/* Text */
+	--text-primary:   #ECECEF;
+	--text-secondary: #B7B7C0;
+	--text-muted:     #7C7C87;
+
+	/* Accent */
+	--accent:        var(--p-4);
+	--accent-dim:    var(--p-3);
+	--accent-soft:   rgba(var(--p-4-rgb), 0.10);
+	--accent-shadow: 0 0 14px rgba(var(--p-4-rgb), 0.20);
+
+	/* Row / list hover tints */
+	--hover-row:        rgba(var(--p-4-rgb), 0.08);
+	--hover-row-strong: rgba(var(--p-4-rgb), 0.12);
+
+	/* Shadows */
+	--shadow-panel: inset 0 1px 0 rgba(255, 255, 255, 0.05),
+	                0 12px 36px rgba(0, 0, 0, 0.65);
+	--shadow-btn:   inset 0 1px 0 rgba(255, 255, 255, 0.06),
+	                0 1px 2px rgba(0, 0, 0, 0.32),
+	                0 3px 6px rgba(0, 0, 0, 0.22);
+	--shadow-btn-hover: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+	                    0 2px 4px rgba(0, 0, 0, 0.36),
+	                    0 5px 12px rgba(0, 0, 0, 0.26);
+}
+
 @font-face {
 	font-family: "212 Keyboard";
 	src: url("keyboard.ttf");
@@ -8,10 +73,11 @@
 	font-family: inherit;
 	user-select: none;
 	color: inherit;
+	box-sizing: border-box;
 }
 
 ::selection {
-	background-color: #d00;
+	background-color: rgba(var(--p-4-rgb), 0.45);
 }
 
 html, body {
@@ -21,54 +87,111 @@ html, body {
 	padding: 0;
 	margin: 0;
 	overflow: hidden;
-	font-family: Helvetica;
+	color: var(--text-primary);
+	font-family: 'DIN', 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
+	-webkit-font-smoothing: antialiased;
 }
 
+/* ── Buttons ──────────────────────────────────────────────────────────────
+   Transparent by default (only a subtle border for structure), like the list
+   rows — on hover they fill solid orange with dark text. */
 button {
-	background-color: rgba(0, 0, 0, 0.5);
-	color: white;
-	border: solid 1px white;
-	font-size: 2vh;
+	background: transparent;
+	color: var(--text-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: 0.7vh;
+	font-size: 1.8vh;
+	font-weight: 500;
+	padding: 0.55vh 0.8vw;
+	cursor: pointer;
+	transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease,
+	            box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 button:hover:enabled, button:focus:enabled {
-	background-color: rgba(255, 0, 0, 0.5);
+	background: var(--accent);
+	color: #1B1B21;
+	border-color: var(--accent);
+	box-shadow: 0 2px 10px rgba(var(--p-4-rgb), 0.30);
+	transform: translateY(-1px);
+	outline: none;
 }
 
 button:active:enabled {
-	background-color: white;
-	color: black;
+	background: #B76B26;
+	color: #1B1B21;
+	border-color: #8C521D;
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+	transform: translateY(0);
 }
 
 button:disabled {
-	color: #444;
-	border: solid 1px #444;
+	color: var(--text-muted);
+	border-color: var(--border-color);
+	background: transparent;
+	box-shadow: none;
+	cursor: default;
+	opacity: 0.5;
 }
 
-input {
-	background-color: rgba(0, 0, 0, 0.5);
-	color: white;
-	border: solid 1px white;
+/* ── Inputs ───────────────────────────────────────────────────────────── */
+input, select, textarea {
+	background-color: rgba(0, 0, 0, 0.30);
+	color: var(--text-primary);
+	border: 1px solid var(--border-color);
+	border-radius: 0.5vh;
+	padding: 0.3vh 0.4vw;
+	transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 2px rgba(var(--p-4-rgb), 0.20);
 }
 
 input[type="checkbox"] {
 	-webkit-appearance: none;
-	background: rgba(0, 0, 0, 0.5);
-	height: 1vw;
-	width: 1vw;
-	border: 1px solid white;
+	appearance: none;
+	background: rgba(0, 0, 0, 0.30);
+	height: 1.1vw;
+	width: 1.1vw;
+	border: 1px solid var(--border-active);
+	border-radius: 0.4vh;
 	vertical-align: middle;
+	cursor: pointer;
+	position: relative;
 }
 
 input[type="checkbox"]:checked {
-	background: rgba(255, 0, 0, 0.75);
+	background: var(--accent);
+	border-color: var(--accent);
 }
 
-input:disabled {
-	color: #444;
-	border: solid 1px #444;
+input[type="checkbox"]:checked::after {
+	content: "";
+	position: absolute;
+	left: 32%;
+	top: 12%;
+	width: 30%;
+	height: 55%;
+	border: solid #1B1B21;
+	border-width: 0 0.2vh 0.2vh 0;
+	transform: rotate(45deg);
 }
 
+input:disabled, select:disabled, textarea:disabled {
+	color: var(--text-muted);
+	border-color: var(--border-color);
+	opacity: 0.6;
+}
+
+option {
+	background-color: var(--p-1);
+	color: var(--text-primary);
+}
+
+/* ── HUD ──────────────────────────────────────────────────────────────── */
 #hud {
 	display: none;
 	font-size: 1.5vh;
@@ -76,6 +199,11 @@ input:disabled {
 
 #info {
 	text-align: center;
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	transform: translate(-50%, 0);
+	color: var(--text-primary);
 }
 
 #crosshair {
@@ -84,37 +212,25 @@ input:disabled {
 	left: 50%;
 	transform: translate(-50%, -50%);
 	font-size: 3.5vh;
-	color: white;
-	font-family: Times;
+	color: #fff;
+	font-family: Times, serif;
+	text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
 }
 
-#crosshair.inactive {
-	color: white;
-}
-
-#crosshair.active {
-	color: #0f0;
-}
-
-#crosshair.attached {
-	color: #0ff;
-}
-
-#info {
-	position: absolute;
-	bottom: 0;
-	left: 50%;
-	transform: translate(-50%, 0);
-	color: white;
-}
+#crosshair.inactive { color: #fff; }
+#crosshair.active    { color: var(--accent); }
+#crosshair.attached  { color: #7AA0B5; }
 
 #controls {
 	display: flex;
 	justify-content: center;
 	font-size: 1.25vh;
-	padding: 0.25vh 0.25vw;
+	padding: 0.4vh 0.5vw;
 	margin-top: 1vh;
-	background-color: rgba(0, 0, 0, 0.5);
+	background-color: var(--bg-panel-glass);
+	border: 1px solid var(--border-color);
+	border-radius: 0.8vh;
+	box-shadow: var(--shadow-panel);
 }
 
 .control-set, .control-and-help {
@@ -128,6 +244,7 @@ input:disabled {
 
 .control-help {
 	padding-left: 0.25vw;
+	color: var(--text-secondary);
 }
 
 #cam-cursor-info {
@@ -135,21 +252,21 @@ input:disabled {
 	top: 50%;
 	left: 1%;
 	transform: translate(0, -50%);
-	color: white;
+	color: var(--text-secondary);
+	background-color: var(--bg-panel-glass-lite);
+	border: 1px solid var(--border-color);
+	border-radius: 0.8vh;
+	padding: 0.8vh 0.8vw;
+	box-shadow: var(--shadow-panel);
 }
 
-#cursor-info {
+#cam-cursor-info > div { padding: 0.05vh 0; }
+
+#cursor-info, #interior-info, #bucket-info {
 	margin-top: 1vh;
 }
 
-#interior-info {
-	margin-top: 1vh;
-}
-
-#bucket-info {
-	margin-top: 1vh;
-}
-
+/* ── Menus (panels) ───────────────────────────────────────────────────── */
 .menu {
 	display: none;
 	position: absolute;
@@ -157,14 +274,17 @@ input:disabled {
 	right: 1%;
 	height: 95%;
 	transform: translate(0, -50%);
-	background-color: rgba(0, 0, 0, 0.3);
-	color: white;
+	background-color: var(--bg-panel-glass);
+	color: var(--text-primary);
 	font-size: 1.9vh;
-	padding: 0.5vh 0.5vw;
+	padding: 1vh 0.8vw;
 	flex-flow: column;
-	min-width: 10%;
-	max-width: 30%;
+	min-width: 12%;
+	max-width: 32%;
 	overflow: auto;
+	border: 1px solid var(--border-color);
+	border-radius: 1vh;
+	box-shadow: var(--shadow-panel);
 }
 
 #spawn-categories {
@@ -172,10 +292,11 @@ input:disabled {
 	display: flex;
 	flex-flow: column;
 	flex-grow: 1;
+	gap: 0.4vh;
 }
 
 .spawn-category {
-	padding: 0.25vh 0;
+	padding: 0;
 }
 
 .spawn-category button {
@@ -184,13 +305,11 @@ input:disabled {
 
 .search {
 	display: flex;
+	margin-bottom: 0.5vh;
 }
 
 .search-filter {
 	flex-grow: 1;
-	border: solid 1px white;
-	background-color: rgba(0, 0, 0, 0.5);
-	color: white;
 }
 
 .list {
@@ -199,48 +318,58 @@ input:disabled {
 	padding: 0.5vh 0.25vw 0.5vh 0;
 }
 
-::-webkit-scrollbar {
-	background: black;
-}
-
+/* ── Scrollbars ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-	background-color: rgb(128, 128, 128);
+	background-color: var(--border-active);
+	border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background-color: var(--accent);
 }
 
+/* ── List rows (objects / entities / databases) ───────────────────────── */
 .object {
-	padding: 0.25vh 0.25vw;
+	padding: 0.35vh 0.4vw;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	border-radius: 0.5vh;
+	transition: background-color 0.1s ease, color 0.1s ease;
+	cursor: pointer;
 }
 
 .object:hover {
-	background-color: white;
-	color: black;
+	background-color: var(--accent);
+	color: #1B1B21;
 }
 
 .object.selected {
-	background-color: white;
-	color: black;
+	background-color: var(--accent);
+	color: #1B1B21;
+	font-weight: 600;
 }
 
 .object.favourite {
-	background-color: rgba(255, 215, 0, 0.5);
-}
-
-.object-name, .object-favourite {
+	background-color: rgba(var(--p-4-rgb), 0.16);
 }
 
 .self {
-	background-color: rgba(0, 0, 255, 0.3);
+	background-color: rgba(122, 160, 181, 0.22);
 }
 
 .invalid {
-	background-color: rgba(255, 0, 0, 0.3);
+	background-color: rgba(255, 90, 110, 0.20);
 }
 
+/* ── Properties menu ──────────────────────────────────────────────────── */
 #properties-menu .label, #properties-menu .value {
 	display: inline;
+}
+
+#properties-menu .label {
+	color: var(--text-secondary);
 }
 
 #properties-menu .label::after {
@@ -258,10 +387,12 @@ input:disabled {
 
 .property.multiple {
 	display: flex;
+	gap: 0.4vw;
 }
 
 .property label {
 	display: block;
+	color: var(--text-secondary);
 }
 
 .property button {
@@ -285,6 +416,7 @@ input:disabled {
 
 #save-db-options {
 	display: flex;
+	gap: 0.4vw;
 }
 
 #save-db-name {
@@ -292,14 +424,18 @@ input:disabled {
 }
 
 .database {
-	padding: 0.25vh 0.25vw;
+	padding: 0.35vh 0.4vw;
+	border-radius: 0.5vh;
+	transition: background-color 0.1s ease, color 0.1s ease;
+	cursor: pointer;
 }
 
 .database:hover {
-	background-color: white;
-	color: black;
+	background-color: var(--accent);
+	color: #1B1B21;
 }
 
+/* ── Help menu ────────────────────────────────────────────────────────── */
 #help-menu {
 	display: none;
 	flex-flow: column;
@@ -307,11 +443,14 @@ input:disabled {
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
-	background-color: rgba(0, 0, 0, 0.75);
-	color: white;
-	padding: 1vh 1vw;
+	background-color: var(--bg-panel-glass);
+	color: var(--text-primary);
+	padding: 1.5vh 1.2vw;
 	font-size: 1.5vh;
 	max-height: 95%;
+	border: 1px solid var(--border-color);
+	border-radius: 1vh;
+	box-shadow: var(--shadow-panel);
 }
 
 #help-content {
@@ -339,38 +478,39 @@ td {
 
 h1 {
 	font-size: 3vh;
-	color: #b00;
-	font-weight: normal;
+	color: var(--accent);
+	font-weight: 600;
 }
 
 h2 {
 	font-size: 2.5vh;
-	font-weight: normal;
+	font-weight: 600;
 }
 
 h3 {
 	font-size: 2vh;
-	font-weight: normal;
+	font-weight: 600;
+	color: var(--text-secondary);
 }
 
 strong {
-	color: #b00;
+	color: var(--accent);
 }
 
+/* ── Control keycaps (HUD) ────────────────────────────────────────────── */
 .control {
 	font-family: "212 Keyboard";
 	font-size: 4vh;
 }
 
-/* Mouse keycaps (the keyboard font has no mouse/scroll glyphs) */
 .control-mouse {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	width: 3.4vh;
 	height: 4vh;
-	color: #fff;
-	border: 0.25vh solid #fff;
+	color: var(--text-primary);
+	border: 0.22vh solid var(--border-active);
 	border-radius: 0.7vh;
 	box-sizing: border-box;
 	vertical-align: middle;
@@ -383,14 +523,15 @@ strong {
 
 .control-mouse svg.mk .body {
 	fill: none;
-	stroke: #fff;
+	stroke: var(--text-primary);
 	stroke-width: 1.6;
 }
 
 .control-mouse svg.mk .btn {
-	fill: #fff;
+	fill: var(--accent);
 }
 
+/* ── Import/export DB modal ───────────────────────────────────────────── */
 #import-export-db {
 	display: none;
 	flex-flow: column;
@@ -400,23 +541,18 @@ strong {
 	transform: translate(-50%, -50%);
 	width: 50%;
 	height: 50%;
-	background: rgba(0, 0, 0, 0.5);
-	color: white;
+	background: var(--bg-panel-glass);
+	color: var(--text-primary);
+	border: 1px solid var(--border-color);
+	border-radius: 1vh;
+	box-shadow: var(--shadow-panel);
+	padding: 1vh 1vw;
 }
 
 #import-export-controls {
 	display: flex;
 	width: 100%;
-}
-
-select {
-	background: rgba(0, 0, 0, 0.5);
-	color: white;
-	border: solid 1px white;
-}
-
-option {
-	background-color: #000;
+	gap: 0.4vw;
 }
 
 #import-url {
@@ -426,23 +562,27 @@ option {
 textarea {
 	width: 100%;
 	flex-grow: 1;
-	background: rgba(0, 0, 0, 0.75);
-	color: white;
 	resize: none;
+	font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
+/* ── Attachment options ───────────────────────────────────────────────── */
 .attachment-option {
 	padding: 0.5vh 0;
+	display: flex;
+	align-items: center;
+	gap: 0.4vw;
 }
 
 #attachment-bone-container {
 	display: flex;
+	gap: 0.4vw;
 }
 
 .labelled-input-group {
 	display: grid;
 	grid-template-columns: auto 1fr;
-	grid-gap: 0 0.5vw;
+	grid-gap: 0.3vh 0.5vw;
 }
 
 .labelled-input {
@@ -453,6 +593,7 @@ textarea {
 	display: flex;
 	font-size: 1.25vh;
 	align-items: center;
+	color: var(--text-secondary);
 }
 
 .copy-button {
@@ -461,7 +602,9 @@ textarea {
 
 #object-database-stats {
 	font-size: 1.25vh;
-	border-bottom: 1px solid white;
+	border-bottom: 1px solid var(--border-color);
+	padding-bottom: 0.4vh;
+	color: var(--text-secondary);
 }
 
 .object-database-stat {
@@ -478,6 +621,7 @@ textarea {
 	grid-column: 1 / 4;
 }
 
+/* ── Config flags ─────────────────────────────────────────────────────── */
 #config-flags-list {
 	display: grid;
 	grid-template-columns: max-content auto max-content;
@@ -487,6 +631,7 @@ textarea {
 
 .add-config-flag-container {
 	display: flex;
+	gap: 0.4vw;
 }
 
 .config-flag {
@@ -494,7 +639,7 @@ textarea {
 }
 
 .config-flag.off {
-	color: #555;
+	color: var(--text-muted);
 }
 
 #config-flag-label {
@@ -513,14 +658,14 @@ textarea {
 	flex-grow: 1;
 }
 
-/* Spawn menu pagination and preview controls (unified for all spawn menus) */
+/* ── Spawn-menu pagination + preview ──────────────────────────────────── */
 .pagination-controls {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	padding: 0.5vh 0;
 	gap: 0.5vw;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .pagination-controls button {
@@ -535,30 +680,32 @@ textarea {
 #propset-pagination-info,
 #pickup-pagination-info {
 	font-size: 1.25vh;
-	color: #aaa;
+	color: var(--text-muted);
 	min-width: 10vw;
 	text-align: center;
 }
 
 .nav-hint {
 	font-size: 1.1vh;
-	color: #888;
+	color: var(--text-muted);
 	text-align: center;
 	padding: 0.25vh 0;
 }
 
 .nav-hint .key {
-	background-color: rgba(255, 255, 255, 0.2);
+	background-color: var(--bg-tertiary);
+	border: 1px solid var(--border-color);
 	padding: 0.1vh 0.3vw;
-	border-radius: 2px;
+	border-radius: 0.3vh;
 	font-family: monospace;
+	color: var(--text-secondary);
 }
 
 #animation-time-slider {
 	width: 100%;
 	-webkit-appearance: none;
 	height: 6px;
-	background: rgba(255, 255, 255, 0.3);
+	background: var(--bg-tertiary);
 	border-radius: 3px;
 	outline: none;
 	border: none;
@@ -569,9 +716,10 @@ textarea {
 	-webkit-appearance: none;
 	width: 14px;
 	height: 14px;
-	background: #ff0000;
+	background: var(--accent);
 	border-radius: 50%;
 	cursor: pointer;
+	box-shadow: 0 0 6px rgba(var(--p-4-rgb), 0.5);
 }
 
 #animation-time-display {
@@ -587,34 +735,41 @@ textarea {
 #animation-selected-info {
 	padding: 0.5vh 0.25vw;
 	margin: 0.25vh 0;
-	border-top: 1px solid rgba(255, 255, 255, 0.3);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+	border-top: 1px solid var(--border-color);
+	border-bottom: 1px solid var(--border-color);
 }
 
 #animation-selected-info .label {
 	font-size: 1.25vh;
-	color: #aaa;
+	color: var(--text-muted);
 }
 
 #animation-selected-name {
 	font-size: 1.6vh;
 	word-break: break-all;
 	white-space: normal;
-	color: #fff;
+	color: var(--text-primary);
 }
 
+/* ── Primary spawn button (accent CTA) ────────────────────────────────── */
 .spawn-btn {
 	width: 100%;
 	margin-top: 0.5vh;
 	font-size: 1.75vh;
-	padding: 0.5vh 0;
+	padding: 0.55vh 0;
 }
 
 .spawn-btn:enabled {
-	background-color: rgba(0, 128, 0, 0.5);
-	border-color: #0f0;
+	background: rgba(var(--p-4-rgb), 0.12);
+	border-color: var(--accent);
+	color: var(--accent);
+	font-weight: 600;
 }
 
 .spawn-btn:hover:enabled {
-	background-color: rgba(0, 200, 0, 0.6);
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #1B1B21;
+	box-shadow: 0 3px 14px rgba(var(--p-4-rgb), 0.45);
+	transform: translateY(-1px);
 }

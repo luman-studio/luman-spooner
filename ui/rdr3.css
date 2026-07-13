@@ -1,25 +1,14 @@
+/* RDR3 platform overrides. Loaded after style.css. Kept intentionally minimal
+   now that the base theme is the luman-camera palette — the old red/Chinese
+   Rocks game theming was dropped in favour of the shared clean look. The
+   @font-face is retained in case any bespoke element opts into it. */
+
 @font-face {
 	font-family: "Chinese Rocks";
 	src: url("chineserocks.ttf");
 }
 
-button {
-	font-family: "Chinese Rocks";
-}
-
-h1 {
-	font-family: "Chinese Rocks";
-}
-
-h2 {
-	font-family: "Chinese Rocks";
-}
-
-h3 {
-	font-family: "Chinese Rocks";
-}
-
 .object.selected {
-	background-color: red;
-	color: white
+	background-color: var(--accent);
+	color: #1B1B21;
 }

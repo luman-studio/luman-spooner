@@ -28,9 +28,13 @@
 	text-overflow: ellipsis;
 }
 
+.saved-ped-name {
+	border-radius: 0.5vh;
+}
+
 .saved-ped-name:hover {
-	background-color: white;
-	color: black;
+	background-color: var(--accent);
+	color: #1B1B21;
 }
 
 .saved-ped-rename-input {
@@ -60,8 +64,10 @@
 }
 
 #mp-custom-gender-male.selected, #mp-custom-gender-female.selected {
-	background-color: white;
-	color: black;
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #1B1B21;
+	font-weight: 600;
 }
 
 .custom-ped-row {
@@ -74,11 +80,11 @@
 .custom-ped-section-header {
 	margin-top: 0.75vh;
 	padding: 0.25vh 0;
-	font-weight: bold;
+	font-weight: 600;
 	text-transform: uppercase;
 	font-size: 0.85em;
-	opacity: 0.7;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+	color: var(--text-secondary);
+	border-bottom: 1px solid var(--border-subtle);
 }
 
 .custom-ped-section-header:first-child {
