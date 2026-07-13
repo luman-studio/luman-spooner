@@ -1,10 +1,5 @@
--- Set this to one of the following:
--- FiveM: "gta5"
--- RedM: "rdr3"
-local gameName = "rdr3"
-
 fx_version "cerulean"
-game(gameName)
+game "common"
 rdr3_warning "I acknowledge that this is a prerelease build of RedM, and I am aware my resources *will* become incompatible once RedM ships."
 
 name "spooner"
@@ -26,7 +21,50 @@ files {
 	"ui/js/properties.js",
 	"ui/js/database_ui.js",
 	"ui/js/main.js",
+
+	"ui/gta5.css",
+	"ui/pricedown.otf",
+	"ui/rdr3.css",
+	"ui/chineserocks.ttf",
+
+	-- Both games' data files are shipped to the client with a glob; the explicit
+	-- load list lives in the `spooner_data` metadata below.
+	"data/gta5/*.lua",
+	"data/rdr3/*.lua",
 }
+
+-- Which data files client/data_loader.lua actually executes, enumerated at
+-- runtime via GetResourceMetadata. This is a custom metadata key (like ox_lib's
+-- own `ox_lib` key) — NOT the built-in `files`/`data_file` directives, which are
+-- handled specially and don't enumerate back as a plain list. The loader loads
+-- only the entries whose path matches the running game (data/<game>/...).
+spooner_data "data/gta5/animations.lua"
+spooner_data "data/gta5/bones.lua"
+spooner_data "data/gta5/interiors.lua"
+spooner_data "data/gta5/objects.lua"
+spooner_data "data/gta5/pedConfigFlags.lua"
+spooner_data "data/gta5/peds.lua"
+spooner_data "data/gta5/pickups.lua"
+spooner_data "data/gta5/propsets.lua"
+spooner_data "data/gta5/scenarios.lua"
+spooner_data "data/gta5/vehicles.lua"
+spooner_data "data/gta5/walkstyles.lua"
+spooner_data "data/gta5/weapons.lua"
+
+spooner_data "data/rdr3/animations.lua"
+spooner_data "data/rdr3/bodies.lua"
+spooner_data "data/rdr3/bones.lua"
+spooner_data "data/rdr3/objects.lua"
+spooner_data "data/rdr3/outfits.lua"
+spooner_data "data/rdr3/particles.lua"
+spooner_data "data/rdr3/pedConfigFlags.lua"
+spooner_data "data/rdr3/peds.lua"
+spooner_data "data/rdr3/pickups.lua"
+spooner_data "data/rdr3/propsets.lua"
+spooner_data "data/rdr3/scenarios.lua"
+spooner_data "data/rdr3/vehicles.lua"
+spooner_data "data/rdr3/walkstyles.lua"
+spooner_data "data/rdr3/weapons.lua"
 
 ui_page "ui/index.html"
 
@@ -40,61 +78,10 @@ server_scripts {
 	"server/extended.lua",
 }
 
-if gameName == "rdr3" then
-	dependency "uiprompt"
-
-	files {
-		"ui/chineserocks.ttf",
-		"ui/rdr3.css"
-	}
-
-	client_script "@uiprompt/uiprompt.lua"
-
-	client_scripts {
-		"data/rdr3/animations.lua",
-		"data/rdr3/bodies.lua",
-		"data/rdr3/bones.lua",
-		"data/rdr3/objects.lua",
-		"data/rdr3/outfits.lua",
-		"data/rdr3/particles.lua",
-		"data/rdr3/pedConfigFlags.lua",
-		"data/rdr3/peds.lua",
-		"data/rdr3/pickups.lua",
-		"data/rdr3/propsets.lua",
-		"data/rdr3/scenarios.lua",
-		"data/rdr3/vehicles.lua",
-		"data/rdr3/walkstyles.lua",
-		"data/rdr3/weapons.lua"
-	}
-elseif gameName == "gta5" then
-	files {
-		"ui/pricedown.otf",
-		"ui/gta5.css"
-	}
-
-	client_scripts {
-		"data/gta5/animations.lua",
-		"data/gta5/bones.lua",
-		"data/gta5/objects.lua",
-		"data/gta5/pedConfigFlags.lua",
-		"data/gta5/peds.lua",
-		"data/gta5/pickups.lua",
-		"data/gta5/propsets.lua",
-		"data/gta5/scenarios.lua",
-		"data/gta5/vehicles.lua",
-		"data/gta5/walkstyles.lua",
-		"data/gta5/weapons.lua",
-		"data/gta5/interiors.lua",
-	}
-else
-	print("WARNING: spooner has not been configured. Please edit fxmanifest.lua and set the gameName variable.")
-end
-
 client_script "slaxml.lua"
 
--- client.lua was split into the client/ modules below. They all share one Lua
--- state and _G, so order only matters for load-time side effects: core.lua sets
--- up shared state/prompts first and main.lua starts the update loop last.
+client_script "client/data_loader.lua"
+client_script "client/uiprompt.lua"
 client_scripts {
 	"client/core.lua",
 	"client/entities.lua",

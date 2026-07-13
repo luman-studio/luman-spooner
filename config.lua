@@ -1,6 +1,23 @@
 Config = {}
 
-Config.isRDR = not TerraingridActivate
+-- Detect the game automatically instead of relying on a game-specific native
+-- being present. config.lua is a shared_script, so this runs on both sides:
+--   client -> GetGameName() returns 'fivem' or 'redm'
+--   server -> GetGameName() returns 'fxserver' for both games, so fall back to
+--             the 'gamename' convar ('gta5' or 'rdr3') to tell them apart.
+local function DetectIsRDR()
+	local game = GetGameName()
+
+	if game == 'redm' then
+		return true
+	elseif game == 'fivem' then
+		return false
+	end
+
+	return GetConvar('gamename', 'gta5') == 'rdr3'
+end
+
+Config.isRDR = DetectIsRDR()
 
 -- Configurable controls
 if Config.isRDR then
