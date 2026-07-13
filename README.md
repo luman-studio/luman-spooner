@@ -48,6 +48,31 @@ None. Works on both FiveM and RedM with no external dependencies.
 
 3. Restart the server.
 
+# Configuration
+
+Key options in `config.lua`:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `Config.MaxEntities` | `10` | Max entities a player without `spooner.noEntityLimit` can spawn at a time |
+| `Config.CleanUpOnStop` | `true` | Remove all spawned entities when the resource is stopped |
+| `Config.Speed` | `0.10` | Default freecam movement speed |
+| `Config.AdjustSpeed` | `0.01` | Speed of X/Y/Z entity adjustments |
+| `Config.RotateSpeed` | `1.0` | Speed of pitch/roll/yaw adjustments |
+| `Config.EntityHandleDrawDistance` | `20.0` | Draw distance for entity handles |
+
+All keybinds are also defined in `config.lua` (`Config.*Control`).
+
+# Commands
+
+| Command | Where | Description |
+|---------|-------|-------------|
+| `spooner` | Client | Toggle Object Spooner on/off (same as F5) |
+| `spooner_db` | Client | Open the Database menu |
+| `spooner_savedb` | Client | Open the Save/Load Database menu |
+| `spooner_migrate_old_dbs` | Client | Migrate saved databases from the old storage format |
+| `spooner_refresh_perms` | Server | Refresh spooner permissions on all clients |
+
 # Permissions
 
 By default all players have full access. To limit which players can use the spooner or what parts they can access, edit `permissions.cfg`.
@@ -67,6 +92,8 @@ add_ace group.admin spooner.delete.other allow
 ```
 
 This lets all players spawn a limited number of entities and modify/delete only their own, while admins can spawn any number of entities and modify/delete other players' entities.
+
+Permissions are granular — you can restrict individual spawn types (`spooner.spawn.ped`, `spooner.spawn.vehicle`, ...) and individual properties (`spooner.properties.ped.weapon`, `spooner.properties.vehicle.repair`, ...). The full list is documented in the comments of `permissions.cfg`.
 
 After changing any spooner aces while the server is running, run `spooner_refresh_perms` to apply them on all clients, or restart the resource.
 
@@ -99,12 +126,20 @@ After changing any spooner aces while the server is running, run `spooner_refres
 | G                         | Clone selected entity                                                            |
 | Pg Up/Pg Down/Mouse wheel | Change currently selected speed                                                  |
 | R                         | Cycle between which speed to change                                              |
+| M                         | Toggle entity handles                                                            |
+| Left Alt                  | Focus on the selected entity                                                     |
+| Left Ctrl                 | Toggle focus mode                                                                |
+| 2                         | Copy camera coords and rotation to clipboard                                     |
+| 1                         | Show/hide the controls overlay                                                   |
 | F                         | Open the Spawn menu                                                              |
 | X                         | Open the Database menu                                                           |
 | Tab                       | Open the Properties menu for the selected entity                                 |
 | J                         | Open the Save/Load Database menu                                                 |
+| H                         | Open the Help menu                                                               |
 | F5                        | Toggle Object Spooner on/off                                                     |
 | Escape/Delete             | Exit Object Spooner                                                              |
+
+All keys can be rebound in `config.lua`.
 
 ## Menus
 
