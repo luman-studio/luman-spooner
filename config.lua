@@ -11,6 +11,10 @@ if Config.isRDR then
 	Config.LookUdControl          = `INPUT_LOOK_UD`
 	Config.IncreaseSpeedControl   = `INPUT_CURSOR_SCROLL_UP`   -- Mouse wheel up
 	Config.DecreaseSpeedControl   = `INPUT_CURSOR_SCROLL_DOWN` -- Mouse wheel down
+	-- RDR3 references controls by joaat hash.
+	Config.TextChatControl        = `INPUT_MP_TEXT_CHAT_ALL`
+	Config.PauseControl           = `INPUT_FRONTEND_PAUSE`
+	Config.PauseAlternateControl  = `INPUT_FRONTEND_PAUSE_ALTERNATE`
 else
 	-- GTA V Controls. Mouse Buttons not detectable as Raw Keys.
 	Config.SelectControl          = 176   -- Left mouse button
@@ -19,6 +23,11 @@ else
 	Config.LookUdControl          = 2
 	Config.IncreaseSpeedControl   = 241   -- Mouse wheel up (INPUT_CURSOR_SCROLL_UP)
 	Config.DecreaseSpeedControl   = 242   -- Mouse wheel down (INPUT_CURSOR_SCROLL_DOWN)
+	-- GTA V references controls by integer index. Passing a joaat hash here indexes
+	-- the control array out of bounds and crashes the game (native 0x91AEF906BCA88877).
+	Config.TextChatControl        = 245   -- INPUT_MP_TEXT_CHAT_ALL
+	Config.PauseControl           = 199   -- INPUT_FRONTEND_PAUSE
+	Config.PauseAlternateControl  = 200   -- INPUT_FRONTEND_PAUSE_ALTERNATE
 end
 -- Raw keys:
 Config.UpControl              = 32  -- Spacebar

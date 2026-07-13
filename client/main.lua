@@ -27,13 +27,13 @@ function MainSpoonerUpdates()
 
 	if Cam then
 		DisableAllControlActions(0)
-		EnableControlAction(0, `INPUT_MP_TEXT_CHAT_ALL`, true)
+		EnableControlAction(0, Config.TextChatControl, true)
 
 		-- Escape should just leave the spooner instead of opening the game's pause
 		-- menu. The pause control stays disabled (no EnableControlAction above), so
 		-- we detect the press here and toggle the spooner off. When a NUI menu is
 		-- focused the key is handled in the UI instead, so this won't fire.
-		if IsDisabledControlJustPressed(0, `INPUT_FRONTEND_PAUSE_ALTERNATE`) or IsDisabledControlJustPressed(0, `INPUT_FRONTEND_PAUSE`) then
+		if IsDisabledControlJustPressed(0, Config.PauseAlternateControl) or IsDisabledControlJustPressed(0, Config.PauseControl) then
 			TriggerServerEvent('spooner:toggle')
 		end
 
