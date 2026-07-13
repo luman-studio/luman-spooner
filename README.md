@@ -11,56 +11,48 @@ Tool for spawning, placing, and removing entities, inspired by Menyoo's Object S
 - Saved databases are stored client-side, so you can load them on any server with this resource
 - Import and export sets of entities to share with others or to convert to a permanent map
 - Permissions system for controlling access to individual features
+- Copy entity details such as **Id**, **NetId**, **Model**, **Coords**, **Rotation**
+- Preview object animations, and copy an animation to the clipboard to generate the corresponding code (e.g. `PlayEntityAnim` or `TaskPlayAnim`)
 
-# Example
-
-- Copying entity details such as **Id**, **NetId**, **Model**, **Coords**, **Rotation** etc.
-- General UI/UX improvements, including better element placementto prioritize frequently used features and adding icons for each button.
 <p align="center">
-  <img src="showcase/entity-properties-menu1.png" alt="Description" width=100% height=50%>
+  <img src="showcase/entity-properties-menu1.png" alt="Entity properties menu" width=100% height=50%>
 </p>
 
-- Preview of object animations.
-- More transparent menu background to allow better visibility of the game view when the menu overlaps it.
-- Copying an animation to the clipboard will generate the coresponding code (e.g. `PlayEntityAnim` or `TaskPlayAnim`) with the selected parameters directly from the menu.
-
 <p align="center">
-  <img src="showcase/animations.gif" alt="Description" width=100% height=50%>
+  <img src="showcase/animations.gif" alt="Animations" width=100% height=50%>
 </p>
 
 <div style="display: flex; justify-content: center;">
   <a>
-    <img src="showcase/ped-options-menu1.png" alt="Description" width="49%" height="auto">
+    <img src="showcase/ped-options-menu1.png" alt="Ped options menu" width="49%" height="auto">
   </a>
   <a>
-    <img src="showcase/vehicle-options-menu1.png" alt="Description" width="49%" height="auto">
+    <img src="showcase/vehicle-options-menu1.png" alt="Vehicle options menu" width="49%" height="auto">
   </a>
 </div>
 
 # Requirements
 
-None. [uiprompt](https://github.com/kibook/redm-uiprompt) (used on RedM) is bundled directly into this resource, so there are no external dependencies to install on either FiveM or RedM.
+None. Works on both FiveM and RedM with no external dependencies.
 
 # Installation
 
-1. Place in the resources directory.
+1. Place the resource in your `resources` directory.
 
-2. No configuration is needed — the resource auto-detects whether it is running on FiveM or RedM and loads the correct data automatically. (Setting a `gameName` variable in fxmanifest.lua is no longer required.)
-
-3. Add the following to server.cfg:
+2. Add the following to `server.cfg`:
 
    ```
    exec @luman-spooner/permissions.cfg
    ensure luman-spooner
    ```
-   
-4. Restart the server.
+
+3. Restart the server.
 
 # Permissions
 
-The default permissions give full access to the object spooner to all players. You can limit which players can use the spooner or what parts they can access by modifying `permissions.cfg`.
+By default all players have full access. To limit which players can use the spooner or what parts they can access, edit `permissions.cfg`.
 
-For example:
+Example:
 
 ```
 add_ace builtin.everyone spooner.view allow
@@ -74,9 +66,9 @@ add_ace group.admin spooner.modify.other allow
 add_ace group.admin spooner.delete.other allow
 ```
 
-The above configuration would allow all users to spawn a limited number of entities, and only modify or delete the objects they spawn, while an admin can spawn any number of entities and modify or delete other players' entities.
+This lets all players spawn a limited number of entities and modify/delete only their own, while admins can spawn any number of entities and modify/delete other players' entities.
 
-If you need to change any permissions while the server is running, after adding/removing any spooner-related aces, run `spooner_refresh_perms` to refresh the permissions on all clients, or restart the resource.
+After changing any spooner aces while the server is running, run `spooner_refresh_perms` to apply them on all clients, or restart the resource.
 
 # Usage
 
@@ -120,40 +112,38 @@ If you need to change any permissions while the server is running, after adding/
 
 The **Spawn** menu provides searchable lists to select an entity to spawn. Left-clicking on an entity sets it as your current spawn.
 
-If an entity is not included in the list, you can still spawn it by entering the full model name in the search field and clicking **Spawn By Name**.
+If an entity is not in the list, enter its full model name in the search field and click **Spawn By Name**.
 
-Right-clicking an entity in any of the spawn menus will add that entity as a favourite. Clickin the favourites button will toggle displaying only your favourited entities.
+Right-click an entity in any spawn menu to add it as a favourite. Click the favourites button to toggle showing only favourited entities.
 
 ### Database menu - X
 
 The **Database** menu stores a list of entities. When an entity is spawned, it is automatically added to the current database. Existing entities can be added/removed from the database via the **Properties** menu.
 
-- Left-click on an entity to open it in the **Properties** menu
-- Right-click on an entity to delete it
+- Left-click an entity to open it in the **Properties** menu
+- Right-click an entity to delete it
 - Click **Delete All** to delete all entities in the database
 
 ### Properties menu - Tab
 
-The **Properties** menu lists and allows you to edit properties of an entity.
+The **Properties** menu lists and lets you edit the properties of an entity.
 
 ### Save/Load Database menu - J
 
-The **Save/Load Database** menu allows you to store your current database with a name, and then load all the entities from it again later.
+The **Save/Load Database** menu lets you store your current database with a name and load its entities again later.
 
-- To save your current database, enter name in the field and click **Save**.
-- To load a saved database, left-click on the name of the database.
-- To delete a saved database, right-click on the name of the database.
-- To import a database or export the current database, click **Import/Export**.
+- To save, enter a name in the field and click **Save**.
+- To load, left-click the name of the database.
+- To delete, right-click the name of the database.
+- To import or export, click **Import/Export**.
 
-Checking the **Load relative to cursor position** box will spawn the entities in the selected database relative to the current cursor position, rather than exactly where they were originally placed.
-
-Checking the **Replace current DB** box will replace your current database with the loaded database, rather than merging the two.
-
-Checking the **Save/Load deletions** box will save what entities you delete, and delete them again when the database is loaded.
+- **Load relative to cursor position** — spawns entities relative to the current cursor position instead of their original coordinates.
+- **Replace current DB** — replaces your current database with the loaded one instead of merging them.
+- **Save/Load deletions** — saves which entities you delete and deletes them again when the database is loaded.
 
 ### Import/Export menu
 
-The **Import/Export** menu allows you to import and export databases in a number of different formats:
+The **Import/Export** menu imports and exports databases in several formats:
 
 | Format | Description | Export? | Import? |
 |--------|-------------|---------|---------|
@@ -163,11 +153,12 @@ The **Import/Export** menu allows you to import and export databases in a number
 | propplacer JSON | [RedEM:RP propplacer](https://github.com/RedEM-RP/redemrp_propplacer) JSON database | Yes | No |
 | Spooner Backup | Backup of all spooner databases | Yes | Yes |
 
-To export, select the desired format and click **Export**. The output will be displayed in the text box, and you can copy it to save it to an external file.
+To export, select the format and click **Export**. Copy the output from the text box to save it.
 
-To import, paste the input into the text box, select the appropriate format, and click **Import**. Objects imported will be added to your current database.
+To import, paste the input into the text box, select the format, and click **Import**. Imported objects are added to your current database.
 
-Entering a URL of a JSON/XML file in the **Import from URL** field and clicking **Import** allows you to import from external web sources, such as pastebin.com, without needing to copy and paste. Be sure that the URL points to the raw version of the file when using such services.
+Enter a URL of a JSON/XML file in the **Import from URL** field and click **Import** to import from an external source (e.g. pastebin.com). Make sure the URL points to the raw version of the file.
 
 # Credits
+
 Original repository https://github.com/kibook/spooner
