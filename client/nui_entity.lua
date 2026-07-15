@@ -137,6 +137,26 @@ RegisterNUICallback('gravityOff', function(data, cb)
 	cb({})
 end)
 
+-- A scenario spawns its own props (a bottle, a book, a broom...) as plain game
+-- objects attached to the ped — NOT spooner-tracked entities, so GetAttachedChildren
+-- (which reads the Database) never sees them, and clearing the ped's tasks doesn't
+-- always destroy them (a bottle in particular tends to stay stuck on the ped). Sweep
+-- the object pool for anything attached to this ped that spooner doesn't own and
+-- delete it. Call this WHILE the prop is still attached (before clearing tasks), or
+-- the prop may have already detached and no longer resolve back to the ped.
+function RemoveScenarioProps(ped)
+	if not DoesEntityExist(ped) then
+		return
+	end
+
+	for _, obj in ipairs(GetGamePool('CObject')) do
+		if DoesEntityExist(obj) and GetEntityAttachedTo(obj) == ped and not EntityIsInDatabase(obj) then
+			SetEntityAsMissionEntity(obj, true, true)
+			DeleteEntity(obj)
+		end
+	end
+end
+
 RegisterNUICallback('performScenario', function(data, cb)
 	if Permissions.properties.ped.scenario and CanModifyEntity(data.handle) then
 		local oldScenario = Database[data.handle] and Database[data.handle].scenario
@@ -147,6 +167,10 @@ RegisterNUICallback('performScenario', function(data, cb)
 		for _, child in ipairs(GetAttachedChildren(data.handle)) do
 			RemoveEntity(child)
 		end
+
+		-- Delete the old scenario's own game-spawned props (bottle, etc.) while they're
+		-- still attached, before the task clear below (see RemoveScenarioProps).
+		RemoveScenarioProps(data.handle)
 
 		-- Abruptly end the current scenario so its prop is cleaned up
 		ClearPedTasksImmediately(data.handle)
@@ -225,6 +249,12 @@ end)
 function TryClearTasks(handle)
 	if Permissions.properties.ped.clearTasks and CanModifyEntity(handle) then
 		RequestControl(handle)
+
+		-- Delete the scenario's own game-spawned prop (bottle, etc.) while it's still
+		-- attached, before the task clear releases it (see RemoveScenarioProps). This
+		-- is the Stop Scenario path.
+		RemoveScenarioProps(handle)
+
 		ClearPedTasks(handle)
 
 		if Database[handle] then
@@ -259,6 +289,11 @@ RegisterNUICallback('clearTasksAndProps', function(data, cb)
 
 	if Permissions.properties.ped.clearTasks and CanModifyEntity(entity) then
 		RequestControl(entity)
+
+		-- Delete the scenario's game-spawned props (bottle, etc.) while still attached,
+		-- before the task clear releases them.
+		RemoveScenarioProps(entity)
+
 		-- Abrupt clear so a scenario instantly releases/cleans its own prop
 		ClearPedTasksImmediately(entity)
 
@@ -280,6 +315,11 @@ end)
 RegisterNUICallback('clearPedTasksImmediately', function(data, cb)
 	if Permissions.properties.ped.clearTasks and CanModifyEntity(data.handle) then
 		RequestControl(data.handle)
+
+		-- Delete the scenario's game-spawned props while still attached (see
+		-- RemoveScenarioProps), before the abrupt clear.
+		RemoveScenarioProps(data.handle)
+
 		ClearPedTasksImmediately(data.handle)
 
 		if Database[data.handle] then

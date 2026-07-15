@@ -108,7 +108,7 @@ button {
 	            box-shadow 0.15s ease, transform 0.12s ease;
 }
 
-button:hover:enabled, button:focus:enabled {
+button:hover:enabled, button:focus-visible:enabled {
 	background: var(--accent);
 	color: #1B1B21;
 	border-color: var(--accent);

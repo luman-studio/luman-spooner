@@ -582,7 +582,7 @@ function setCustomPedIndex(category, index, row) {
 // ----- Saved Animation + Prop presets (apply to any selected ped) -----
 
 function openAnimPropsMenu() {
-	document.querySelector('#animation-menu').style.display = 'none';
+	document.querySelector('#animation-anims-menu').style.display = 'none';
 	document.querySelector('#animprops-menu').style.display = 'flex';
 
 	sendMessage('getAnimProps', {}).then(resp => resp.json()).then(resp => updateAnimPropsList(resp));
@@ -590,7 +590,7 @@ function openAnimPropsMenu() {
 
 function closeAnimPropsMenu() {
 	document.querySelector('#animprops-menu').style.display = 'none';
-	document.querySelector('#animation-menu').style.display = 'flex';
+	document.querySelector('#animation-anims-menu').style.display = 'flex';
 }
 
 function updateAnimPropsList(data) {

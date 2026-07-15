@@ -374,17 +374,20 @@ var propertiesEscapeMenus = [
 	{ menu: 'walk-style-menu', back: 'walk-style-menu-close' },
 	{ menu: 'weapon-menu', back: 'weapon-menu-close' },
 	{ menu: 'scenario-menu', back: 'scenario-menu-close' },
+	{ menu: 'scenario-category-menu', back: 'scenario-category-menu-close' },
 	{ menu: 'emotion-menu', back: 'emotion-menu-close' },
 	{ menu: 'emotes-list-menu', back: 'emotes-list-menu-close' },
 	{ menu: 'emotes-menu', back: 'emotes-menu-close' },
 	{ menu: 'player-model-menu', back: 'player-model-menu-close-btn' },
 	{ menu: 'animation-list-menu', back: 'animation-list-menu-close' },
+	{ menu: 'animation-anims-menu', back: 'animation-anims-menu-close' },
 	{ menu: 'animation-menu', back: 'animation-menu-close' },
 	{ menu: 'lights-options-menu', back: 'lights-options-menu-close' },
 	{ menu: 'attachment-options-menu', back: 'attachment-options-menu-close' },
 	{ menu: 'ped-options-menu', back: 'ped-options-menu-close' },
 	{ menu: 'vehicle-options-menu', back: 'vehicle-options-menu-close' },
 	{ menu: 'animprops-menu', back: 'animprops-menu-back' },
+	{ menu: 'movements-menu', back: 'movements-menu-close' },
 	{ menu: 'properties-menu', back: 'properties-menu-close-btn' }
 ];
 

@@ -687,6 +687,73 @@ function populateObjectList(filter, immediate) {
 	}
 }
 
+// Scenario categories, matched against the scenario name by keyword (RDR3 scenario
+// names encode the activity, e.g. WORLD_HUMAN_*_STAND / PROP_HUMAN_SEAT_*). First
+// matching category wins, so order matters — more specific groups (music, work)
+// come before the broad posture ones (stand/sit). Anything unmatched falls into
+// "Other". The full unfiltered list is still reachable via the Full List button.
+var SCENARIO_CATEGORIES = [
+	{ key: 'music', label: 'Music', re: /GUITAR|FIDDLE|PIANO|BANJO|DOUBLEBASS|HARMONICA|CONCERTINA|WASHBOARD|MUSIC/ },
+	{ key: 'cards', label: 'Cards & Gambling', re: /CARD|POKER|DOMINO|DICE|BLACKJACK|GAMBL/ },
+	{ key: 'search', label: 'Searching / Looting', re: /RANSACK|_LOOT|SEARCH|RUMMAGE|PICKPOCKET/ },
+	{ key: 'gather', label: 'Gathering', re: /^WB_|_HERB|_FLOWER|FORAGE|HARVEST|_PLUCK|_PLANT/ },
+	{ key: 'work', label: 'Working', re: /PICKAXE|SLEDGE|HAMMER|SHOVEL|_CHOP|TREE_CHOP|_DIG|_AXE|_SAW|MINING|_RAKE|BLACKSMITH|ANVIL|BUILD|CARRY|_LIFT|PLANK|WELD|FORGE|BROOM|SWEEP|PITCHFORK|SCRUB|COOK|_STIR|BUTCHER|SKINNING/ },
+	{ key: 'smoke_drink', label: 'Smoke / Drink / Eat', re: /SMOK|CIGAR|_PIPE|DRINK|COFFEE|_EAT|BOTTLE|WHISKEY|_BEER|FLASK|TONIC/ },
+	{ key: 'sitting', label: 'Sitting', re: /SEAT|SEATED|SITTING|_SIT_|_SIT$|_SIT\b|BENCH|STOOL|SIT_/ },
+	{ key: 'leaning', label: 'Leaning', re: /LEAN/ },
+	{ key: 'crouching', label: 'Crouching / Kneeling', re: /CROUCH|KNEEL|_KNEE/ },
+	{ key: 'lying', label: 'Lying / Sleeping', re: /SLEEP|LYING|_LIE_|LAYING|BEDROLL|PASSED_OUT|DEAD/ },
+	{ key: 'standing', label: 'Standing', re: /STAND/ },
+	{ key: 'guard_watch', label: 'Guard / Watch / Idle', re: /GUARD|WATCH|STARE|IDLE|LOOKOUT|INSPECT|BINOCULAR|SENTRY|PATROL|COWER|GREET|WAVE/ },
+	{ key: 'animal', label: 'Animals', re: /ANIMAL|_DOG_|HORSE|_GOAT|CHICKEN|_COW_|_CAT_|_PIG_|SHEEP|DUCK|DEER/ }
+];
+
+var currentScenarioCategory = null; // null = full list (no category filter)
+
+function categorizeScenario(name) {
+	for (var i = 0; i < SCENARIO_CATEGORIES.length; i++) {
+		if (SCENARIO_CATEGORIES[i].re.test(name)) {
+			return SCENARIO_CATEGORIES[i].key;
+		}
+	}
+	return 'other';
+}
+
+// The scenario category screen: one row per category that actually has scenarios,
+// each showing its count. Clicking a category opens the scenario list filtered to it.
+function populateScenarioCategories() {
+	var list = document.getElementById('scenario-category-list');
+	list.innerHTML = '';
+
+	// Count scenarios per category once.
+	var counts = {};
+	scenarios.forEach(function(name) {
+		var key = categorizeScenario(name);
+		counts[key] = (counts[key] || 0) + 1;
+	});
+
+	var cats = SCENARIO_CATEGORIES.slice();
+	cats.push({ key: 'other', label: 'Other' });
+
+	cats.forEach(function(cat) {
+		if (!counts[cat.key]) {
+			return;
+		}
+
+		var div = document.createElement('div');
+		div.className = 'object';
+		div.innerHTML = cat.label + ' <span class="emote-count">' + counts[cat.key] + '</span>';
+		div.addEventListener('click', function(event) {
+			currentScenarioCategory = cat.key;
+			document.getElementById('scenario-category-menu').style.display = 'none';
+			document.getElementById('scenario-menu').style.display = 'flex';
+			document.getElementById('scenario-search-filter').value = '';
+			populateScenarioList('');
+		});
+		list.appendChild(div);
+	});
+}
+
 function populateScenarioList(filter) {
 	var scenarioList = document.getElementById('scenario-list');
 	var favsOnly = document.getElementById('favourite-scenarios').hasAttribute('data-active');
@@ -697,6 +764,11 @@ function populateScenarioList(filter) {
 		var isFav = favourites.scenarios[scenario];
 
 		if (favsOnly && !isFav) {
+			return;
+		}
+
+		// Restrict to the picked category (unless Full List, where it's null).
+		if (currentScenarioCategory && categorizeScenario(scenario) !== currentScenarioCategory) {
 			return;
 		}
 

@@ -475,9 +475,17 @@
 				<div class="property ped-property object-property">
 					<button id="properties-animation"><i class="fas fa-running"></i> Animations</button>
 				</div>
-				<div class="property multiple ped-property">
-					<button id="properties-copy-scenario"><i class="fas fa-copy"></i> Copy Scenario</button>
-					<button id="properties-paste-scenario"><i class="fas fa-paste"></i> Paste Scenario</button>
+				<div class="property ped-property">
+					<button id="properties-movements"><i class="fas fa-route"></i> Movements</button>
+				</div>
+				<div class="property ped-property">
+					<button id="properties-clear-ped-tasks"><i class="fas fa-stop-circle"></i> Clear Tasks</button>
+				</div>
+				<div class="property ped-property">
+					<button id="properties-clear-tasks-props"><i class="fas fa-broom"></i> Clear Tasks + Props</button>
+				</div>
+				<div class="property ped-property">
+					<button id="properties-clear-ped-tasks-immediately"><i class="fas fa-ban"></i> Clear Tasks Immediately</button>
 				</div>
 				<div class="property multiple ped-property">
 					<input type="text" id="save-ped-name" placeholder="Saved ped name...">
@@ -485,28 +493,6 @@
 				</div>
 				<div class="property ped-property">
 					<button id="properties-save-mp-ped"><i class="fas fa-user-friends"></i> Save MP Ped (+ horse)</button>
-				</div>
-				<details class="ped-property">
-					<summary>Movements</summary>
-					<div class="attachment-option">
-						<input type="checkbox" id="movement-run">
-						<span>Run (otherwise walk)</span>
-					</div>
-					<div class="attachment-option">
-						<input type="checkbox" id="movement-lasso">
-						<span>With Lasso</span>
-					</div>
-					<div class="attachment-option">
-						<input type="checkbox" id="movement-loop" checked>
-						<span>Loop (otherwise stop at B)</span>
-					</div>
-					<div class="property multiple">
-						<button id="movement-start"><i class="fas fa-route"></i> Move A → B</button>
-						<button id="movement-stop"><i class="fas fa-stop"></i> Stop</button>
-					</div>
-				</details>
-				<div class="property ped-property">
-					<button id="properties-clear-tasks-props"><i class="fas fa-broom"></i> Clear Tasks + Props</button>
 				</div>
 
 				<details open="true">
@@ -713,21 +699,6 @@
 					<button id="properties-remove-from-group"><i class="fas fa-user-minus"></i> Remove from Group</button>
 				</div>
 				<div class="property">
-					<button id="properties-scenario"><i class="fas fa-theater-masks"></i> Scenarios</button>
-				</div>
-				<div class="property">
-					<button id="properties-emotions"><i class="fas fa-smile"></i> Emotions</button>
-				</div>
-				<div class="property">
-					<button id="properties-emotes"><i class="fas fa-hands"></i> Emotes</button>
-				</div>
-				<div class="property">
-					<button id="properties-clear-ped-tasks"><i class="fas fa-stop-circle"></i> Clear Tasks</button>
-				</div>
-				<div class="property">
-					<button id="properties-clear-ped-tasks-immediately"><i class="fas fa-ban"></i> Clear Tasks Immediately</button>
-				</div>
-				<div class="property">
 					<button id="properties-give-weapon"><i class="fas fa-gun"></i> Give Weapon</button>
 				</div>
 				<div class="property">
@@ -827,6 +798,18 @@
 			</div>
 			<button id="vehicle-options-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
+		<div id="scenario-category-menu" class="menu">
+			<div class="property">
+				<button id="scenario-full-list"><i class="fas fa-list"></i> Full List</button>
+			</div>
+			<div class="property multiple">
+				<button id="properties-copy-scenario"><i class="fas fa-copy"></i> Copy Scenario</button>
+				<button id="properties-paste-scenario"><i class="fas fa-paste"></i> Paste Scenario</button>
+			</div>
+			<div id="scenario-category-list" class="list"></div>
+			<button id="scenario-stop-cat"><i class="fas fa-stop"></i> Stop Scenario</button>
+			<button id="scenario-category-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
 		<div id="scenario-menu" class="menu">
 			<div id="scenario-search" class="search">
 				<input type="text" id="scenario-search-filter" class="search-filter" value="">
@@ -855,6 +838,25 @@
 			<div id="emotes-list" class="list"></div>
 			<button id="emotes-list-stop"><i class="fas fa-stop"></i> Stop Emote</button>
 			<button id="emotes-list-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="movements-menu" class="menu">
+			<div class="attachment-option">
+				<input type="checkbox" id="movement-run">
+				<span>Run (otherwise walk)</span>
+			</div>
+			<div class="attachment-option">
+				<input type="checkbox" id="movement-lasso">
+				<span>With Lasso</span>
+			</div>
+			<div class="attachment-option">
+				<input type="checkbox" id="movement-loop" checked>
+				<span>Loop (otherwise stop at B)</span>
+			</div>
+			<div class="property multiple">
+				<button id="movement-start"><i class="fas fa-route"></i> Move A → B</button>
+				<button id="movement-stop"><i class="fas fa-stop"></i> Stop</button>
+			</div>
+			<button id="movements-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="save-load-db-menu" class="menu">
 			<div id="db-list" class="list"></div>
@@ -916,6 +918,21 @@
 		</div>
 		<div id="animation-menu" class="menu">
 			<div class="property">
+				<button id="animation-open-anims"><i class="fas fa-running"></i> Animations</button>
+			</div>
+			<div class="property ped-property">
+				<button id="properties-scenario"><i class="fas fa-theater-masks"></i> Scenarios</button>
+			</div>
+			<div class="property ped-property">
+				<button id="properties-emotions"><i class="fas fa-smile"></i> Emotions</button>
+			</div>
+			<div class="property ped-property">
+				<button id="properties-emotes"><i class="fas fa-hands"></i> Emotes</button>
+			</div>
+			<button id="animation-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="animation-anims-menu" class="menu">
+			<div class="property">
 				<button id="animation-open-list"><i class="fas fa-list"></i> Animation List</button>
 			</div>
 			<div class="property multiple">
@@ -933,7 +950,7 @@
 				<button id="properties-animprops-list"><i class="fas fa-list"></i> Apply Saved Anim + Prop</button>
 			</div>
 			<button id="animation-stop"><i class="fas fa-stop-circle"></i> Stop Animation</button>
-			<button id="animation-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
+			<button id="animation-anims-menu-close"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="animation-list-menu" class="menu">
 			<div id="animation-search" class="search">

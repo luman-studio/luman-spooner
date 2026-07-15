@@ -280,6 +280,16 @@ window.addEventListener('load', function() {
 		closeAnimPropsMenu();
 	});
 
+	document.querySelector('#properties-movements').addEventListener('click', function(event) {
+		document.querySelector('#properties-menu').style.display = 'none';
+		document.querySelector('#movements-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#movements-menu-close').addEventListener('click', function(event) {
+		document.querySelector('#movements-menu').style.display = 'none';
+		document.querySelector('#properties-menu').style.display = 'flex';
+	});
+
 	document.querySelector('#movement-start').addEventListener('click', function(event) {
 		var handle = currentEntity();
 		var run = document.querySelector('#movement-run').checked;
@@ -725,13 +735,33 @@ window.addEventListener('load', function() {
 	});
 
 	document.querySelector('#properties-scenario').addEventListener('click', function(event) {
-		document.querySelector('#ped-options-menu').style.display = 'none';
+		document.querySelector('#animation-menu').style.display = 'none';
+		document.querySelector('#scenario-category-menu').style.display = 'flex';
+		populateScenarioCategories();
+	});
+
+	document.querySelector('#scenario-category-menu-close').addEventListener('click', function(event) {
+		document.querySelector('#scenario-category-menu').style.display = 'none';
+		document.querySelector('#animation-menu').style.display = 'flex';
+	});
+
+	// Full List: the whole unfiltered scenario list (the original behaviour).
+	document.querySelector('#scenario-full-list').addEventListener('click', function(event) {
+		currentScenarioCategory = null;
+		document.querySelector('#scenario-category-menu').style.display = 'none';
 		document.querySelector('#scenario-menu').style.display = 'flex';
+		document.querySelector('#scenario-search-filter').value = '';
+		populateScenarioList('');
+	});
+
+	document.querySelector('#scenario-stop-cat').addEventListener('click', function(event) {
+		sendMessage('clearPedTasks', { handle: currentEntity() });
 	});
 
 	document.querySelector('#scenario-menu-close').addEventListener('click', function(event) {
 		document.querySelector('#scenario-menu').style.display = 'none';
-		document.querySelector('#ped-options-menu').style.display = 'flex';
+		document.querySelector('#scenario-category-menu').style.display = 'flex';
+		populateScenarioCategories();
 	});
 
 	document.querySelector('#scenario-search-filter').addEventListener('input', function(event) {
@@ -739,7 +769,7 @@ window.addEventListener('load', function() {
 	});
 
 	document.querySelector('#properties-emotions').addEventListener('click', function(event) {
-		document.querySelector('#ped-options-menu').style.display = 'none';
+		document.querySelector('#animation-menu').style.display = 'none';
 		document.querySelector('#emotion-menu').style.display = 'flex';
 
 		if (pedMoods.length === 0) {
@@ -754,7 +784,7 @@ window.addEventListener('load', function() {
 
 	document.querySelector('#emotion-menu-close').addEventListener('click', function(event) {
 		document.querySelector('#emotion-menu').style.display = 'none';
-		document.querySelector('#ped-options-menu').style.display = 'flex';
+		document.querySelector('#animation-menu').style.display = 'flex';
 	});
 
 	document.querySelector('#emotion-stop').addEventListener('click', function(event) {
@@ -765,7 +795,7 @@ window.addEventListener('load', function() {
 
 	// ===================== Emotes =====================
 	document.querySelector('#properties-emotes').addEventListener('click', function(event) {
-		document.querySelector('#ped-options-menu').style.display = 'none';
+		document.querySelector('#animation-menu').style.display = 'none';
 		document.querySelector('#emotes-menu').style.display = 'flex';
 
 		if (emotesData.length === 0) {
@@ -780,7 +810,7 @@ window.addEventListener('load', function() {
 
 	document.querySelector('#emotes-menu-close').addEventListener('click', function(event) {
 		document.querySelector('#emotes-menu').style.display = 'none';
-		document.querySelector('#ped-options-menu').style.display = 'flex';
+		document.querySelector('#animation-menu').style.display = 'flex';
 	});
 
 	document.querySelector('#emotes-list-menu-close').addEventListener('click', function(event) {
@@ -974,14 +1004,25 @@ window.addEventListener('load', function() {
 		document.querySelector('#properties-menu').style.display = 'flex';
 	});
 
-	document.querySelector('#animation-open-list').addEventListener('click', function(event) {
+	// Animations category: the anim-specific tools (list, copy/paste, anim+prop, stop).
+	document.querySelector('#animation-open-anims').addEventListener('click', function(event) {
 		document.querySelector('#animation-menu').style.display = 'none';
+		document.querySelector('#animation-anims-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#animation-anims-menu-close').addEventListener('click', function(event) {
+		document.querySelector('#animation-anims-menu').style.display = 'none';
+		document.querySelector('#animation-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#animation-open-list').addEventListener('click', function(event) {
+		document.querySelector('#animation-anims-menu').style.display = 'none';
 		document.querySelector('#animation-list-menu').style.display = 'flex';
 	});
 
 	document.querySelector('#animation-list-menu-close').addEventListener('click', function(event) {
 		document.querySelector('#animation-list-menu').style.display = 'none';
-		document.querySelector('#animation-menu').style.display = 'flex';
+		document.querySelector('#animation-anims-menu').style.display = 'flex';
 		stopAnimTimeline();
 	});
 
