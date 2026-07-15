@@ -101,6 +101,11 @@ end)
 -- Preview types: 'ped', 'vehicle', 'object', 'propset', 'pickup', 'particle'
 local PreviewType = nil
 local PreviewParticleHandle = nil
+-- Propsets and pickups aren't ordinary CreateObject entities (they use their own
+-- CreatePropset/CreatePickup APIs), so they can't live in PreviewEntity — tracked
+-- separately here and torn down in ClearPreview alongside it.
+local PreviewPropset = nil
+local PreviewPickup = nil
 
 function ClearPreview()
 	if PreviewParticleHandle and DoesParticleFxLoopedExist(PreviewParticleHandle) then
@@ -112,6 +117,17 @@ function ClearPreview()
 		DeleteEntity(PreviewEntity)
 	end
 	PreviewEntity = nil
+
+	if PreviewPropset and PreviewPropset > 0 and DoesPropsetExist(PreviewPropset) then
+		DeletePropset(PreviewPropset, false, false)
+	end
+	PreviewPropset = nil
+
+	if PreviewPickup and PreviewPickup > 0 then
+		RemovePickup(PreviewPickup)
+	end
+	PreviewPickup = nil
+
 	PreviewModelName = nil
 	PreviewType = nil
 end
@@ -122,8 +138,12 @@ function ClearObjectPreview()
 end
 
 function SpawnPreview(modelName, entityType)
-	-- Don't spawn if same model already previewing
-	if PreviewModelName == modelName and PreviewEntity and DoesEntityExist(PreviewEntity) then
+	-- Don't spawn if same model already previewing (any of the three preview kinds).
+	if PreviewModelName == modelName and (
+		(PreviewEntity and DoesEntityExist(PreviewEntity))
+		or (PreviewPropset and PreviewPropset > 0 and DoesPropsetExist(PreviewPropset))
+		or (PreviewPickup and PreviewPickup > 0)
+	) then
 		return
 	end
 
@@ -181,6 +201,111 @@ function SpawnPreview(modelName, entityType)
 				PreviewParticleHandle = PlayParticleEffect(PreviewEntity, dict, fx, 1.0)
 			end
 		end)
+
+		return
+	end
+
+	-- Propsets aren't a single CreateObject model — they expand into a set of props
+	-- via the propset API. Load + create the real propset in front of the camera as
+	-- the preview (torn down via DeletePropset in ClearPreview). It doesn't follow
+	-- the cursor like PreviewEntity does — it's a stationary "what does this look
+	-- like" preview at the moment of selection.
+	if entityType == 'propset' then
+		local propModel = ResolveModelHash(modelName)
+
+		RequestPropset(propModel)
+
+		CreateThread(function()
+			local requestedModel = modelName
+			local tries = 0
+
+			while not HasPropsetLoaded(propModel) and tries < 200 do
+				Wait(10)
+				tries = tries + 1
+
+				-- Selection changed/cleared while loading — abort.
+				if PreviewModelName ~= nil then
+					ReleasePropset(propModel)
+					return
+				end
+			end
+
+			if not HasPropsetLoaded(propModel) or not Cam then
+				ReleasePropset(propModel)
+				return
+			end
+
+			local x, y, z = table.unpack(GetCamCoord(Cam))
+			local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+			local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+			PreviewPropset = CreatePropset(propModel, spawnPos.x, spawnPos.y, spawnPos.z, 0, yaw, 0.0, false, false)
+
+			ReleasePropset(propModel)
+
+			if PreviewPropset and PreviewPropset > 0 then
+				PreviewModelName = requestedModel
+				PreviewType = 'propset'
+			end
+		end)
+
+		return
+	end
+
+	-- Pickups use the pickup API (a pickup type hash, not an object model), so create
+	-- a real pickup in front of the camera as the preview (removed via RemovePickup in
+	-- ClearPreview). Stationary, same as the propset preview above.
+	if entityType == 'pickup' then
+		local pickupModel = ResolveModelHash(modelName)
+
+		if not IsPickupTypeValid(pickupModel) or not Cam then
+			return
+		end
+
+		local x, y, z = table.unpack(GetCamCoord(Cam))
+		local pitch, roll, yaw = table.unpack(GetCamRot(Cam, 2))
+		local spawnPos = GetInView(x, y, z, pitch, roll, yaw)
+
+		-- Flags: 32 (LowPriority, as the real spawn uses) + 8 (SNAP_TO_GROUND) so the
+		-- pickup lands on the surface instead of dropping through it. Some pickup
+		-- models still settle via physics, so also freeze their object on the ground
+		-- below as a backstop.
+		PreviewPickup = CreatePickup(pickupModel, spawnPos.x, spawnPos.y, spawnPos.z, 32 + 8, 0, false, 0, 0, 0.0, 0)
+
+		if PreviewPickup and PreviewPickup > 0 then
+			PreviewModelName = modelName
+			PreviewType = 'pickup'
+
+			local createdPickup = PreviewPickup
+
+			CreateThread(function()
+				-- The pickup's visible object isn't available the same frame it's
+				-- created — wait for it, then pin it to the ground so it can't fall.
+				local tries = 0
+				local obj = 0
+
+				while tries < 50 do
+					Wait(0)
+					tries = tries + 1
+
+					-- Preview changed/cleared while waiting — stop.
+					if PreviewPickup ~= createdPickup then
+						return
+					end
+
+					obj = Citizen.InvokeNative(0x5099BC55630B25AE, createdPickup) -- GET_PICKUP_OBJECT
+
+					if obj and obj > 0 and DoesEntityExist(obj) then
+						break
+					end
+				end
+
+				if obj and obj > 0 and DoesEntityExist(obj) then
+					PlaceOnGroundProperly(obj)
+					FreezeEntityPosition(obj, true)
+				end
+			end)
+		end
 
 		return
 	end

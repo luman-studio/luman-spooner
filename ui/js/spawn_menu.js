@@ -84,7 +84,7 @@ var SpawnMenuConfig = {
 		previewMessage: 'previewPropset',
 		spawnAttachMessage: 'spawnAndAttachPropset',
 		clearPreviewMessage: 'clearPropsetPreview',
-		supportsPreview: false,  // Propsets use special API, preview not supported
+		supportsPreview: true,  // Stationary preview via the propset API (see SpawnPreview)
 		supportsAttach: true
 	},
 	pickup: {
@@ -95,7 +95,7 @@ var SpawnMenuConfig = {
 		previewMessage: 'previewPickup',
 		spawnAttachMessage: 'spawnAndAttachPickup',
 		clearPreviewMessage: 'clearPickupPreview',
-		supportsPreview: false,  // Pickups use special API
+		supportsPreview: true,  // Stationary preview via the pickup API (see SpawnPreview)
 		supportsAttach: false  // Pickups don't attach
 	},
 	particle: {

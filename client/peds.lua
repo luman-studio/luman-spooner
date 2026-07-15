@@ -193,6 +193,17 @@ end
 local OUTERWEAR_GROUP = { 'CoatClosed', 'Coat', 'Vest' }
 local NECKWEAR_GROUP = { 'NeckTies', 'NeckWear' }
 
+-- When one of these slots changes, RDR3 doesn't recompute layer culling on its own:
+-- a neckerchief tucked under a coat collar gets suppressed and stays invisible until
+-- something forces a recompute (which is why cycling its wearable state made it pop
+-- in). Re-pushing every equipped garment after a neck/outerwear change forces that
+-- recompute. Kept deliberately narrow (neck + outerwear only) so every OTHER
+-- clothing slot behaves exactly as it did before.
+local CUSTOM_RELAYER_CATEGORIES = {
+	NeckWear = true, NeckTies = true,
+	Coat = true, CoatClosed = true, Vest = true
+}
+
 -- Applies a previously picked/saved { category = hash } config to a ped.
 function ApplyOutfitComponents(ped, components)
 	if not components then
@@ -2035,6 +2046,29 @@ local function SetCustomRowIndex(session, category, newIndex)
 		pcall(ApplyShopItemToPed, session.ped, hash)
 		entry.appliedHash = hash
 		entry.wearableStateIndex = 0
+	end
+
+	-- Only for neck/outerwear changes: re-push every equipped garment so a bandana
+	-- tucked under a coat isn't left culled (see CUSTOM_RELAYER_CATEGORIES). Other
+	-- categories fall straight through to a plain variation update, unchanged.
+	if CUSTOM_RELAYER_CATEGORIES[category] then
+		local isMpFemale = session.gender == 'female'
+
+		for _, other in ipairs(session.list) do
+			if other.appliedHash then
+				pcall(ApplyShopItemToPed, session.ped, other.appliedHash)
+
+				-- Keep a non-default wearable state (e.g. bandana over the face) across
+				-- the re-apply — re-applying resets it to state 0 otherwise.
+				if other.wearableStateIndex and other.wearableStateIndex > 0 then
+					local okState, stateHash = pcall(GetShopItemWearableStateByIndex, other.appliedHash, other.wearableStateIndex, isMpFemale)
+
+					if okState and stateHash then
+						pcall(UpdateShopItemWearableState, session.ped, other.appliedHash, stateHash, true)
+					end
+				end
+			end
+		end
 	end
 
 	UpdatePedVariation(session.ped)

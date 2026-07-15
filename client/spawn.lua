@@ -340,9 +340,15 @@ function SpawnPropset(name, model, x, y, z, heading)
 	local itemset = CreateItemset(true)
 	local size = GetEntitiesFromPropset(propset, itemset, 0, false, false)
 
+	local clones = {}
+
 	if size > 0 then
 		for i = 0, size - 1 do
-			CloneEntity(GetIndexedItemInItemset(i, itemset))
+			local clone = CloneEntity(GetIndexedItemInItemset(i, itemset))
+
+			if clone and clone > 0 then
+				table.insert(clones, clone)
+			end
 		end
 	end
 
@@ -352,7 +358,46 @@ function SpawnPropset(name, model, x, y, z, heading)
 
 	DeletePropset(propset, false, false)
 
-	return nil
+	if #clones == 0 then
+		return nil
+	end
+
+	-- Pick the prop whose bottom sits lowest as the parent: the whole set is placed on
+	-- the ground by this one entity, so anchoring on the lowest prop makes that ground
+	-- placement land the set correctly (a prop up high would leave the rest floating).
+	local parent = clones[1]
+	local parentBottom = nil
+
+	for _, clone in ipairs(clones) do
+		local cz = GetEntityCoords(clone).z
+		local minDim = GetModelDimensions(GetEntityModel(clone))
+		local bottom = cz + minDim.z
+
+		if parentBottom == nil or bottom < parentBottom then
+			parentBottom = bottom
+			parent = clone
+		end
+	end
+
+	-- Attach every other prop to the parent so the whole propset moves and places as a
+	-- single unit (like grabbing one object) — the caller sets the returned parent as
+	-- AttachedEntity, and the cursor-follow/click-to-place flow then positions the
+	-- entire set together. Each child keeps its own world position and rotation by
+	-- attaching at its offset relative to the parent (fixedRot so the layout stays
+	-- rigid as the parent is moved/rotated).
+	local pPitch, pRoll, pYaw = table.unpack(GetEntityRotation(parent, 2))
+
+	for _, child in ipairs(clones) do
+		if child ~= parent then
+			local cx, cy, cz = table.unpack(GetEntityCoords(child))
+			local off = GetOffsetFromEntityGivenWorldCoords(parent, cx, cy, cz)
+			local cPitch, cRoll, cYaw = table.unpack(GetEntityRotation(child, 2))
+
+			AttachEntity(child, parent, 0, off.x, off.y, off.z, cPitch - pPitch, cRoll - pRoll, cYaw - pYaw, false, true, false, true)
+		end
+	end
+
+	return parent
 end
 
 ParticleHandles = ParticleHandles or {} -- [anchor entity] = running particle FX handle

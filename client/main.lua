@@ -578,7 +578,11 @@ function MainSpoonerUpdates()
 						-- bottom so its feet (not its centre) sit on the surface. Done
 						-- manually instead of PlaceEntityOnGroundProperly to avoid the
 						-- per-frame re-orientation flicker.
-						if GetEntityType(AttachedEntity) == 1 then
+						-- Same centre-vs-bottom offset for a grouped propset parent: it's
+						-- ground-placed once on release, not every frame (that path detaches
+						-- and re-attaches every child per frame — the source of the lag), so
+						-- offset it manually here to keep it resting on the surface meanwhile.
+						if GetEntityType(AttachedEntity) == 1 or (AttachedChildren and #AttachedChildren > 0) then
 							local minDim = GetModelDimensions(GetEntityModel(AttachedEntity))
 							fz = spawnPos.z - minDim.z
 						end
@@ -597,7 +601,11 @@ function MainSpoonerUpdates()
 					-- re-orients the ped each call and makes it flicker (a periodic 180°
 					-- snap) while held. The cursor point is already on the surface, so it
 					-- follows fine; the ground placement is done once on release instead.
-					if (PlaceOnGround or AdjustMode == 4) and GetEntityType(AttachedEntity) ~= 1 then
+					-- Skip the per-frame ground placement for a grouped propset (handled by
+					-- the manual fz offset above + a single placement on release) — calling
+					-- it every frame detaches/re-attaches every child of the set each frame,
+					-- which is what made placement lag badly.
+					if (PlaceOnGround or AdjustMode == 4) and GetEntityType(AttachedEntity) ~= 1 and not (AttachedChildren and #AttachedChildren > 0) then
 						PlaceOnGroundProperly(AttachedEntity)
 					end
 				end
@@ -855,6 +863,19 @@ AddEventHandler('spooner:onEntitySelected', function(entity)
 	hadCollisionDisabled = GetEntityCollisionDisabled(entity)
 	SetEntityCollision(entity, false)
 
+	-- Attached children (e.g. a whole propset attached to one parent prop) must also
+	-- drop collision while held — otherwise they physically fight the world/player as
+	-- the parent is dragged around, which is what flung the propset into the camera.
+	-- Cached here so the follow loop can also skip the very expensive per-frame
+	-- PlaceOnGroundProperly (it detaches + re-attaches every child each frame).
+	AttachedChildren = GetAttachedChildren(entity)
+
+	for _, child in ipairs(AttachedChildren) do
+		if DoesEntityExist(child) then
+			SetEntityCollision(child, false)
+		end
+	end
+
 	-- Remember the rotation the entity had when grabbed so the grab loop can hold it
 	-- steady each frame.
 	local pitch, roll, yaw = table.unpack(GetEntityRotation(entity, 2))
@@ -902,7 +923,26 @@ AddEventHandler('spooner:onEntityUnselected', function(entity)
 	-- Keep collision disabled if it was before selection
 	if not hadCollisionDisabled then
 		SetEntityCollision(entity, true)
+
+		-- Restore collision on the attached children (propset) that were dropped in
+		-- onEntitySelected, so the placed set is solid again.
+		if AttachedChildren then
+			for _, child in ipairs(AttachedChildren) do
+				if DoesEntityExist(child) then
+					SetEntityCollision(child, true)
+				end
+			end
+		end
 	end
+
+	-- Settle the whole group on the ground once, now it's placed (skipped every frame
+	-- while held — see the follow loop). PlaceOnGroundProperly re-attaches children at
+	-- their stored offsets, so the set stays intact.
+	if AttachedChildren and #AttachedChildren > 0 and GetEntityType(entity) ~= 1 then
+		PlaceOnGroundProperly(entity)
+	end
+
+	AttachedChildren = nil
 
 	-- Peds are left frozen after being placed, rather than restored to their
 	-- pre-grab (usually unfrozen) state. Unfreezing is what let whatever AI/
