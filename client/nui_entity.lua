@@ -175,6 +175,53 @@ RegisterNUICallback('performScenario', function(data, cb)
 	cb({})
 end)
 
+-- Returns the categorized emote list (data/rdr3/emotes.lua) for the UI to render.
+-- RDR3-only; on GTA the Emotes global is never defined, so this hands back an empty
+-- list and the menu button stays effectively unusable.
+RegisterNUICallback('getEmotes', function(data, cb)
+	cb(json.encode(Emotes or {}))
+end)
+
+RegisterNUICallback('performEmote', function(data, cb)
+	if Permissions.properties.ped.scenario and CanModifyEntity(data.handle) and data.emote then
+		RequestControl(data.handle)
+
+		-- An emote is a full-body scripted clip like a scenario/animation — clear
+		-- whatever pose is running first so it doesn't fight the emote, and drop the
+		-- other two so only one "pose" is ever the stored/re-applied one.
+		ClearPedTasksImmediately(data.handle)
+		Wait(50)
+
+		-- Set the stored emote BEFORE playing: PlayEmote's loop thread keeps going
+		-- only while Database[ped].emote still equals this one, so it has to be in
+		-- place first.
+		if Database[data.handle] then
+			Database[data.handle].animation = nil
+			Database[data.handle].scenario = nil
+			Database[data.handle].emote = data.emote
+		end
+
+		PlayEmote(data.handle, data.emote)
+	end
+
+	cb({})
+end)
+
+RegisterNUICallback('stopEmote', function(data, cb)
+	if Permissions.properties.ped.scenario and CanModifyEntity(data.handle) then
+		RequestControl(data.handle)
+
+		if Database[data.handle] then
+			Database[data.handle].emote = nil
+		end
+
+		StopEmoteLoop(data.handle)
+		ClearPedTasksImmediately(data.handle)
+	end
+
+	cb({})
+end)
+
 function TryClearTasks(handle)
 	if Permissions.properties.ped.clearTasks and CanModifyEntity(handle) then
 		RequestControl(handle)
@@ -183,6 +230,7 @@ function TryClearTasks(handle)
 		if Database[handle] then
 			Database[handle].scenario = nil
 			Database[handle].animation = nil
+			Database[handle].emote = nil
 		end
 	end
 end
@@ -195,6 +243,7 @@ function TryStopEntityAnim(handle)
 	if Database[handle] then
 		Database[handle].scenario = nil
 		Database[handle].animation = nil
+		Database[handle].emote = nil
 	end
 end
 
@@ -216,6 +265,7 @@ RegisterNUICallback('clearTasksAndProps', function(data, cb)
 		if Database[entity] then
 			Database[entity].scenario = nil
 			Database[entity].animation = nil
+			Database[entity].emote = nil
 		end
 	end
 
@@ -235,6 +285,7 @@ RegisterNUICallback('clearPedTasksImmediately', function(data, cb)
 		if Database[data.handle] then
 			Database[data.handle].scenario = nil
 			Database[data.handle].animation = nil
+			Database[data.handle].emote = nil
 		end
 	end
 

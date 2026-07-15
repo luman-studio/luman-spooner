@@ -321,6 +321,124 @@ function BlipAddForEntity(blipHash, entity)
 	return Citizen.InvokeNative(0x23F74C2FDA6E7C61, blipHash, entity)
 end
 
+-- Plays a scripted "KIT_EMOTE_*" emote clip on a ped (native 0xB31A277C1AC7B7FF,
+-- _TASK_PLAY_EMOTE). The 1,2 mode pair is the plain full-body player-emote variant
+-- used by the RDR3 companion emote wheel (see resources/features/client/emotes.lua);
+-- gun-twirls use a different mode + require a drawn revolver, so those may not
+-- animate on an unarmed placed ped. emote is the joaat of the KIT_EMOTE_* name.
+-- eEmoteType, keyed off the KIT_EMOTE_* name prefix: REACT=0, ACTION=1, TAUNT=2,
+-- GREET=3, TWIRL_GUN=4, DANCE_FLOOR=5. Passing the WRONG type (everything as ACTION)
+-- made some categories — dances especially — play with the wrong lifecycle (a dance
+-- is meant to loop/hold as DANCE_FLOOR, not one-shot as ACTION).
+function EmoteTypeFromName(name)
+	if not name then return 1 end
+	if name:find('^KIT_EMOTE_REACTION') then return 0
+	elseif name:find('^KIT_EMOTE_ACTION') then return 1
+	elseif name:find('^KIT_EMOTE_TAUNT') then return 2
+	elseif name:find('^KIT_EMOTE_GREET') then return 3
+	elseif name:find('^KIT_EMOTE_TWIRL_GUN') then return 4
+	elseif name:find('^KIT_EMOTE_DANCE') then return 5
+	end
+	return 1
+end
+
+function TaskPlayEmote(ped, emoteHash, emoteType)
+	Citizen.InvokeNative(0xB31A277C1AC7B7FF, ped, emoteType or 1, 2, emoteHash, 0, 0, 0, 0, 0)
+end
+
+-- True while the ped is mid-emote. The native emote system only offers a loop mode
+-- for the upper body (EMOTE_PM_UPPERBODY_LOOP); a full-body emote is one-shot, so to
+-- loop it we watch this and re-trigger when it finishes.
+function IsEmoteTaskRunning(ped)
+	return Citizen.InvokeNative(0xCF9B71C0AF824036, ped, 0)
+end
+
+-- [ped] = token. A fresh token (incremented on every PlayEmote/StopEmoteLoop)
+-- invalidates any earlier loop thread for that ped, so re-emoting or stopping never
+-- leaves a second thread fighting the first.
+EmoteLoops = EmoteLoops or {}
+
+-- Plays an emote and keeps it looping (full body) until the ped's stored emote
+-- changes/clears or the loop is stopped. Persistence + which emote is "current"
+-- lives in Database[ped].emote (set by the caller); the loop watches that too, so
+-- any clear-tasks path that nils it also ends the loop for free.
+function PlayEmote(ped, emoteName)
+	if not (ped and DoesEntityExist(ped) and emoteName) then
+		return
+	end
+
+	local hash = GetHashKey(emoteName)
+	local emoteType = EmoteTypeFromName(emoteName)
+	local token = (EmoteLoops[ped] or 0) + 1
+	EmoteLoops[ped] = token
+
+	TaskPlayEmote(ped, hash, emoteType)
+
+	-- Dances play once, no loop/re-trigger (the native DANCE_FLOOR emote holds/loops
+	-- on its own for as long as it does). Only the one-shot categories below get the
+	-- watchdog that loops them.
+	if emoteType == 5 then
+		return
+	end
+
+	CreateThread(function()
+		-- IS_EMOTE_TASK_RUNNING reads "not running" not only at the true end of an
+		-- emote but also on the blend seams *between* its internal phases (intro ->
+		-- hold -> outro). Re-triggering on those seams is what cut long clips off
+		-- partway through. Two guards prevent that so every emote plays start-to-end:
+		--   MIN_PLAY_MS         - no restart at all until the clip has run this long
+		--                         (also covers a slow intro).
+		--   NOT_RUNNING_THRESHOLD - only treat it as finished once it has read
+		--                         not-running continuously for POLL_MS * this, a window
+		--                         long enough to ride through any mid-clip seam; a real
+		--                         end stays not-running past it, a seam recovers first.
+		local POLL_MS = 200
+		local NOT_RUNNING_THRESHOLD = 6 -- ~1.2s of continuous "not running" = real end
+		local MIN_PLAY_MS = 1500
+		local LOOP_PAUSE_MS = 1500 -- rest between loops
+		local lastPlay = GetGameTimer()
+		local idlePolls = 0
+
+		Wait(800) -- let the first play enter its running state before polling
+
+		while EmoteLoops[ped] == token and DoesEntityExist(ped)
+			and Database[ped] and Database[ped].emote == emoteName do
+			if IsEmoteTaskRunning(ped) then
+				idlePolls = 0
+			else
+				idlePolls = idlePolls + 1
+			end
+
+			local playedLongEnough = (GetGameTimer() - lastPlay) >= MIN_PLAY_MS
+
+			if playedLongEnough and idlePolls >= NOT_RUNNING_THRESHOLD then
+				-- Short breather between loops, but bail out of it if the emote was
+				-- stopped/changed mid-pause so a stale loop doesn't fire once more.
+				Wait(LOOP_PAUSE_MS)
+
+				if EmoteLoops[ped] ~= token or not DoesEntityExist(ped)
+					or not (Database[ped] and Database[ped].emote == emoteName) then
+					break
+				end
+
+				TaskPlayEmote(ped, hash, emoteType)
+				lastPlay = GetGameTimer()
+				idlePolls = 0
+				Wait(800)
+			else
+				Wait(POLL_MS)
+			end
+		end
+	end)
+end
+
+-- Ends the loop thread for a ped (the actual task is cleared by the caller).
+function StopEmoteLoop(ped)
+	if EmoteLoops[ped] then
+		EmoteLoops[ped] = EmoteLoops[ped] + 1
+	end
+end
+
 -- Bit 0x04 on the horse's internal component flags, marking it as under scripted
 -- control. Without this the game doesn't know a *scripted* seating is legit, so a
 -- later scripted movement task (see StartMovement in behavior.lua) picks generic

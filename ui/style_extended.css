@@ -131,3 +131,10 @@
 .custom-ped-row.required .custom-ped-row-label {
 	font-weight: bold;
 }
+/* Emote category rows: a small right-aligned count of emotes in that category. */
+.emote-count {
+	float: right;
+	opacity: 0.55;
+	font-size: 0.85em;
+	font-weight: 400;
+}

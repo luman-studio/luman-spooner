@@ -251,6 +251,10 @@ function SpawnPed(props)
 		startScenario(ped, props.scenario)
 	end
 
+	-- The emote is looped via PlayEmote, whose watchdog only keeps going while
+	-- Database[ped].emote matches — so it's played further down, AFTER that field is
+	-- restored (see below), not here.
+
 	if props.blockNonTemporaryEvents then
 		SetBlockingOfNonTemporaryEvents(ped, true)
 	end
@@ -284,7 +288,13 @@ function SpawnPed(props)
 	Database[ped].outfitComponents = props.outfitComponents
 	Database[ped].animation = props.animation
 	Database[ped].scenario = props.scenario
+	Database[ped].emote = props.emote
 	Database[ped].blockNonTemporaryEvents = props.blockNonTemporaryEvents
+
+	-- Now that Database[ped].emote is in place, kick off the looped emote.
+	if props.emote then
+		PlayEmote(ped, props.emote)
+	end
 	Database[ped].weapons = props.weapons
 	Database[ped].walkStyle = props.walkStyle
 	Database[ped].scale = props.scale
@@ -549,6 +559,12 @@ function RemoveEntity(entity)
 
 	if IsPedAPlayer(entity) then
 		return
+	end
+
+	-- Drop any looped-emote bookkeeping for this entity (the loop thread also exits on
+	-- its own once the entity stops existing).
+	if EmoteLoops then
+		EmoteLoops[entity] = nil
 	end
 
 	-- Stop and forget any particle effect anchored to this entity so its FX handle

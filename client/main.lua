@@ -268,6 +268,8 @@ function MainSpoonerUpdates()
 							PlayAnimation(AttachedEntity, Database[AttachedEntity].animation)
 						elseif Database[AttachedEntity].scenario then
 							startScenario(AttachedEntity, Database[AttachedEntity].scenario)
+						elseif Database[AttachedEntity].emote then
+							PlayEmote(AttachedEntity, Database[AttachedEntity].emote)
 						end
 					end
 

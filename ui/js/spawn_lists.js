@@ -751,6 +751,79 @@ function populateEmotionList() {
 	});
 }
 
+// ===================== Emotes (categorized KIT_EMOTE clips) =====================
+var emotesData = [];
+var currentEmoteCategory = null;
+
+function getEmoteCategory(key) {
+	for (var i = 0; i < emotesData.length; i++) {
+		if (emotesData[i].category === key) {
+			return emotesData[i];
+		}
+	}
+	return null;
+}
+
+// The category screen (Reactions, Actions, Taunts, Greetings, Gun Twirls, Dances).
+function populateEmotesCategories() {
+	var list = document.getElementById('emotes-category-list');
+	list.innerHTML = '';
+
+	emotesData.forEach(function(cat) {
+		var div = document.createElement('div');
+		div.className = 'object';
+		div.innerHTML = cat.label + ' <span class="emote-count">' + cat.items.length + '</span>';
+		div.addEventListener('click', function(event) {
+			openEmoteCategory(cat.category);
+		});
+		list.appendChild(div);
+	});
+}
+
+function openEmoteCategory(categoryKey) {
+	currentEmoteCategory = categoryKey;
+	document.getElementById('emotes-menu').style.display = 'none';
+	document.getElementById('emotes-list-menu').style.display = 'flex';
+	document.getElementById('emotes-search-filter').value = '';
+	populateEmotesList('');
+}
+
+// The emote list within the currently-open category.
+function populateEmotesList(filter) {
+	var list = document.getElementById('emotes-list');
+	list.innerHTML = '';
+
+	var cat = getEmoteCategory(currentEmoteCategory);
+	if (!cat) {
+		return;
+	}
+
+	var f = filter ? filter.toLowerCase() : '';
+
+	cat.items.forEach(function(item) {
+		if (f && item.label.toLowerCase().indexOf(f) < 0 && item.name.toLowerCase().indexOf(f) < 0) {
+			return;
+		}
+
+		var div = document.createElement('div');
+		div.className = 'object';
+		div.innerHTML = item.label;
+		div.setAttribute('data-emote', item.name);
+		div.addEventListener('click', function(event) {
+			document.querySelectorAll('#emotes-list .object').forEach(function(e) {
+				e.className = 'object';
+			});
+			this.className = 'object selected';
+
+			sendMessage('performEmote', {
+				handle: currentEntity(),
+				emote: item.name
+			});
+		});
+		list.appendChild(div);
+	});
+}
+
 function populateWeaponList(filter) {
 	var weaponList = document.getElementById('weapon-list');
 	var favsOnly = document.getElementById('favourite-weapons').hasAttribute('data-active');

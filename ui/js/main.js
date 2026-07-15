@@ -763,6 +763,43 @@ window.addEventListener('load', function() {
 		});
 	});
 
+	// ===================== Emotes =====================
+	document.querySelector('#properties-emotes').addEventListener('click', function(event) {
+		document.querySelector('#ped-options-menu').style.display = 'none';
+		document.querySelector('#emotes-menu').style.display = 'flex';
+
+		if (emotesData.length === 0) {
+			sendMessage('getEmotes', {}).then(function(resp) { return resp.json(); }).then(function(raw) {
+				emotesData = typeof raw === 'string' ? JSON.parse(raw) : raw;
+				populateEmotesCategories();
+			});
+		} else {
+			populateEmotesCategories();
+		}
+	});
+
+	document.querySelector('#emotes-menu-close').addEventListener('click', function(event) {
+		document.querySelector('#emotes-menu').style.display = 'none';
+		document.querySelector('#ped-options-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#emotes-list-menu-close').addEventListener('click', function(event) {
+		document.querySelector('#emotes-list-menu').style.display = 'none';
+		document.querySelector('#emotes-menu').style.display = 'flex';
+	});
+
+	document.querySelector('#emotes-search-filter').addEventListener('input', function(event) {
+		populateEmotesList(this.value);
+	});
+
+	document.querySelector('#emotes-stop').addEventListener('click', function(event) {
+		sendMessage('stopEmote', { handle: currentEntity() });
+	});
+
+	document.querySelector('#emotes-list-stop').addEventListener('click', function(event) {
+		sendMessage('stopEmote', { handle: currentEntity() });
+	});
+
 	document.querySelector('#properties-clear-ped-tasks').addEventListener('click', function(event) {
 		sendMessage('clearPedTasks', {
 			handle: currentEntity()

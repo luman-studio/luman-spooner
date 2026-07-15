@@ -185,6 +185,7 @@ function AddEntityToDatabase(entity, name, attachment)
 
 	local animation = Database[entity] and Database[entity].animation
 	local scenario = Database[entity] and Database[entity].scenario
+	local emote = Database[entity] and Database[entity].emote
 
 	local blockNonTemporaryEvents = Database[entity] and Database[entity].blockNonTemporaryEvents or false
 
@@ -261,6 +262,7 @@ function AddEntityToDatabase(entity, name, attachment)
 
 	Database[entity].animation = animation
 	Database[entity].scenario = scenario
+	Database[entity].emote = emote
 
 	Database[entity].blockNonTemporaryEvents = blockNonTemporaryEvents
 
