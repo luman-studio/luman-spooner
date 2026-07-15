@@ -6,23 +6,29 @@
 -- and _G, so globals defined in any module are visible to the others.
 -- ============================================================================
 
--- ===================== Patrol + Lasso behavior =====================
--- The ped runs from point A to point B while aiming a lasso (the game twirls it
--- over the head). On reaching B it teleports back to A and runs the leg again.
--- The behavior is stored on the ped (Database[ped].behavior) so it is saved with
--- Saved/MP peds and restarted when they are spawned.
+-- ===================== Movements behavior =====================
+-- A ped moves from point A (its current position) to point B, with flags:
+--   run   -- run (Config.PatrolRunSpeed) vs walk (Config.PatrolWalkSpeed)
+--   lasso -- put the lasso in hand and twirl it over the head while moving
+--   loop  -- on reaching B, teleport back to A and go again forever; when off it
+--            walks/rides A->B once and STOPS at B.
+-- The config is stored on the ped (Database[ped].behavior) so it saves with
+-- Saved/MP peds and the scene DB, and restarts when the ped is spawned/placed.
 
 BehaviorPeds = BehaviorPeds or {}   -- [rider] = true while its behavior thread runs
-PendingBehavior = nil               -- { entity = ..., a = {x,y,z} } while picking B
+PendingBehavior = nil               -- { entity, a = {x,y,z}, opts } while picking B
 
 local function EquipLasso(ped)
 	EquipWeaponInHand(ped, GetHashKey(Config.PatrolLassoWeapon))
 end
 
--- A mounted ped can't be given a pedestrian go-to task directly (RDR2 fights it:
--- the ped tries to dismount, the horse jerks, nobody actually walks/rides anywhere).
--- Movement must be tasked on the MOVER (the horse, if mounted); the lasso weapon
--- and twirl animation must be tasked on the RIDER (the ped itself).
+-- Movement, the lasso weapon and the twirl animation are all tasked on the RIDER
+-- (the ped itself) — the mount/seat relationship is a persistent attachment state
+-- independent of the task system, so the engine routes locomotion through whatever
+-- the rider is seated on automatically (confirmed against R*'s own decompiled
+-- mounted-patrol AI script). Tasking the MOVER (horse) directly instead is what
+-- causes a dismount: it makes the horse behave like an independent walking ped and
+-- fight the fact that it's carrying a rider.
 -- `entity` may be either the rider or (if already resolved, e.g. from a grabbed
 -- horse) the mount itself — both directions are handled via the MountRider map.
 function ResolvePatrolActors(entity)
@@ -40,8 +46,8 @@ function ResolvePatrolActors(entity)
 	return entity, entity -- not mounted: same entity walks and twirls
 end
 
-function StopPatrolLasso(entity)
-	local rider = ResolvePatrolActors(entity)
+function StopMovement(entity)
+	local rider, mover = ResolvePatrolActors(entity)
 
 	BehaviorPeds[rider] = nil
 
@@ -50,30 +56,47 @@ function StopPatrolLasso(entity)
 	end
 
 	if DoesEntityExist(rider) then
-		-- If mounted, only drop the secondary twirl task, not the rider's own
-		-- internal "riding" task — clearing that would dismount it into a T-pose,
-		-- same as the loop bug this is meant to avoid.
-		if GetMount(rider) ~= 0 then
-			ClearPedSecondaryTask(rider)
-		else
-			ClearPedTasks(rider)
-		end
+		-- Freezing below is what actually halts visible movement; clearing the go-to
+		-- task here is just cleanup so it doesn't silently keep running underneath.
+		ClearPedTasks(rider)
+
+		-- Freeze right away rather than waiting for the movement thread's own loop to
+		-- notice BehaviorPeds went nil and freeze on its next tick — StartMovement's
+		-- thread does the same once it exits, this just removes the one-frame gap.
+		FreezeEntityPosition(rider, true)
+	end
+
+	if mover ~= rider and DoesEntityExist(mover) then
+		FreezeEntityPosition(mover, true)
 	end
 end
 
-function StartPatrolLasso(entity, a, b)
+-- Backwards-compatible alias (older callers / saved data may reference the name).
+StopPatrolLasso = StopMovement
+
+-- Moves `entity` from A to B. opts = { run, lasso, loop } (all booleans).
+function StartMovement(entity, a, b, opts)
 	if not DoesEntityExist(entity) then
 		return
 	end
 
+	opts = opts or {}
+	local run   = opts.run   and true or false
+	local lasso = opts.lasso and true or false
+	local loop  = opts.loop  and true or false
+
 	local rider, mover = ResolvePatrolActors(entity)
 
-	-- Store the route as an offset (B - A) so it saves with Saved/MP peds and can be
-	-- replayed relative to wherever the ped is later spawned.
+	-- Store the route as an offset (B - A) plus the flags, so it saves with Saved/MP
+	-- peds and the scene DB and can be replayed relative to wherever the ped is later
+	-- spawned.
 	if Database[rider] then
 		Database[rider].behavior = {
-			type = 'patrolLasso',
-			offset = { x = b.x - a.x, y = b.y - a.y, z = b.z - a.z }
+			type = 'movement',
+			offset = { x = b.x - a.x, y = b.y - a.y, z = b.z - a.z },
+			run = run,
+			lasso = lasso,
+			loop = loop
 		}
 	end
 
@@ -83,36 +106,70 @@ function StartPatrolLasso(entity, a, b)
 	RequestControl(mover)
 	SetBlockingOfNonTemporaryEvents(rider, true)
 
+	local mounted = rider ~= mover
+
+	-- Belt-and-suspenders: entities mounted before this flag existed (e.g. restored
+	-- from an older saved scene) never got it set in SetPedOnMount. Safe/cheap to
+	-- reassert here every time movement starts.
+	if mounted then
+		SetHorseScriptedFlag(mover, true)
+	end
+
+	-- Tasked movement does nothing on a frozen entity — every ped placed by spooner
+	-- stays frozen permanently once placed (see spooner:onEntityUnselected in
+	-- main.lua), so a ped/horse just picked from Properties is almost always frozen
+	-- and would otherwise sit dead still no matter what task it's given. Unfreeze
+	-- both halves of a mounted pair (the horse carries the rider along as it moves,
+	-- so both need to be free) or just the one ped when not mounted. Re-frozen once
+	-- the movement actually stops (see the thread's end and StopMovement below), to
+	-- match every other placed entity staying put until explicitly moved again.
+	FreezeEntityPosition(rider, false)
+	if mounted then
+		FreezeEntityPosition(mover, false)
+	end
+
+	local speed = run and Config.PatrolRunSpeed or Config.PatrolWalkSpeed
+	local twirl = lasso and Config.LassoTwirlAnim or nil
+
 	CreateThread(function()
 		while DoesEntityExist(rider) and DoesEntityExist(mover) and BehaviorPeds[rider] do
-			-- (re)start each leg at A. Clear the MOVER's previous leg task first, or the
-			-- new go-to task won't re-trigger movement and it just stands at B.
-			-- Do NOT clear the rider's tasks when mounted: RDR2 keeps the rider seated
-			-- in the saddle via its own internal "riding" task, and clearing it drops
-			-- the rider out of the seat pose (it ends up standing inside the horse).
-			ClearPedTasksImmediately(mover)
+			-- (re)start each leg at A. When mounted, the horse+rider seat/attachment is
+			-- a persistent state independent of the task system (confirmed against R*'s
+			-- own decompiled mounted-patrol AI script), so clearing/re-tasking the RIDER
+			-- does not drop it out of the saddle — clearing/tasking the MOVER (horse)
+			-- directly is what causes that, because it makes the horse behave like an
+			-- independent walking ped and fight the fact that it's carrying a rider.
+			if mounted then
+				-- Soft clear (not Immediate) so the seat/riding task isn't yanked out
+				-- from under the rider mid-frame.
+				ClearPedTasks(rider)
+				-- Teleport the horse back to A, then re-seat the rider: warping the mount
+				-- unseats it, so SetPedOnMount puts it straight back in the saddle.
+				SetEntityCoordsNoOffset(mover, a.x, a.y, a.z)
+				PlaceOnGroundProperly(mover)
+				SetPedOnMount(rider, mover, -1, false)
+			else
+				ClearPedTasksImmediately(mover)
+				SetEntityCoordsNoOffset(mover, a.x, a.y, a.z)
+				PlaceOnGroundProperly(mover)
+			end
 
-			SetEntityCoordsNoOffset(mover, a.x, a.y, a.z)
-			PlaceOnGroundProperly(mover)
+			if lasso then
+				-- Make sure the lasso is out and in the RIDER's hand (not the mover's).
+				EquipLasso(rider)
+				Wait(50)
+			end
 
-			-- Make sure the lasso is out and in the RIDER's hand (not the mover's)
-			EquipLasso(rider)
-
-			-- Stop the previous leg's twirl clip specifically (the SECONDARY task
-			-- slot), without touching the rider's other tasks (e.g. the seated-on-mount
-			-- pose). Without this, the new TaskPlayAnim call below just layers onto
-			-- the still-running previous loop instead of restarting it from frame 0,
-			-- which is why the twirl looked like it "started from the middle".
-			ClearPedSecondaryTask(rider)
-			Wait(50)
-
-			local twirl = Config.LassoTwirlAnim
+			-- Movement is tasked on the RIDER (the ped itself, mounted or not) — the
+			-- engine routes locomotion through the horse it's seated on automatically.
+			-- TaskGoToCoordAnyMeans's "preferred vehicle" param was tried and rejected:
+			-- passing the horse there confuses its any-means pathing and pops the rider
+			-- off immediately. TaskFollowNavMeshToCoord has no such param.
+			TaskFollowNavMeshToCoord(rider, b.x, b.y, b.z, speed, Config.PatrolTimeout, Config.PatrolReachDist, 0, 0.0)
 
 			if twirl and twirl.dict and twirl.dict ~= '' then
 				-- The mover runs/rides to B (drives the legs/gait), then the twirl clip
 				-- is layered on the RIDER's upper body only via a bone-mask filter.
-				TaskGoStraightToCoord(mover, b.x, b.y, b.z, Config.PatrolMoveSpeed, Config.PatrolTimeout, GetEntityHeading(mover), Config.PatrolReachDist)
-
 				RequestAnimDict(twirl.dict)
 				local t = 0
 				while not HasAnimDictLoaded(twirl.dict) and t < 100 do
@@ -122,13 +179,7 @@ function StartPatrolLasso(entity, a, b)
 
 				Wait(50) -- let the go-to task take hold first
 
-				-- Plain TaskPlayAnim, looped by the engine's own REPEAT flag. Direct
-				-- call (not PlayAnimation()) so we can pass the bone-mask filter, which
-				-- PlayAnimation() hardcodes to ''.
 				TaskPlayAnim(rider, twirl.dict, twirl.name, twirl.blendIn or 1.0, twirl.blendOut or 1.0, -1, twirl.flag or 25, 0.0, false, false, false, twirl.filter or '', false)
-			else
-				-- Default: mover runs to B, rider aims the lasso ahead (stays in hand)
-				TaskGoToCoordWhileAimingAtCoord(mover, b.x, b.y, b.z, b.x, b.y, b.z + 1.0, Config.PatrolMoveSpeed, false, 0.5, 0.5, true, 0, false, GetHashKey('FIRING_PATTERN_FULL_AUTO'))
 			end
 
 			local elapsed = 0
@@ -139,8 +190,7 @@ function StartPatrolLasso(entity, a, b)
 
 				-- Watchdog: if the twirl clip isn't playing anymore (the engine may not
 				-- honour REPEAT forever on a secondary task, so it can quietly stop after
-				-- a pass), restart it right away so the twirl never visibly cuts out for
-				-- more than a beat while the ped is still en route.
+				-- a pass), restart it right away so the twirl never visibly cuts out.
 				if twirl and twirl.dict and twirl.dict ~= '' and DoesEntityExist(rider) then
 					if not IsEntityPlayingAnim(rider, twirl.dict, twirl.name, 3) then
 						TaskPlayAnim(rider, twirl.dict, twirl.name, twirl.blendIn or 1.0, twirl.blendOut or 1.0, -1, twirl.flag or 25, 0.0, false, false, false, twirl.filter or '', false)
@@ -154,33 +204,87 @@ function StartPatrolLasso(entity, a, b)
 					break
 				end
 			end
+
+			-- Not looping: reached B (or timed out) — stop here, leaving the ped at B.
+			if not loop then
+				break
+			end
 		end
 
 		BehaviorPeds[rider] = nil
+
+		-- Movement has ended (arrived with loop off, or the loop was stopped
+		-- elsewhere) — freeze again so it stays put like every other placed entity,
+		-- instead of being left free to be shoved around by physics/other peds.
+		if DoesEntityExist(rider) then
+			FreezeEntityPosition(rider, true)
+		end
+
+		if mounted and DoesEntityExist(mover) then
+			FreezeEntityPosition(mover, true)
+		end
+
+		-- A one-shot movement is finished the moment it arrives; drop the lasso twirl
+		-- but leave the ped standing where it arrived. It also no longer carries a live
+		-- looping behavior, so clear the stored config (a looped one is cleared via the
+		-- Stop button / StopMovement instead).
+		if not loop and DoesEntityExist(rider) then
+			if lasso then
+				ClearPedSecondaryTask(rider)
+			end
+
+			if Database[rider] then
+				Database[rider].behavior = nil
+			end
+		end
 	end)
 end
 
+-- Backwards-compatible alias for the old lasso-patrol signature (always run + lasso
+-- + loop), used by any legacy caller.
+function StartPatrolLasso(entity, a, b)
+	StartMovement(entity, a, b, { run = true, lasso = true, loop = true })
+end
+
 -- Start (or restart) a ped's stored behavior relative to its current position.
--- Used when a Saved/MP ped that carries a behavior is placed.
+-- Used when a Saved/MP ped (or scene DB ped) that carries a behavior is placed.
 function RestartBehavior(entity)
 	local rider, mover = ResolvePatrolActors(entity)
 	local beh = Database[rider] and Database[rider].behavior
 
-	if beh and beh.type == 'patrolLasso' and beh.offset and not BehaviorPeds[rider] then
+	if beh and beh.offset and not BehaviorPeds[rider] and (beh.type == 'movement' or beh.type == 'patrolLasso') then
 		local x, y, z = table.unpack(GetEntityCoords(mover))
 		local a = { x = x, y = y, z = z }
 		local b = { x = x + beh.offset.x, y = y + beh.offset.y, z = z + beh.offset.z }
-		StartPatrolLasso(rider, a, b)
+
+		local opts
+		if beh.type == 'patrolLasso' then
+			-- Legacy "Patrol + Lasso" saved before the flags existed: always run,
+			-- lasso and loop, matching the old fixed behavior.
+			opts = { run = true, lasso = true, loop = true }
+		else
+			opts = { run = beh.run, lasso = beh.lasso, loop = beh.loop }
+		end
+
+		StartMovement(rider, a, b, opts)
 	end
 end
 
-RegisterNUICallback('setupPatrolLasso', function(data, cb)
+RegisterNUICallback('setupMovement', function(data, cb)
 	local handle = data.handle
 
 	if DoesEntityExist(handle) and GetEntityType(handle) == 1 then
 		local rider, mover = ResolvePatrolActors(handle)
 		local x, y, z = table.unpack(GetEntityCoords(mover))
-		PendingBehavior = { entity = rider, a = { x = x, y = y, z = z } }
+		PendingBehavior = {
+			entity = rider,
+			a = { x = x, y = y, z = z },
+			opts = {
+				run = data.run and true or false,
+				lasso = data.lasso and true or false,
+				loop = data.loop and true or false
+			}
+		}
 
 		notify('Aim at point B and press ' .. (Config.isRDR and 'Left Mouse' or 'LMB') .. ' — press Right Mouse to cancel')
 	end
@@ -189,9 +293,9 @@ RegisterNUICallback('setupPatrolLasso', function(data, cb)
 	cb({})
 end)
 
-RegisterNUICallback('clearPatrolLasso', function(data, cb)
+RegisterNUICallback('clearMovement', function(data, cb)
 	if DoesEntityExist(data.handle) then
-		StopPatrolLasso(data.handle)
+		StopMovement(data.handle)
 	end
 	cb({})
 end)

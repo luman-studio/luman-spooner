@@ -8,6 +8,7 @@
 
 var isSpoonerHudOpened = false;
 var peds = [];
+var horses = [];
 var vehicles = [];
 var objects = [];
 var scenarios = [];
@@ -31,6 +32,20 @@ var SpawnMenuConfig = {
 	ped: {
 		id: 'ped',
 		dataSource: function() { return peds; },
+		favouriteType: 'peds',
+		closeMessage: 'closePedMenu',
+		previewMessage: 'previewPed',
+		spawnAttachMessage: 'spawnAndAttachPed',
+		clearPreviewMessage: 'clearPedPreview',
+		supportsPreview: true,
+		supportsAttach: true
+	},
+	// Horses are ped models (a_c_horse_*) — same spawn/preview Lua callbacks as peds,
+	// just a horse-only data source. Tack customization happens afterwards via
+	// Ped Options -> Customize (which auto-detects horses).
+	horse: {
+		id: 'horse',
+		dataSource: function() { return horses; },
 		favouriteType: 'peds',
 		closeMessage: 'closePedMenu',
 		previewMessage: 'previewPed',

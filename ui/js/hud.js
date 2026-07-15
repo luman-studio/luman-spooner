@@ -266,6 +266,9 @@ function openSpawnMenu() {
 		case 7:
 			document.querySelector('#particle-menu').style.display = 'flex';
 			break;
+		case 8:
+			document.querySelector('#horse-menu').style.display = 'flex';
+			break;
 		default:
 			document.querySelector('#spawn-menu').style.display = 'flex';
 			break;
@@ -281,6 +284,12 @@ function openPedMenu() {
 	document.querySelector('#spawn-menu').style.display = 'none';
 	document.querySelector('#ped-menu').style.display = 'flex';
 	lastSpawnMenu = 0;
+}
+
+function openHorseMenu() {
+	document.querySelector('#spawn-menu').style.display = 'none';
+	document.querySelector('#horse-menu').style.display = 'flex';
+	lastSpawnMenu = 8;
 }
 
 function openVehicleMenu() {

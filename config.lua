@@ -170,9 +170,11 @@ Config.RandomBeardChance = 0.35
 -- doesn't matter beyond needing to exist and stream reliably.
 Config.ParticleAnchorModel = 'dummy_gfx_test'
 
--- Patrol + Lasso behavior
+-- Movements behavior (walk/run A->B, optional lasso, optional loop)
 Config.PatrolLassoWeapon = 'WEAPON_LASSO'     -- weapon equipped for the twirl
-Config.PatrolMoveSpeed   = 2.0                -- 1.0 walk, 2.0 run, 3.0 sprint
+Config.PatrolMoveSpeed   = 2.0                -- legacy default (still used as a fallback)
+Config.PatrolWalkSpeed   = 1.0                -- speed when "Run" is off
+Config.PatrolRunSpeed    = 2.0                -- speed when "Run" is on
 Config.PatrolReachDist   = 1.5                -- how close to B counts as "arrived"
 Config.PatrolTimeout     = 20000             -- safety timeout per A->B leg (ms)
 

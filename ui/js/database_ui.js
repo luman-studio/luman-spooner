@@ -186,6 +186,7 @@ function updatePermissions(data) {
 	document.getElementById('spawn-menu-propsets').disabled = !permissions.spawn.propset;
 	document.getElementById('spawn-menu-pickups').disabled = !permissions.spawn.pickup;
 	document.getElementById('spawn-menu-saved-peds').disabled = !permissions.spawn.ped;
+	document.getElementById('spawn-menu-horses').disabled = !permissions.spawn.ped;
 	document.getElementById('spawn-menu-mp-peds').disabled = !permissions.spawn.ped;
 	document.getElementById('mp-peds-create-custom').disabled = !permissions.spawn.ped;
 	document.getElementById('spawn-menu-particles').disabled = !permissions.spawn.particle;

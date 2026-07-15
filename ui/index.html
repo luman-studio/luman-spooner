@@ -178,6 +178,9 @@
 					<button id="spawn-menu-saved-peds"><i class="fas fa-save"></i> Saved Peds</button>
 				</div>
 				<div class="spawn-category">
+					<button id="spawn-menu-horses"><i class="fas fa-horse"></i> Horses</button>
+				</div>
+				<div class="spawn-category">
 					<button id="spawn-menu-vehicles"><i class="fas fa-car"></i> Vehicles</button>
 				</div>
 				<div class="spawn-category">
@@ -222,7 +225,7 @@
 				<span>Use the arrows to cycle each slot's options | Selecting "None" removes it</span>
 			</div>
 			<button id="mp-custom-randomize"><i class="fas fa-dice"></i> Randomize All</button>
-			<div class="property multiple">
+			<div class="property multiple" id="mp-custom-save-row">
 				<input type="text" id="mp-custom-save-name" placeholder="Saved MP ped name...">
 				<button id="mp-custom-save"><i class="fas fa-save"></i> Save</button>
 			</div>
@@ -254,6 +257,26 @@
 			<button id="ped-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
 			<button id="ped-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name/Hash</button>
 			<button id="ped-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
+		</div>
+		<div id="horse-menu" class="menu">
+			<div id="horse-search" class="search">
+				<input type="text" id="horse-search-filter" class="search-filter" value="" placeholder="Search horses...">
+				<button id="favourite-horses" class="favourites">
+					<i class="far fa-star"></i>
+				</button>
+			</div>
+			<div id="horse-pagination-controls" class="pagination-controls">
+				<button id="horse-prev-page" title="Previous page"><i class="fas fa-chevron-left"></i></button>
+				<span id="horse-pagination-info">0-0 of 0</span>
+				<button id="horse-next-page" title="Next page"><i class="fas fa-chevron-right"></i></button>
+			</div>
+			<div id="horse-list" class="list"></div>
+			<div id="horse-nav-hint" class="nav-hint">
+				<span><i class="fas fa-arrow-up"></i><i class="fas fa-arrow-down"></i> Navigate | Click to preview | <span class="key">Enter</span> Spawn</span>
+			</div>
+			<button id="horse-spawn-btn" class="spawn-btn" disabled><i class="fas fa-plus-circle"></i> Spawn</button>
+			<button id="horse-spawn-by-name" class="spawn-by-name"><i class="fas fa-plus-circle"></i> Spawn By Name/Hash</button>
+			<button id="horse-menu-close-btn"><i class="fas fa-arrow-left"></i> Back</button>
 		</div>
 		<div id="vehicle-menu" class="menu">
 			<div id="vehicle-search" class="search">
@@ -463,10 +486,25 @@
 				<div class="property ped-property">
 					<button id="properties-save-mp-ped"><i class="fas fa-user-friends"></i> Save MP Ped (+ horse)</button>
 				</div>
-				<div class="property multiple ped-property">
-					<button id="properties-set-patrol-lasso"><i class="fas fa-route"></i> Set Patrol + Lasso</button>
-					<button id="properties-clear-patrol-lasso"><i class="fas fa-stop"></i> Clear Patrol</button>
-				</div>
+				<details class="ped-property">
+					<summary>Movements</summary>
+					<div class="attachment-option">
+						<input type="checkbox" id="movement-run">
+						<span>Run (otherwise walk)</span>
+					</div>
+					<div class="attachment-option">
+						<input type="checkbox" id="movement-lasso">
+						<span>With Lasso</span>
+					</div>
+					<div class="attachment-option">
+						<input type="checkbox" id="movement-loop" checked>
+						<span>Loop (otherwise stop at B)</span>
+					</div>
+					<div class="property multiple">
+						<button id="movement-start"><i class="fas fa-route"></i> Move A → B</button>
+						<button id="movement-stop"><i class="fas fa-stop"></i> Stop</button>
+					</div>
+				</details>
 				<div class="property ped-property">
 					<button id="properties-clear-tasks-props"><i class="fas fa-broom"></i> Clear Tasks + Props</button>
 				</div>

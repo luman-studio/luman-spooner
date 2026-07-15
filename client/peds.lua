@@ -199,6 +199,17 @@ function ApplyOutfitComponents(ped, components)
 		return
 	end
 
+	-- A freshly CreatePed'd horse spawns with NO base coat/body variation set — its
+	-- body mesh simply doesn't render (you get a floating saddle/bridle/mane while
+	-- the flesh is invisible) until an outfit variation is seeded. World/menu horses
+	-- get this from the game; a horse we rebuild from saved tack must do it itself,
+	-- BEFORE layering the tack on top. (Humans go through SetRandomOutfitVariation in
+	-- spawn.lua's non-outfitComponents branch instead, so only horses need it here.)
+	if IsEntityHorse(ped) then
+		pcall(SetRandomOutfitVariation, ped, true)
+		UpdatePedVariation(ped)
+	end
+
 	for _, hash in pairs(components) do
 		pcall(ApplyShopItemToPed, ped, hash)
 	end
@@ -219,7 +230,14 @@ function SaveMpPedToKvs(entry)
 		scenario = entry.scenario,
 		outfit = entry.outfit,
 		behavior = entry.behavior,
-		weaponInHand = entry.weaponInHand
+		weaponInHand = entry.weaponInHand,
+		bodyBuild = entry.bodyBuild,
+		waist = entry.waist,
+		eyebrowStyle = entry.eyebrowStyle,
+		eyebrowColor = entry.eyebrowColor,
+		hairGroup = entry.hairGroup,
+		hairColor = entry.hairColor,
+		beardGroup = entry.beardGroup
 	}
 
 	if entry.horse then
@@ -405,7 +423,20 @@ RegisterNUICallback('saveCurrentMpPed', function(data, cb)
 			scenario = db.scenario,
 			outfit = db.outfit or -1,
 			behavior = db.behavior,
-			weaponInHand = weaponInHand
+			weaponInHand = weaponInHand,
+			-- Body build/waist/eyebrows/hair/beard aren't part of outfitComponents (they're
+			-- driven by EquipMetaPedOutfit / the eyebrow overlay texture / their own shop-
+			-- item slots, not the generic component system) — without these the live clone
+			-- template still shows them fine (same session), but a from-scratch respawn
+			-- after a restart (no live template) silently loses them. See
+			-- ApplyExtraHumanCustomization, which re-applies these on that respawn path.
+			bodyBuild = db.bodyBuild,
+			waist = db.waist,
+			eyebrowStyle = db.eyebrowStyle,
+			eyebrowColor = db.eyebrowColor,
+			hairGroup = db.hairGroup,
+			hairColor = db.hairColor,
+			beardGroup = db.beardGroup
 		}
 
 		-- Save the horse it is riding, if any
@@ -414,7 +445,13 @@ RegisterNUICallback('saveCurrentMpPed', function(data, cb)
 			entry.horse = {
 				template = CreatePedTemplate(mount),
 				model = GetEntityModel(mount),
-				components = CaptureComponents(mount)
+				components = CaptureComponents(mount),
+				-- The horse's tack (saddle/mane/tail/etc, see the Horse tack editor
+				-- below) lives entirely in outfitComponents, same shop-item system as
+				-- human clothing — components alone (the old drawable/texture snapshot)
+				-- doesn't carry it, which is why a saved horse came back bare after a
+				-- restart before this was captured.
+				outfitComponents = Database[mount] and Database[mount].outfitComponents
 			}
 		end
 
@@ -497,6 +534,11 @@ local function SpawnMpPedFromEntry(pedEntry, x, y, z, yaw, extraProps)
 
 		if pedEntry.outfitComponents and next(pedEntry.outfitComponents) then
 			ApplyOutfitComponents(ped, pedEntry.outfitComponents)
+		elseif IsModelAHorse(props.model) then
+			-- Horse saved without any custom tack: still needs a base coat/body
+			-- variation seeded or its body mesh won't render (see ApplyOutfitComponents).
+			SetRandomOutfitVariation(ped, true)
+			UpdatePedVariation(ped)
 		else
 			ApplyComponents(ped, pedEntry.components)
 			UpdatePedVariation(ped)
@@ -504,6 +546,14 @@ local function SpawnMpPedFromEntry(pedEntry, x, y, z, yaw, extraProps)
 
 		SetEntityVisible(ped, true)
 		Database[ped].outfitComponents = pedEntry.outfitComponents
+
+		-- Body build/waist/eyebrows/hair/beard aren't part of outfitComponents (see
+		-- ApplyExtraHumanCustomization) — only relevant for a human rider, never the
+		-- horse (which goes through this same function for its own tack outfitComponents).
+		if not IsModelAHorse(props.model) then
+			local gender = (props.model == GetHashKey('mp_female')) and 'female' or 'male'
+			ApplyExtraHumanCustomization(ped, gender, pedEntry)
+		end
 	end
 
 	return ped
@@ -1121,7 +1171,305 @@ local function GetCustomPedComponents(session)
 	return components
 end
 
+-- ===================== Horse tack editor =====================
+-- Horses are ped type 1 like humans but wear tack (saddles, saddlebags, manes,
+-- tails, etc.) instead of clothing/body components. The tack items are still
+-- ordinary metaped shop items (see data/rdr3/tack.lua / HorseTack), so the same
+-- ApplyShopItemToPed/RemoveShopItemFromPed/UpdatePedVariation primitives drive
+-- them. A horse session reuses the exact same #mp-custom-menu UI and cycle/set
+-- callbacks as the human editor; the shared functions branch on session.isHorse.
+
+-- key -> its HorseTack category table, built once for O(1) lookup.
+local HorseTackByKey = {}
+
+for _, cat in ipairs(HorseTack or {}) do
+	HorseTackByKey[cat.key] = cat
+end
+
+-- Which flat tack categories the "Randomize All" button touches — just the main
+-- pieces. Everything else (stirrups, horns, lanterns, bedrolls, accessories,
+-- horseshoes) is set to None so a randomized horse gets the essentials without
+-- being buried in every accessory at once.
+local HORSE_RANDOM_MAIN = {
+	saddles = true, saddlebags = true, bridles = true, blankets = true
+}
+
+-- Mane/tail are style groups with colour variants (see HorseManes/HorseTails in
+-- data/rdr3/tack.lua), so each is exposed as TWO editor rows — a Style row and a
+-- Color row — exactly like human Hair Style + Hair Color. These map a special row
+-- key to its data table + which session slot it drives.
+local HorseHairRows = {
+	ManeStyle = { data = HorseManes, slot = 'mane', kind = 'style', label = 'Mane Style' },
+	ManeColor = { data = HorseManes, slot = 'mane', kind = 'color', label = 'Mane Color' },
+	TailStyle = { data = HorseTails, slot = 'tail', kind = 'style', label = 'Tail Style' },
+	TailColor = { data = HorseTails, slot = 'tail', kind = 'color', label = 'Tail Color' }
+}
+
+-- Rebuilds Database[horse].outfitComponents from the session's currently-applied
+-- tack, so a saved MP ped's horse (entry.horse.outfitComponents) — and anything
+-- else that re-applies that table via ApplyOutfitComponents — round-trips the tack.
+-- Mane/tail land under fixed keys ('manes'/'tails') so they hydrate back cleanly.
+local function StoreHorseTack(session)
+	local components = {}
+
+	for key, slot in pairs(session.tack) do
+		if slot.appliedHash then
+			components[key] = slot.appliedHash
+		end
+	end
+
+	if session.mane.appliedHash then components.manes = session.mane.appliedHash end
+	if session.tail.appliedHash then components.tails = session.tail.appliedHash end
+
+	if Database[session.ped] then
+		Database[session.ped].outfitComponents = components
+	end
+end
+
+-- Applies the current style+colour of a mane/tail slot: removes the previously
+-- applied variant hash, then applies the colour variant of the selected style
+-- (clamped to what that style actually has). style 0 = None (bare).
+local function ApplyHorseHair(session, slotName, data)
+	local slot = session[slotName]
+
+	if slot.appliedHash then
+		pcall(RemoveShopItemFromPed, session.ped, slot.appliedHash)
+		slot.appliedHash = nil
+	end
+
+	if slot.style > 0 and data and data.styles[slot.style] then
+		local colors = data.styles[slot.style].colors
+		slot.color = math.max(1, math.min(slot.color, #colors))
+		local hash = colors[slot.color]
+		pcall(ApplyShopItemToPed, session.ped, hash)
+		slot.appliedHash = hash
+	end
+
+	UpdatePedVariation(session.ped)
+	StoreHorseTack(session)
+end
+
+-- Reverse-maps a known mane/tail hash back to (style, colour) so the editor opens
+-- reflecting what's on the horse.
+local function HydrateHorseHair(slot, data, knownHash)
+	if not (knownHash and data) then
+		return
+	end
+
+	for si, style in ipairs(data.styles) do
+		for ci, hash in ipairs(style.colors) do
+			if hash == knownHash then
+				slot.style = si
+				slot.color = ci
+				slot.appliedHash = knownHash
+				return
+			end
+		end
+	end
+end
+
+-- Reverse-maps any already-applied tack hashes (from Database[horse].outfitComponents,
+-- populated by a prior edit or a restored saved horse) back to row indices so the
+-- editor opens reflecting what's on the horse instead of all-None.
+local function StartHorseTackSession(horse)
+	-- Clean up a leftover temp "Create Custom" human ped, same as StartCustomizeSession,
+	-- so switching from the human editor straight to a horse doesn't orphan it.
+	if CustomPedSession and CustomPedSession.isTemp and CustomPedSession.ped and CustomPedSession.ped ~= horse and DoesEntityExist(CustomPedSession.ped) then
+		RemoveEntity(CustomPedSession.ped)
+	end
+
+	local session = {
+		ped = horse,
+		isHorse = true,
+		isTemp = false,
+		tack = {},
+		mane = { style = 0, color = 1, appliedHash = nil },
+		tail = { style = 0, color = 1, appliedHash = nil }
+	}
+
+	local known = Database[horse] and Database[horse].outfitComponents
+
+	for _, cat in ipairs(HorseTack or {}) do
+		local slot = { index = 0, appliedHash = nil }
+		local knownHash = known and known[cat.key]
+
+		if knownHash then
+			for i, item in ipairs(cat.items) do
+				if item.hash == knownHash then
+					slot.index = i
+					slot.appliedHash = knownHash
+					break
+				end
+			end
+		end
+
+		session.tack[cat.key] = slot
+	end
+
+	HydrateHorseHair(session.mane, HorseManes, known and known.manes)
+	HydrateHorseHair(session.tail, HorseTails, known and known.tails)
+
+	CustomPedSession = session
+
+	Database[horse] = Database[horse] or {}
+	Database[horse].outfitComponents = Database[horse].outfitComponents or {}
+
+	return session
+end
+
+local function SerializeHorseTack(session)
+	local rows = {}
+
+	for _, cat in ipairs(HorseTack or {}) do
+		local slot = session.tack[cat.key]
+
+		table.insert(rows, {
+			category = cat.key,
+			label = cat.label,
+			index = slot and slot.index or 0,
+			count = #cat.items,
+			required = false,
+			group = 'Tack'
+		})
+	end
+
+	-- Mane & Tail: Style row always shown; Color row only when a style is selected
+	-- (there's nothing to colour on a bare mane, and the colour count is per-style).
+	local function addHair(styleKey, colorKey, slot, data)
+		table.insert(rows, {
+			category = styleKey,
+			label = HorseHairRows[styleKey].label,
+			index = slot.style,
+			count = data and #data.styles or 0,
+			required = false,
+			group = 'Mane & Tail'
+		})
+
+		if slot.style > 0 and data and data.styles[slot.style] then
+			table.insert(rows, {
+				category = colorKey,
+				label = HorseHairRows[colorKey].label,
+				index = slot.color,
+				count = #data.styles[slot.style].colors,
+				required = true,
+				group = 'Mane & Tail'
+			})
+		end
+	end
+
+	addHair('ManeStyle', 'ManeColor', session.mane, HorseManes)
+	addHair('TailStyle', 'TailColor', session.tail, HorseTails)
+
+	return rows
+end
+
+-- Applies/removes the tack item at newIndex for one category (0 = None). Mirrors the
+-- generic-clothing branch of SetCustomRowIndex: remove the previously-applied hash
+-- first (tack slots don't auto-replace), then apply the new one. Mane/tail Style and
+-- Color rows are handled via ApplyHorseHair instead.
+local function SetHorseRowIndex(session, key, newIndex)
+	local hair = HorseHairRows[key]
+
+	if hair then
+		local slot = session[hair.slot]
+
+		if hair.kind == 'style' then
+			slot.style = newIndex
+		else
+			slot.color = newIndex
+		end
+
+		ApplyHorseHair(session, hair.slot, hair.data)
+
+		if hair.kind == 'style' then
+			return newIndex, hair.data and #hair.data.styles or 0
+		else
+			local style = hair.data and hair.data.styles[slot.style]
+			return slot.color, style and #style.colors or 0
+		end
+	end
+
+	local cat = HorseTackByKey[key]
+	local slot = session.tack[key]
+
+	if not cat or not slot then
+		return nil
+	end
+
+	if slot.appliedHash then
+		pcall(RemoveShopItemFromPed, session.ped, slot.appliedHash)
+		slot.appliedHash = nil
+	end
+
+	slot.index = newIndex
+
+	if newIndex > 0 then
+		local hash = cat.items[newIndex].hash
+		pcall(ApplyShopItemToPed, session.ped, hash)
+		slot.appliedHash = hash
+	end
+
+	UpdatePedVariation(session.ped)
+	StoreHorseTack(session)
+
+	return newIndex, #cat.items
+end
+
+local function GetHorseRowState(session, key)
+	local hair = HorseHairRows[key]
+
+	if hair then
+		local slot = session[hair.slot]
+
+		if hair.kind == 'style' then
+			return slot.style, hair.data and #hair.data.styles or 0, false
+		end
+
+		local style = hair.data and hair.data.styles[slot.style]
+		return slot.color, style and #style.colors or 0, true
+	end
+
+	local cat = HorseTackByKey[key]
+	local slot = session.tack[key]
+
+	if not cat or not slot then
+		return nil
+	end
+
+	return slot.index, #cat.items, false
+end
+
+local function RandomizeHorseTack(session)
+	-- Only the main pieces (see HORSE_RANDOM_MAIN) get a random item; the rest are
+	-- cleared to None. Saddle is always given one (a random horse without a saddle
+	-- reads as a mistake); the other mains include a None chance.
+	for _, cat in ipairs(HorseTack or {}) do
+		if cat.key == 'saddles' then
+			SetHorseRowIndex(session, cat.key, math.random(1, #cat.items))
+		elseif HORSE_RANDOM_MAIN[cat.key] then
+			SetHorseRowIndex(session, cat.key, math.random(0, #cat.items))
+		else
+			SetHorseRowIndex(session, cat.key, 0)
+		end
+	end
+
+	-- Mane and tail: always give a style, with a random colour within it.
+	for _, pair in ipairs({ { 'ManeStyle', 'mane', HorseManes }, { 'TailStyle', 'tail', HorseTails } }) do
+		local data = pair[3]
+
+		if data and #data.styles > 0 then
+			local styleIdx = math.random(1, #data.styles)
+			session[pair[2]].color = math.random(1, #data.styles[styleIdx].colors)
+			SetHorseRowIndex(session, pair[1], styleIdx)
+		end
+	end
+end
+
 local function SerializeCustomCategories(session)
+	if session.isHorse then
+		return SerializeHorseTack(session)
+	end
+
 	local rows = {}
 
 	for _, row in ipairs(CUSTOM_BODY_ROW_ORDER) do
@@ -1220,7 +1568,9 @@ end
 RegisterNUICallback('customPedToggleWearableState', function(data, cb)
 	local session = CustomPedSession
 
-	if session and session.ped and DoesEntityExist(session.ped) then
+	-- Horse tack rows have no wearable-state toggle button (session.byName is nil for
+	-- horse sessions), so guard against it ever being called on one.
+	if session and not session.isHorse and session.ped and DoesEntityExist(session.ped) then
 		local stateIndex, stateCount = CycleWearableState(session, data.category)
 		cb(json.encode({ stateIndex = stateIndex, stateCount = stateCount }))
 		return
@@ -1450,6 +1800,60 @@ local function HydrateCustomSessionFromComponents(session, components)
 	end
 end
 
+-- Re-applies the body-build/waist/eyebrow/hair/beard extras a saved MP ped's rider
+-- carries — none of these are part of outfitComponents (they're driven by
+-- EquipMetaPedOutfit / the eyebrow overlay texture / their own shop-item slots, not
+-- the generic per-category component system ApplyOutfitComponents covers), so a
+-- from-scratch respawn (no live clone template — e.g. after a resource/server
+-- restart) needs this extra pass or the ped comes back missing all of it, even
+-- though its base clothing/skin-tone shape (real outfitComponents) is fine.
+--
+-- Global (not local): called from SpawnMpPedFromEntry, which is defined earlier in
+-- this file than the Apply*/Hydrate helpers this uses — Lua only resolves GLOBAL
+-- names at call time, so the earlier definition can still reach this by name as
+-- long as the whole file (and this function) has finished loading before it's
+-- actually invoked, which is always true (it only runs from a NUI callback).
+function ApplyExtraHumanCustomization(ped, gender, pedEntry)
+	local session = {
+		ped = ped,
+		gender = gender,
+		tone = 1, headShape = 1, bodyShape = 1, legsShape = 1,
+		bodyBuild = pedEntry.bodyBuild or 1,
+		waist = pedEntry.waist or 1,
+		eyebrowStyle = pedEntry.eyebrowStyle or 1,
+		eyebrowColor = pedEntry.eyebrowColor or 1,
+		hairGroup = pedEntry.hairGroup or 1,
+		hairColor = pedEntry.hairColor or 1,
+		beardGroup = pedEntry.beardGroup or 0,
+		list = {}
+	}
+
+	-- Re-derive tone (needed for the eyebrow overlay's base head texture) from the
+	-- Heads/BodiesUpper/BodiesLower hashes already in outfitComponents — the exact
+	-- same reverse-lookup StartCustomizeSession uses, rather than persisting tone
+	-- separately.
+	if pedEntry.outfitComponents and next(pedEntry.outfitComponents) then
+		pcall(HydrateCustomSessionFromComponents, session, pedEntry.outfitComponents)
+	end
+
+	pcall(ApplyBodyBuild, session)
+	pcall(ApplyWaist, session)
+	pcall(ApplyHair, session)
+	pcall(ApplyBeard, session)
+	pcall(ApplyEyebrows, session)
+	pcall(UpdatePedVariation, ped)
+
+	if Database[ped] then
+		Database[ped].bodyBuild = session.bodyBuild
+		Database[ped].waist = session.waist
+		Database[ped].eyebrowStyle = session.eyebrowStyle
+		Database[ped].eyebrowColor = session.eyebrowColor
+		Database[ped].hairGroup = session.hairGroup
+		Database[ped].hairColor = session.hairColor
+		Database[ped].beardGroup = session.beardGroup
+	end
+end
+
 -- Opens the same editor on a ped that already exists in the world (Properties ->
 -- Ped Options -> Customize) instead of spawning a fresh one. If this ped was built
 -- by our own system (Create Random/Create Custom/a saved MP ped), its exact look is
@@ -1518,18 +1922,28 @@ RegisterNUICallback('openCustomMpPed', function(data, cb)
 end)
 
 -- Ped Options -> Customize: edit the selected, already-existing ped in place.
+-- Horses (ped type 1, but IsModelAHorse) get the tack editor instead of the human
+-- clothing/body editor — the UI is the same #mp-custom-menu, just different rows.
 RegisterNUICallback('openCustomizePed', function(data, cb)
 	local ped = tonumber(data.handle)
 	local session = nil
+	local isHorse = false
 
 	if Permissions.spawn.ped and ped and DoesEntityExist(ped) and GetEntityType(ped) == 1 then
-		local model = GetEntityModel(ped)
-		local gender = (model == GetHashKey('mp_female')) and 'female' or 'male'
-		session = StartCustomizeSession(ped, gender)
+		if IsEntityHorse(ped) then
+			session = StartHorseTackSession(ped)
+			isHorse = true
+		else
+			local model = GetEntityModel(ped)
+			local gender = (model == GetHashKey('mp_female')) and 'female' or 'male'
+			session = StartCustomizeSession(ped, gender)
+		end
 	end
 
 	if session then
-		cb(json.encode({ gender = session.gender, genderLocked = true, handle = session.ped, categories = SerializeCustomCategories(session) }))
+		-- genderLocked hides the gender row in the UI — always true here (an existing
+		-- ped's model is fixed; a horse has no gender row at all).
+		cb(json.encode({ gender = session.gender or 'male', genderLocked = true, isHorse = isHorse, handle = session.ped, categories = SerializeCustomCategories(session) }))
 	else
 		cb(json.encode({}))
 	end
@@ -1555,6 +1969,10 @@ end)
 -- Shared by customPedCycle (relative) and customPedSetIndex (absolute): moves the
 -- given row to newIndex (already clamped/wrapped by the caller) and re-applies it.
 local function SetCustomRowIndex(session, category, newIndex)
+	if session.isHorse then
+		return SetHorseRowIndex(session, category, newIndex)
+	end
+
 	if CUSTOM_BODY_ROW_FIELD[category] then
 		session[CUSTOM_BODY_ROW_FIELD[category]] = newIndex
 
@@ -1627,6 +2045,10 @@ local function SetCustomRowIndex(session, category, newIndex)
 end
 
 local function GetCustomRowState(session, category)
+	if session.isHorse then
+		return GetHorseRowState(session, category)
+	end
+
 	if CUSTOM_BODY_ROW_FIELD[category] then
 		return session[CUSTOM_BODY_ROW_FIELD[category]] or 1, GetBodyRowCount(session, category), not CUSTOM_BODY_ROW_OPTIONAL[category]
 	end
@@ -1659,6 +2081,14 @@ RegisterNUICallback('customPedCycle', function(data, cb)
 
 			local finalIndex, finalCount = SetCustomRowIndex(session, data.category, newIndex)
 
+			-- A horse mane/tail Style change adds/removes its Color row (and the Color
+			-- count is per-style), so hand back the whole row list and let the UI
+			-- re-render rather than patching a single row.
+			if session.isHorse then
+				cb(json.encode({ index = finalIndex, count = finalCount, categories = SerializeCustomCategories(session) }))
+				return
+			end
+
 			cb(json.encode({ index = finalIndex, count = finalCount }))
 			return
 		end
@@ -1682,6 +2112,11 @@ RegisterNUICallback('customPedSetIndex', function(data, cb)
 
 			local finalIndex, finalCount = SetCustomRowIndex(session, data.category, newIndex)
 
+			if session.isHorse then
+				cb(json.encode({ index = finalIndex, count = finalCount, categories = SerializeCustomCategories(session) }))
+				return
+			end
+
 			cb(json.encode({ index = finalIndex, count = finalCount }))
 			return
 		end
@@ -1692,6 +2127,13 @@ end)
 
 RegisterNUICallback('customPedRandomizeAll', function(data, cb)
 	local session = CustomPedSession
+
+	if session and session.isHorse and session.ped and DoesEntityExist(session.ped) then
+		RandomizeHorseTack(session)
+
+		cb(json.encode({ gender = 'male', genderLocked = true, isHorse = true, handle = session.ped, categories = SerializeCustomCategories(session) }))
+		return
+	end
 
 	if session and session.ped and DoesEntityExist(session.ped) then
 		RandomizeCustomBodyAppearance(session)

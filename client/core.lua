@@ -195,6 +195,25 @@ function RemoveShopItemFromPed(ped, componentHash)
 	Citizen.InvokeNative(0x0D7FFA1B2F69ED82, ped, componentHash, 0, false)
 end
 
+-- Removes every equipped shop item in a whole category (by category hash, e.g.
+-- joaat('saddles')) in one call — used to clear a horse's current saddle/mane/etc.
+-- before applying a new one, since these tack slots don't auto-replace on apply.
+function RemoveShopItemFromPedByCategory(ped, categoryHash)
+	Citizen.InvokeNative(0xDF631E4BCE1B1FC4, ped, categoryHash, 0, false)
+end
+
+-- True if the given model hash is a horse. RDR3 horses are ped type 1 like humans,
+-- so this native (0x772A1969F649E902 _IS_THIS_MODEL_A_HORSE) is the reliable way to
+-- tell a horse apart from a person for the tack-vs-clothing editor split.
+function IsModelAHorse(model)
+	return Citizen.InvokeNative(0x772A1969F649E902, model)
+end
+
+-- Convenience: is this live entity a horse ped?
+function IsEntityHorse(entity)
+	return DoesEntityExist(entity) and GetEntityType(entity) == 1 and IsModelAHorse(GetEntityModel(entity))
+end
+
 -- "Wearable states" are how RDR3 handles a single item having more than one worn
 -- position — e.g. a bandana/neckerchief pulled down around the neck vs pulled up
 -- over the face, a hat on the head vs held/hanging. Same shop item hash throughout;
@@ -302,8 +321,28 @@ function BlipAddForEntity(blipHash, entity)
 	return Citizen.InvokeNative(0x23F74C2FDA6E7C61, blipHash, entity)
 end
 
+-- Bit 0x04 on the horse's internal component flags, marking it as under scripted
+-- control. Without this the game doesn't know a *scripted* seating is legit, so a
+-- later scripted movement task (see StartMovement in behavior.lua) picks generic
+-- ped-walk locomotion instead of the mounted gait, and the rider pops out of the
+-- seat pose into a T-pose the moment the horse starts moving. No effect on non-horses.
+function SetHorseScriptedFlag(mount, toggle)
+	Citizen.InvokeNative(0xB8AB265426CFE6DD, mount, toggle)
+end
+
+-- Confirmed against Rockstar's own decompiled mounted-patrol AI script
+-- (region_law_patrol_creator.ysc.c): the mount/seat relationship is a persistent
+-- attachment state, independent of the task system, so a plain pedestrian navmesh
+-- task on the RIDER makes the engine route locomotion through the horse it's
+-- already seated on automatically — no mount-aware task or flag needed on the
+-- horse itself. See StartMovement in behavior.lua.
+function TaskFollowNavMeshToCoord(ped, x, y, z, speed, timeout, stoppingRange, flags, heading)
+	Citizen.InvokeNative(0x15D3A79D4E44B913, ped, x, y, z, speed, timeout, stoppingRange, flags, heading)
+end
+
 function SetPedOnMount(ped, mount, seatIndex, p3)
 	Citizen.InvokeNative(0x028F76B6E78246EB, ped, mount, seatIndex, p3)
+	SetHorseScriptedFlag(mount, true)
 
 	-- Track the mount -> rider relationship so behaviors (e.g. Patrol + Lasso) can
 	-- tell the mount to move while animating/arming the actual rider.

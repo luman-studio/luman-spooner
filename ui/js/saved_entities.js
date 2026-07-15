@@ -431,6 +431,10 @@ function renderCustomMpPed(data) {
 	document.querySelector('#mp-custom-gender-male').classList.toggle('selected', data.gender === 'male');
 	document.querySelector('#mp-custom-gender-female').classList.toggle('selected', data.gender === 'female');
 
+	// Horses wear tack, not clothing — "Save as MP ped" makes no sense for them, so
+	// hide the save row; live tack edits persist to the horse's Database entry.
+	document.querySelector('#mp-custom-save-row').style.display = data.isHorse ? 'none' : 'flex';
+
 	var list = document.querySelector('#mp-custom-list');
 	list.innerHTML = '';
 
@@ -464,10 +468,13 @@ function createCustomPedRow(entry) {
 	row.className = 'custom-ped-row' + (entry.required ? ' required' : '') + (entry.index === 0 ? ' is-none' : '');
 	row.setAttribute('data-category', entry.category);
 
+	// Prefer an explicit label from the backend (horse tack rows send nicely
+	// formatted names like "Saddle Horn"); otherwise title-case the category key.
+	var labelText = entry.label || formatCustomCategoryLabel(entry.category);
 	var label = document.createElement('span');
 	label.className = 'custom-ped-row-label';
-	label.title = formatCustomCategoryLabel(entry.category);
-	label.innerHTML = formatCustomCategoryLabel(entry.category);
+	label.title = labelText;
+	label.innerHTML = labelText;
 
 	var prevBtn = document.createElement('button');
 	prevBtn.className = 'custom-ped-row-btn';
@@ -543,23 +550,32 @@ function createCustomPedRow(entry) {
 	return row;
 }
 
+// If the backend hands back a full `categories` list (horse mane/tail Style changes
+// add or remove the paired Color row), re-render the whole list; otherwise just
+// patch the single row that changed.
+function applyCustomPedCycleResult(raw, row) {
+	var entry = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+	if (!entry || typeof entry.index === 'undefined') {
+		return;
+	}
+
+	if (entry.categories) {
+		renderCustomMpPed({ categories: entry.categories, genderLocked: true, isHorse: true, gender: 'male' });
+	} else {
+		updateCustomPedRowDisplay(row, entry.index, entry.count);
+	}
+}
+
 function cycleCustomPedCategory(category, direction, row) {
 	sendMessage('customPedCycle', { category: category, direction: direction }).then(resp => resp.json()).then(function(raw) {
-		var entry = typeof raw === 'string' ? JSON.parse(raw) : raw;
-
-		if (entry && typeof entry.index !== 'undefined') {
-			updateCustomPedRowDisplay(row, entry.index, entry.count);
-		}
+		applyCustomPedCycleResult(raw, row);
 	});
 }
 
 function setCustomPedIndex(category, index, row) {
 	sendMessage('customPedSetIndex', { category: category, index: index }).then(resp => resp.json()).then(function(raw) {
-		var entry = typeof raw === 'string' ? JSON.parse(raw) : raw;
-
-		if (entry && typeof entry.index !== 'undefined') {
-			updateCustomPedRowDisplay(row, entry.index, entry.count);
-		}
+		applyCustomPedCycleResult(raw, row);
 	});
 }
 

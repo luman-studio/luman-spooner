@@ -86,7 +86,9 @@ window.addEventListener('load', function() {
 		});
 
 		peds = JSON.parse(resp.peds);
+		horses = peds.filter(function(name) { return name.indexOf('a_c_horse_') === 0; });
 		populateSpawnMenu('ped', '', true);
+		populateSpawnMenu('horse', '', true);
 		populatePlayerModelList();
 
 		vehicles = JSON.parse(resp.vehicles);
@@ -278,16 +280,22 @@ window.addEventListener('load', function() {
 		closeAnimPropsMenu();
 	});
 
-	document.querySelector('#properties-set-patrol-lasso').addEventListener('click', function(event) {
+	document.querySelector('#movement-start').addEventListener('click', function(event) {
 		var handle = currentEntity();
+		var run = document.querySelector('#movement-run').checked;
+		var lasso = document.querySelector('#movement-lasso').checked;
+		var loop = document.querySelector('#movement-loop').checked;
 		closePropertiesMenu(true);
-		sendMessage('setupPatrolLasso', {
-			handle: handle
+		sendMessage('setupMovement', {
+			handle: handle,
+			run: run,
+			lasso: lasso,
+			loop: loop
 		});
 	});
 
-	document.querySelector('#properties-clear-patrol-lasso').addEventListener('click', function(event) {
-		sendMessage('clearPatrolLasso', {
+	document.querySelector('#movement-stop').addEventListener('click', function(event) {
+		sendMessage('clearMovement', {
 			handle: currentEntity()
 		});
 	});
@@ -521,6 +529,10 @@ window.addEventListener('load', function() {
 
 	document.querySelector('#spawn-menu-peds').addEventListener('click', function(event) {
 		openPedMenu();
+	});
+
+	document.querySelector('#spawn-menu-horses').addEventListener('click', function(event) {
+		openHorseMenu();
 	});
 
 	document.querySelector('#spawn-menu-vehicles').addEventListener('click', function(event) {

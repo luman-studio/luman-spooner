@@ -199,14 +199,14 @@ function MainSpoonerUpdates()
 				local target = PendingBehavior.entity
 
 				if DoesEntityExist(target) then
-					StartPatrolLasso(target, PendingBehavior.a, { x = spawnPos.x, y = spawnPos.y, z = spawnPos.z })
-					notify('Patrol + Lasso started')
+					StartMovement(target, PendingBehavior.a, { x = spawnPos.x, y = spawnPos.y, z = spawnPos.z }, PendingBehavior.opts)
+					notify('Movement started')
 				end
 
 				PendingBehavior = nil
 			elseif IsDisabledControlJustPressed(0, Config.DeleteControl) then
 				PendingBehavior = nil
-				notify('Patrol setup cancelled')
+				notify('Movement setup cancelled')
 			end
 		end
 
